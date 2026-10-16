@@ -1,0 +1,6 @@
+{
+  "name": "LUMIR | لومير — خدمات تصوير المناسبات وأركان الأطفال وتنظيم الأفراح",
+  "description": "لومير (LUMIR) — نضيء لياليك وفرحة صغارك. خدمات تصوير المناسبات بالجوال، أركان الأطفال، مشرفات الرعاية، ومساندة وتنظيم الأفراح في مكة المكرمة وجدة.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
