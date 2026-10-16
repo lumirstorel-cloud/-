@@ -947,7 +947,8 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
       email: 'lumir.store.l@gmail.com',
       role: 'super_admin',
       phone: '0579105700',
-      lastLoginAt: '2026-10-14T21:00:00.000Z'
+      lastLoginAt: '2026-10-14T21:00:00.000Z',
+      isActive: true
     },
     {
       id: 'adm-2',
@@ -955,7 +956,8 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
       email: 'ops@lumir.sa',
       role: 'operations_manager',
       phone: '0550001122',
-      lastLoginAt: '2026-10-14T20:30:00.000Z'
+      lastLoginAt: '2026-10-14T20:30:00.000Z',
+      isActive: true
     },
     {
       id: 'adm-3',
@@ -963,7 +965,8 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
       email: 'media@lumir.sa',
       role: 'content_editor',
       phone: '0550003344',
-      lastLoginAt: '2026-10-14T19:00:00.000Z'
+      lastLoginAt: '2026-10-14T19:00:00.000Z',
+      isActive: true
     }
   ]
 };

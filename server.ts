@@ -344,7 +344,7 @@ app.post('/api/bookings', (req: Request, res: Response) => {
   });
 });
 
-// Public Track Order (by exact Reference Code or Phone)
+// Public Track Order (by exact Reference Code or Phone - Sanitized for client privacy)
 app.get('/api/bookings/track/:ref', (req: Request, res: Response) => {
   const ref = req.params.ref.trim().toUpperCase();
   const booking = database.bookings.find(
@@ -355,7 +355,35 @@ app.get('/api/bookings/track/:ref', (req: Request, res: Response) => {
     return res.status(404).json({ error: 'لم يتم العثور على أي طلب بهذا الرقم المرجعي أو رقم الجوال' });
   }
 
-  return res.json(booking);
+  // Sanitize customer data for privacy protection: Mask phone and omit internal administrative notes
+  const rawPhone = booking.clientPhone || '';
+  const digits = rawPhone.replace(/\D/g, '');
+  const maskedPhone =
+    digits.length >= 8
+      ? `${digits.slice(0, 3)}****${digits.slice(-3)}`
+      : '******';
+
+  return res.json({
+    id: booking.id,
+    referenceCode: booking.referenceCode,
+    clientName: booking.clientName,
+    clientPhoneMasked: maskedPhone,
+    city: booking.city,
+    district: booking.district,
+    venueName: booking.venueName,
+    eventDate: booking.eventDate,
+    startTime: booking.startTime,
+    durationHours: booking.durationHours,
+    categoryKey: booking.categoryKey,
+    serviceName: booking.serviceName,
+    packageName: booking.packageName,
+    subtotalSar: booking.subtotalSar,
+    approvedFeesSar: booking.approvedFeesSar,
+    estimatedTotalSar: booking.estimatedTotalSar,
+    status: booking.status,
+    specialNotes: booking.specialNotes,
+    createdAt: booking.createdAt
+  });
 });
 
 // Public Validate Coupon
@@ -615,6 +643,66 @@ app.put(
   }
 );
 
+app.post(
+  '/api/admin/services/:serviceId/packages',
+  requireAuth,
+  requireRole(['super_admin', 'content_editor']),
+  (req: AuthenticatedRequest, res: Response) => {
+    const { serviceId } = req.params;
+    const pkgData = req.body;
+
+    const srv = database.services.find((s) => s.id === serviceId);
+    if (!srv) return res.status(404).json({ error: 'الخدمة غير موجودة' });
+
+    const newPkg = {
+      ...pkgData,
+      id: pkgData.id || `pkg-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      features: Array.isArray(pkgData.features) ? pkgData.features : []
+    };
+
+    srv.packages.push(newPkg);
+
+    logAuditEvent({
+      admin: req.adminUser!,
+      action: 'إضافة باقة جديدة للخدمة',
+      targetType: 'package',
+      targetId: newPkg.id,
+      details: `تمت إضافة باقة جديدة «${newPkg.name}» بقيمة ${newPkg.price} ر.س إلى خدمة ${srv.name}`
+    });
+
+    saveDatabase();
+    return res.status(201).json({ success: true, package: newPkg });
+  }
+);
+
+app.delete(
+  '/api/admin/services/:serviceId/packages/:packageId',
+  requireAuth,
+  requireRole(['super_admin', 'content_editor']),
+  (req: AuthenticatedRequest, res: Response) => {
+    const { serviceId, packageId } = req.params;
+
+    const srv = database.services.find((s) => s.id === serviceId);
+    if (!srv) return res.status(404).json({ error: 'الخدمة غير موجودة' });
+
+    const pIndex = srv.packages.findIndex((p) => p.id === packageId);
+    if (pIndex === -1) return res.status(404).json({ error: 'الباقة غير موجودة' });
+
+    const removed = srv.packages.splice(pIndex, 1)[0];
+
+    logAuditEvent({
+      admin: req.adminUser!,
+      action: 'حذف باقة من الخدمة',
+      targetType: 'package',
+      targetId: packageId,
+      details: `تم حذف باقة «${removed.name}» من خدمة ${srv.name}`
+    });
+
+    saveDatabase();
+    return res.json({ success: true, message: 'تم حذف الباقة بنجاح' });
+  }
+);
+
 // 8. Manage Portfolio Media (Super Admin or Content Editor)
 app.post(
   '/api/admin/portfolio',
@@ -660,6 +748,28 @@ app.delete(
   }
 );
 
+app.put(
+  '/api/admin/portfolio/:id',
+  requireAuth,
+  requireRole(['super_admin', 'content_editor']),
+  (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
+    const index = database.portfolio.findIndex((p) => p.id === id);
+    if (index === -1) return res.status(404).json({ error: 'العنصر غير موجود' });
+
+    database.portfolio[index] = { ...database.portfolio[index], ...req.body };
+    logAuditEvent({
+      admin: req.adminUser!,
+      action: 'تعديل عمل في معرض الأعمال',
+      targetType: 'portfolio',
+      targetId: id,
+      details: `تم تعديل العمل: ${database.portfolio[index].title}`
+    });
+    saveDatabase();
+    return res.json({ success: true, item: database.portfolio[index] });
+  }
+);
+
 // 9. Manage FAQs (Super Admin or Content Editor)
 app.post(
   '/api/admin/faqs',
@@ -680,6 +790,28 @@ app.post(
     });
     saveDatabase();
     return res.status(201).json({ success: true, faq });
+  }
+);
+
+app.put(
+  '/api/admin/faqs/:id',
+  requireAuth,
+  requireRole(['super_admin', 'content_editor']),
+  (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
+    const index = database.faqs.findIndex((f) => f.id === id);
+    if (index === -1) return res.status(404).json({ error: 'السؤال غير موجود' });
+
+    database.faqs[index] = { ...database.faqs[index], ...req.body };
+    logAuditEvent({
+      admin: req.adminUser!,
+      action: 'تعديل سؤال شائع',
+      targetType: 'faq',
+      targetId: id,
+      details: `تم تعديل السؤال: ${database.faqs[index].question}`
+    });
+    saveDatabase();
+    return res.json({ success: true, faq: database.faqs[index] });
   }
 );
 
@@ -719,6 +851,33 @@ app.post(
     });
     saveDatabase();
     return res.status(201).json({ success: true, coupon });
+  }
+);
+
+app.put(
+  '/api/admin/coupons/:id',
+  requireAuth,
+  requireRole(['super_admin']),
+  (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
+    const index = database.coupons.findIndex((c) => c.id === id);
+    if (index === -1) return res.status(404).json({ error: 'الكوبون غير موجود' });
+
+    const prevActive = database.coupons[index].isActive;
+    database.coupons[index] = { ...database.coupons[index], ...req.body };
+
+    logAuditEvent({
+      admin: req.adminUser!,
+      action: 'تعديل كود خصم',
+      targetType: 'coupon',
+      targetId: database.coupons[index].code,
+      details: `تم تعديل بيانات كود الخصم ${database.coupons[index].code}`,
+      previousValue: `الحالة: ${prevActive ? 'مفعل' : 'معطل'}`,
+      newValue: `الحالة: ${database.coupons[index].isActive ? 'مفعل' : 'معطل'}`
+    });
+
+    saveDatabase();
+    return res.json({ success: true, coupon: database.coupons[index] });
   }
 );
 
@@ -894,9 +1053,119 @@ app.put(
   }
 );
 
+// 16. Manage Admin Users & Roles (Super Admin Only)
+app.get('/api/admin/users', requireAuth, (_req: AuthenticatedRequest, res: Response) => {
+  return res.json({ success: true, users: database.admins });
+});
+
+app.post(
+  '/api/admin/users',
+  requireAuth,
+  requireRole(['super_admin']),
+  (req: AuthenticatedRequest, res: Response) => {
+    const { name, email, role, phone } = req.body;
+    if (!name || !email || !role) {
+      return res.status(400).json({ error: 'الاسم والبريد الإلكتروني والرتبة حقول مطلوبة' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const existing = database.admins.find((a) => a.email.toLowerCase() === cleanEmail);
+    if (existing) {
+      return res.status(400).json({ error: 'يوجد مسؤول مسجل بهذا البريد الإلكتروني مسبقاً' });
+    }
+
+    const newUser: AdminUser = {
+      id: `adm-${Date.now()}`,
+      name: name.trim(),
+      email: cleanEmail,
+      role,
+      phone: phone?.trim() || '',
+      isActive: true,
+      lastLoginAt: undefined
+    };
+
+    database.admins.push(newUser);
+    logAuditEvent({
+      admin: req.adminUser!,
+      action: 'إضافة مسؤول جديد وتحديد الصلاحيات',
+      targetType: 'role',
+      targetId: newUser.id,
+      details: `تمت إضافة حساب ${newUser.name} (${newUser.email}) برتبة «${newUser.role}»`
+    });
+
+    saveDatabase();
+    return res.status(201).json({ success: true, user: newUser });
+  }
+);
+
+app.put(
+  '/api/admin/users/:id',
+  requireAuth,
+  requireRole(['super_admin']),
+  (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
+    const { name, role, phone, isActive } = req.body;
+
+    const userIndex = database.admins.findIndex((a) => a.id === id);
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'المسؤول غير موجود' });
+    }
+
+    const prevRole = database.admins[userIndex].role;
+    const prevActive = database.admins[userIndex].isActive;
+
+    if (name) database.admins[userIndex].name = name;
+    if (role) database.admins[userIndex].role = role;
+    if (phone !== undefined) database.admins[userIndex].phone = phone;
+    if (isActive !== undefined) database.admins[userIndex].isActive = isActive;
+
+    logAuditEvent({
+      admin: req.adminUser!,
+      action: 'تعديل بيانات ورتبة مسؤول',
+      targetType: 'role',
+      targetId: id,
+      details: `تعديل صلاحيات ${database.admins[userIndex].name}`,
+      previousValue: `رتبة: ${prevRole}، نشط: ${prevActive}`,
+      newValue: `رتبة: ${database.admins[userIndex].role}، نشط: ${database.admins[userIndex].isActive}`
+    });
+
+    saveDatabase();
+    return res.json({ success: true, user: database.admins[userIndex] });
+  }
+);
+
+app.delete(
+  '/api/admin/users/:id',
+  requireAuth,
+  requireRole(['super_admin']),
+  (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
+    if (req.adminUser?.id === id) {
+      return res.status(400).json({ error: 'لا يمكنكِ حذف حسابكِ الشخصي الحالي' });
+    }
+
+    const userIndex = database.admins.findIndex((a) => a.id === id);
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'المسؤول غير موجود' });
+    }
+
+    const removed = database.admins.splice(userIndex, 1)[0];
+    logAuditEvent({
+      admin: req.adminUser!,
+      action: 'حذف حساب مسؤول نهائياً',
+      targetType: 'role',
+      targetId: id,
+      details: `تم حذف حساب ${removed.name} (${removed.email})`
+    });
+
+    saveDatabase();
+    return res.json({ success: true, message: 'تم حذف حساب المسؤول بنجاح' });
+  }
+);
+
 // 16. Full State Sync from Admin
 app.post(
-  '/api/admin/sync',
+  ['/api/admin/sync', '/api/admin/sync-all'],
   requireAuth,
   requireRole(['super_admin']),
   (req: AuthenticatedRequest, res: Response) => {

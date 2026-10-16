@@ -2,18 +2,22 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
   AdminRole,
   AdminUser,
+  AnnouncementBarSettings,
   AuditLogEntry,
   BookingStatus,
   BookingSubmission,
   CityCoverageSetting,
   CouponItem,
   FAQItem,
+  HeroBanner,
+  HeroSliderSettings,
   LumirCentralData,
   PageView,
   PortfolioMediaItem,
   PricingModel,
   ServiceCategoryKey,
   ServiceItem,
+  ServicePackage,
   SiteSettings
 } from '../types';
 import {
@@ -30,21 +34,34 @@ import {
   getStatusLabel
 } from '../utils/formatters';
 import {
+  adminAddBannerApi,
   adminAddCouponApi,
   adminAddFAQApi,
+  adminAddPackageApi,
   adminAddPortfolioApi,
+  adminAddUserApi,
+  adminDeleteBannerApi,
   adminDeleteBookingApi,
   adminDeleteCouponApi,
   adminDeleteFAQApi,
+  adminDeletePackageApi,
   adminDeletePortfolioApi,
+  adminDeleteUserApi,
   adminGetFullDataApi,
   adminLoginApi,
   adminSyncAllApi,
+  adminUpdateAnnouncementsApi,
+  adminUpdateBannerApi,
   adminUpdateBookingStatusApi,
   adminUpdateCityCoverageApi,
+  adminUpdateCouponApi,
+  adminUpdateFAQApi,
   adminUpdatePackageApi,
+  adminUpdatePortfolioApi,
   adminUpdateServiceApi,
-  adminUpdateSettingsApi
+  adminUpdateSettingsApi,
+  adminUpdateSliderSettingsApi,
+  adminUpdateUserApi
 } from '../utils/apiClient';
 import {
   AlertCircle,
@@ -89,7 +106,10 @@ import {
   User,
   Users,
   Video,
-  X
+  X,
+  Megaphone,
+  SlidersHorizontal,
+  Edit3
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -155,6 +175,99 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [cityCoverage, setCityCoverage] = useState<CityCoverageSetting[]>(data.cityCoverage || []);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(data.auditLogs || []);
   const [adminsList, setAdminsList] = useState<AdminUser[]>(data.admins || []);
+  const [banners, setBanners] = useState<HeroBanner[]>(data.banners || []);
+  const [sliderSettings, setSliderSettings] = useState<HeroSliderSettings>(
+    data.sliderSettings || {
+      autoPlay: true,
+      intervalSeconds: 3,
+      pauseOnHover: true,
+      showArrows: true,
+      showIndicators: true
+    }
+  );
+  const [announcements, setAnnouncements] = useState<AnnouncementBarSettings>(
+    data.announcements || {
+      isEnabled: true,
+      bgColor: '#2C1E18',
+      textColor: '#FAF6F0',
+      accentColor: '#C8A96E',
+      intervalSeconds: 4,
+      isTicker: false,
+      messages: []
+    }
+  );
+  const [newAnnouncementBadge, setNewAnnouncementBadge] = useState('');
+  const [newAnnouncementText, setNewAnnouncementText] = useState('');
+
+  // Content Sub Tab ('faqs' | 'banners' | 'announcements')
+  const [contentSubTab, setContentSubTab] = useState<'faqs' | 'banners' | 'announcements'>('faqs');
+
+  // Confirmation Modal State (Replaces native browser alert/confirm)
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmLabel?: string;
+    onConfirm: () => Promise<void> | void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmLabel: 'تأكيد الحذف',
+    onConfirm: () => {}
+  });
+
+  // Package Management State
+  const [editingPackage, setEditingPackage] = useState<{
+    serviceId: string;
+    package: ServicePackage;
+    isNew?: boolean;
+  } | null>(null);
+  const [newFeatureText, setNewFeatureText] = useState('');
+
+  // City Editing State
+  const [editingCity, setEditingCity] = useState<CityCoverageSetting | null>(null);
+  const [newDistrictInput, setNewDistrictInput] = useState('');
+
+  // Banner Editing State
+  const [editingBanner, setEditingBanner] = useState<HeroBanner | null>(null);
+  const [showAddBannerModal, setShowAddBannerModal] = useState(false);
+  const [newBanner, setNewBanner] = useState<Partial<HeroBanner>>({
+    title: '',
+    subtitle: '',
+    badge: '✨ لومير الفاخرة',
+    desktopImageUrl: '/src/assets/images/lumir_hero_1792039742181.jpg',
+    ctaText: 'استكشاف باقات لومير',
+    ctaLink: 'catalog',
+    textPosition: 'right',
+    overlayDarkness: 0.35,
+    displayOrder: 1,
+    isActive: true
+  });
+
+  // Admin User & Roles Management State
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const [newUser, setNewUser] = useState<{
+    name: string;
+    email: string;
+    role: AdminRole;
+    phone: string;
+  }>({
+    name: '',
+    email: '',
+    role: 'operations_manager',
+    phone: ''
+  });
+
+  // FAQ Editing State
+  const [editingFaq, setEditingFaq] = useState<FAQItem | null>(null);
+
+  // Portfolio Editing State
+  const [editingPortfolioItem, setEditingPortfolioItem] = useState<PortfolioMediaItem | null>(null);
+
+  // Coupon Editing State
+  const [editingCoupon, setEditingCoupon] = useState<CouponItem | null>(null);
 
   // Sync state with parent & server on mount if token exists
   useEffect(() => {
@@ -170,6 +283,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           setCityCoverage(res.data.cityCoverage || []);
           setAuditLogs(res.data.auditLogs || []);
           setAdminsList(res.data.admins || []);
+          if (res.data.banners) setBanners(res.data.banners);
+          if (res.data.sliderSettings) setSliderSettings(res.data.sliderSettings);
+          if (res.data.announcements) setAnnouncements(res.data.announcements);
           onSaveData(res.data);
         }
       });
@@ -227,9 +343,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       auditLogs,
       cityCoverage,
       admins: adminsList,
-      announcements: data.announcements,
-      banners: data.banners,
-      sliderSettings: data.sliderSettings
+      announcements,
+      banners,
+      sliderSettings
     };
     onSaveData(fullData);
     const res = await adminSyncAllApi(token, fullData);
@@ -330,13 +446,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         bookings
       );
       if (conflict) {
-        if (
-          !window.confirm(
-            `⚠️ تنبيه تعارض: يوجد موعد آخر مؤكد لنفس الخدمة (${conflict.referenceCode}) في تاريخ ${conflict.eventDate} الساعة ${conflict.startTime}. هل ترغبين بتأكيد كلا الحجزين معاً؟`
-          )
-        ) {
-          return;
-        }
+        setConfirmModal({
+          isOpen: true,
+          title: '⚠️ تنبيه تعارض في المواعيد',
+          description: `يوجد موعد آخر مؤكد لنفس الخدمة (${conflict.referenceCode}) في تاريخ ${conflict.eventDate} الساعة ${conflict.startTime} بمدينة ${conflict.city}. هل ترغبين بتأكيد كلا الحجزين معاً؟`,
+          confirmLabel: 'تأكيد الحجز رغم التعارض',
+          onConfirm: async () => {
+            const res = await adminUpdateBookingStatusApi(token, id, newStatus);
+            if (res.success && res.booking) {
+              const updated = bookings.map((b) => (b.id === id ? res.booking! : b));
+              setBookings(updated);
+              if (selectedOrder && selectedOrder.id === id) {
+                setSelectedOrder(res.booking!);
+              }
+              showToast(`تم تأكيد الطلب بنجاح (مع تسجيل التعارض)`);
+            } else {
+              showToast(res.error || 'تعذر تحديث حالة الطلب', 'error');
+            }
+          }
+        });
+        return;
       }
     }
 
@@ -353,26 +482,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  // Delete Order with confirmation
-  const handleDeleteOrder = async (id: string) => {
+  // Delete Order with modal confirmation
+  const handleDeleteOrder = (id: string) => {
     if (!token) return;
     if (!hasRole(['super_admin'])) {
       showToast('حذف الطلبات نهائياً متاح فقط للمدير العام (Super Admin)', 'error');
       return;
     }
 
-    if (!window.confirm('هل أنتِ متأكدة تماماً من حذف هذا الطلب نهائياً من قاعدة البيانات؟ لا يمكن التراجع.')) {
-      return;
-    }
-
-    const res = await adminDeleteBookingApi(token, id);
-    if (res.success) {
-      setBookings(bookings.filter((b) => b.id !== id));
-      if (selectedOrder && selectedOrder.id === id) setSelectedOrder(null);
-      showToast('تم حذف الطلب بنجاح.');
-    } else {
-      showToast(res.error || 'تعذر حذف الطلب', 'error');
-    }
+    const order = bookings.find((b) => b.id === id);
+    setConfirmModal({
+      isOpen: true,
+      title: 'حذف طلب الحجز نهائياً',
+      description: `هل أنتِ متأكدة تماماً من حذف الطلب رقم (${order?.referenceCode || ''}) الخاص بالعميل (${order?.clientName || ''}) نهائياً من قاعدة البيانات؟ لن يمكن استرجاع هذا الطلب.`,
+      confirmLabel: 'تأكيد الحذف النهائي',
+      onConfirm: async () => {
+        const res = await adminDeleteBookingApi(token, id);
+        if (res.success) {
+          setBookings((prev) => prev.filter((b) => b.id !== id));
+          if (selectedOrder && selectedOrder.id === id) setSelectedOrder(null);
+          showToast('تم حذف الطلب بنجاح.');
+        } else {
+          showToast(res.error || 'تعذر حذف الطلب', 'error');
+        }
+      }
+    });
   };
 
   // Export to CSV
@@ -542,15 +676,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const handleDeletePortfolio = async (id: string) => {
+  const handleDeletePortfolio = (id: string) => {
     if (!token) return;
-    if (!window.confirm('هل أنتِ متأكدة من حذف هذا العمل من معرض الأعمال؟')) return;
-    const res = await adminDeletePortfolioApi(token, id);
-    if (res.success) {
-      setPortfolio(portfolio.filter((p) => p.id !== id));
-      showToast('تم حذف العمل بنجاح.');
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('حذف الأعمال متاح للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    const item = portfolio.find((p) => p.id === id);
+    setConfirmModal({
+      isOpen: true,
+      title: 'حذف عمل من معرض الأعمال',
+      description: `هل أنتِ متأكدة من حذف العمل «${item?.title || ''}» نهائياً من المعرض؟`,
+      confirmLabel: 'حذف العمل',
+      onConfirm: async () => {
+        const res = await adminDeletePortfolioApi(token, id);
+        if (res.success) {
+          setPortfolio((prev) => prev.filter((p) => p.id !== id));
+          showToast('تم حذف العمل بنجاح.');
+        } else {
+          showToast(res.error || 'تعذر الحذف', 'error');
+        }
+      }
+    });
+  };
+
+  const handleUpdatePortfolio = async (item: PortfolioMediaItem) => {
+    if (!token) return;
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('تعديل الأعمال متاح للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    const res = await adminUpdatePortfolioApi(token, item.id, item);
+    if (res.success && res.item) {
+      setPortfolio((prev) => prev.map((p) => (p.id === item.id ? res.item! : p)));
+      setEditingPortfolioItem(null);
+      showToast('تم تعديل بيانات العمل بنجاح.');
     } else {
-      showToast(res.error || 'تعذر الحذف', 'error');
+      showToast(res.error || 'تعذر تعديل العمل', 'error');
     }
   };
 
@@ -565,6 +727,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleAddFaq = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || !newFaq.question || !newFaq.answer) return;
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('إضافة الأسئلة متاحة للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
     const res = await adminAddFAQApi(token, { ...newFaq, order: faqs.length + 1 });
     if (res.success && res.faq) {
       setFaqs([...faqs, res.faq]);
@@ -576,15 +742,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const handleDeleteFaq = async (id: string) => {
+  const handleDeleteFaq = (id: string) => {
     if (!token) return;
-    if (!window.confirm('هل تريدين حذف هذا السؤال الشائع؟')) return;
-    const res = await adminDeleteFAQApi(token, id);
-    if (res.success) {
-      setFaqs(faqs.filter((f) => f.id !== id));
-      showToast('تم حذف السؤال بنجاح.');
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('حذف الأسئلة متاح للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    const faq = faqs.find((f) => f.id === id);
+    setConfirmModal({
+      isOpen: true,
+      title: 'حذف السؤال الشائع',
+      description: `هل أنتِ متأكدة من حذف السؤال: «${faq?.question || ''}»؟`,
+      confirmLabel: 'حذف السؤال',
+      onConfirm: async () => {
+        const res = await adminDeleteFAQApi(token, id);
+        if (res.success) {
+          setFaqs((prev) => prev.filter((f) => f.id !== id));
+          showToast('تم حذف السؤال بنجاح.');
+        } else {
+          showToast(res.error || 'تعذر الحذف', 'error');
+        }
+      }
+    });
+  };
+
+  const handleUpdateFaq = async (faq: FAQItem) => {
+    if (!token) return;
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('تعديل الأسئلة متاح للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    const res = await adminUpdateFAQApi(token, faq.id, faq);
+    if (res.success && res.faq) {
+      setFaqs((prev) => prev.map((f) => (f.id === faq.id ? res.faq! : f)));
+      setEditingFaq(null);
+      showToast('تم تحديث السؤال الشائع بنجاح.');
     } else {
-      showToast(res.error || 'تعذر الحذف', 'error');
+      showToast(res.error || 'تعذر تعديل السؤال', 'error');
     }
   };
 
@@ -627,19 +821,365 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const handleDeleteCoupon = async (id: string) => {
+  const handleDeleteCoupon = (id: string) => {
     if (!token) return;
     if (!hasRole(['super_admin'])) {
       showToast('حذف الكوبونات متاح للمدير العام فقط', 'error');
       return;
     }
-    if (!window.confirm('هل أنتِ متأكدة من حذف هذا الكوبون؟')) return;
-    const res = await adminDeleteCouponApi(token, id);
-    if (res.success) {
-      setCoupons(coupons.filter((c) => c.id !== id));
-      showToast('تم حذف الكوبون بنجاح.');
+    const cp = coupons.find((c) => c.id === id);
+    setConfirmModal({
+      isOpen: true,
+      title: 'حذف كود الخصم',
+      description: `هل أنتِ متأكدة من حذف كود الخصم (${cp?.code || ''})؟ لن يتمكن العملاء من استخدامه بعد الحذف.`,
+      confirmLabel: 'حذف الكود',
+      onConfirm: async () => {
+        const res = await adminDeleteCouponApi(token, id);
+        if (res.success) {
+          setCoupons((prev) => prev.filter((c) => c.id !== id));
+          showToast('تم حذف الكوبون بنجاح.');
+        } else {
+          showToast(res.error || 'تعذر الحذف', 'error');
+        }
+      }
+    });
+  };
+
+  const handleToggleCoupon = async (id: string, currentActive: boolean) => {
+    if (!token) return;
+    if (!hasRole(['super_admin'])) {
+      showToast('تعديل حالة الكوبونات متاح للمدير العام فقط', 'error');
+      return;
+    }
+    const res = await adminUpdateCouponApi(token, id, { isActive: !currentActive });
+    if (res.success && res.coupon) {
+      setCoupons((prev) => prev.map((c) => (c.id === id ? res.coupon! : c)));
+      showToast(`تم ${!currentActive ? 'تفعيل' : 'تعطيل'} كود الخصم بنجاح.`);
     } else {
-      showToast(res.error || 'تعذر الحذف', 'error');
+      showToast(res.error || 'تعذر تغيير حالة الكوبون', 'error');
+    }
+  };
+
+  const handleUpdateCoupon = async (coupon: CouponItem) => {
+    if (!token) return;
+    if (!hasRole(['super_admin'])) {
+      showToast('تعديل الكوبونات متاح للمدير العام فقط', 'error');
+      return;
+    }
+    const res = await adminUpdateCouponApi(token, coupon.id, coupon);
+    if (res.success && res.coupon) {
+      setCoupons((prev) => prev.map((c) => (c.id === coupon.id ? res.coupon! : c)));
+      setEditingCoupon(null);
+      showToast('تم حفظ تعديلات كود الخصم بنجاح.');
+    } else {
+      showToast(res.error || 'تعذر تعديل الكوبون', 'error');
+    }
+  };
+
+  // ================= ADMIN USERS & ROLES HANDLERS =================
+  const handleAddAdminUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !newUser.name || !newUser.email) {
+      showToast('يرجى إدخال اسم المسؤول وبريده الإلكتروني', 'error');
+      return;
+    }
+    if (!hasRole(['super_admin'])) {
+      showToast('إضافة المسؤولين متاحة للمدير العام فقط', 'error');
+      return;
+    }
+
+    const res = await adminAddUserApi(token, newUser);
+    if (res.success && res.user) {
+      setAdminsList((prev) => [...prev, res.user!]);
+      setShowAddUserModal(false);
+      setNewUser({ name: '', email: '', role: 'operations_manager', phone: '' });
+      showToast(`تمت إضافة المسؤول ${res.user.name} بنجاح.`);
+    } else {
+      showToast(res.error || 'تعذر إضافة المسؤول', 'error');
+    }
+  };
+
+  const handleUpdateAdminUser = async (user: AdminUser) => {
+    if (!token) return;
+    if (!hasRole(['super_admin'])) {
+      showToast('تعديل صلاحيات المسؤولين متاح للمدير العام فقط', 'error');
+      return;
+    }
+    const res = await adminUpdateUserApi(token, user.id, user);
+    if (res.success && res.user) {
+      setAdminsList((prev) => prev.map((u) => (u.id === user.id ? res.user! : u)));
+      setEditingUser(null);
+      showToast('تم تحديث بيانات ورتبة المسؤول بنجاح.');
+    } else {
+      showToast(res.error || 'تعذر تعديل المسؤول', 'error');
+    }
+  };
+
+  const handleToggleAdminActive = async (user: AdminUser) => {
+    if (!token) return;
+    if (!hasRole(['super_admin'])) {
+      showToast('تعديل حالة حساب المسؤول متاح للمدير العام فقط', 'error');
+      return;
+    }
+    if (currentUser?.id === user.id) {
+      showToast('لا يمكنكِ تعطيل حسابكِ الحالي', 'error');
+      return;
+    }
+    const res = await adminUpdateUserApi(token, user.id, { isActive: !user.isActive });
+    if (res.success && res.user) {
+      setAdminsList((prev) => prev.map((u) => (u.id === user.id ? res.user! : u)));
+      showToast(`تم ${!user.isActive ? 'تنشيط' : 'تعطيل'} حساب المسؤول بنجاح.`);
+    } else {
+      showToast(res.error || 'تعذر تغيير حالة الحساب', 'error');
+    }
+  };
+
+  const handleDeleteAdminUser = (user: AdminUser) => {
+    if (!token) return;
+    if (!hasRole(['super_admin'])) {
+      showToast('حذف حسابات المسؤولين متاح للمدير العام فقط', 'error');
+      return;
+    }
+    if (currentUser?.id === user.id) {
+      showToast('لا يمكنكِ حذف حسابكِ الشخصي الحالي المسجل به الدخول', 'error');
+      return;
+    }
+
+    setConfirmModal({
+      isOpen: true,
+      title: 'حذف حساب مسؤول',
+      description: `هل أنتِ متأكدة من حذف حساب المسؤول «${user.name}» (${user.email}) نهائياً؟`,
+      confirmLabel: 'تأكيد حذف الحساب',
+      onConfirm: async () => {
+        const res = await adminDeleteUserApi(token, user.id);
+        if (res.success) {
+          setAdminsList((prev) => prev.filter((u) => u.id !== user.id));
+          showToast('تم حذف حساب المسؤول بنجاح.');
+        } else {
+          showToast(res.error || 'تعذر حذف الحساب', 'error');
+        }
+      }
+    });
+  };
+
+  // ================= PACKAGES HANDLERS =================
+  const handleOpenAddPackage = (serviceId: string) => {
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('إدارة الباقات متاحة للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    setEditingPackage({
+      serviceId,
+      isNew: true,
+      package: {
+        id: `pkg-${Date.now()}`,
+        name: '',
+        durationHours: 4,
+        price: 400,
+        deliveryTimeframe: '٤٨ ساعة',
+        popular: false,
+        features: ['تغطية متواصلة بمستوى فاخر', 'تسليم سريع خلال ٤٨ ساعة']
+      }
+    });
+  };
+
+  const handleOpenEditPackage = (serviceId: string, pkg: ServicePackage) => {
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('إدارة الباقات متاحة للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    setEditingPackage({
+      serviceId,
+      isNew: false,
+      package: { ...pkg, features: [...pkg.features] }
+    });
+  };
+
+  const handleSavePackage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !editingPackage) return;
+    const { serviceId, package: pkg, isNew } = editingPackage;
+    if (!pkg.name || !pkg.price) {
+      showToast('يرجى ملء اسم الباقة وسعرها', 'error');
+      return;
+    }
+
+    if (isNew) {
+      const res = await adminAddPackageApi(token, serviceId, pkg);
+      if (res.success && res.package) {
+        setServices((prev) =>
+          prev.map((s) =>
+            s.id === serviceId ? { ...s, packages: [...s.packages, res.package] } : s
+          )
+        );
+        setEditingPackage(null);
+        showToast('تمت إضافة الباقة الجديدة بنجاح.');
+      } else {
+        showToast(res.error || 'تعذر إضافة الباقة', 'error');
+      }
+    } else {
+      const res = await adminUpdatePackageApi(token, serviceId, pkg.id, pkg);
+      if (res.success) {
+        setServices((prev) =>
+          prev.map((s) =>
+            s.id === serviceId
+              ? { ...s, packages: s.packages.map((p) => (p.id === pkg.id ? pkg : p)) }
+              : s
+          )
+        );
+        setEditingPackage(null);
+        showToast('تم تحديث بيانات الباقة بنجاح.');
+      } else {
+        showToast(res.error || 'تعذر تحديث الباقة', 'error');
+      }
+    }
+  };
+
+  const handleDeletePackagePrompt = (serviceId: string, packageId: string, packageName: string) => {
+    if (!token) return;
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('حذف الباقات متاح للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'تأكيد حذف الباقة',
+      description: `هل أنتِ متأكدة من حذف باقة «${packageName}» من هذه الخدمة؟`,
+      confirmLabel: 'حذف الباقة',
+      onConfirm: async () => {
+        const res = await adminDeletePackageApi(token, serviceId, packageId);
+        if (res.success) {
+          setServices((prev) =>
+            prev.map((s) =>
+              s.id === serviceId
+                ? { ...s, packages: s.packages.filter((p) => p.id !== packageId) }
+                : s
+            )
+          );
+          showToast('تم حذف الباقة بنجاح.');
+        } else {
+          showToast(res.error || 'تعذر حذف الباقة', 'error');
+        }
+      }
+    });
+  };
+
+  // ================= CITY COVERAGE HANDLERS =================
+  const handleSaveCityCoverage = async (updatedCoverage: CityCoverageSetting[]) => {
+    if (!token) return;
+    if (!hasRole(['super_admin', 'operations_manager'])) {
+      showToast('تعديل تغطية المدن متاح للمدير العام ومديرة العمليات فقط', 'error');
+      return;
+    }
+    const res = await adminUpdateCityCoverageApi(token, updatedCoverage);
+    if (res.success) {
+      setCityCoverage(updatedCoverage);
+      setEditingCity(null);
+      showToast('تم حفظ نطاق تغطية المدن بنجاح.');
+    } else {
+      showToast(res.error || 'تعذر حفظ تغطية المدن', 'error');
+    }
+  };
+
+  // ================= BANNERS & SLIDER HANDLERS =================
+  const handleAddBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !newBanner.title || !newBanner.desktopImageUrl) {
+      showToast('يرجى ملء عنوان البنر ورابط الصورة', 'error');
+      return;
+    }
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('إدارة البنرات متاحة للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    const res = await adminAddBannerApi(token, newBanner);
+    if (res.success && res.banner) {
+      setBanners([...banners, res.banner]);
+      setShowAddBannerModal(false);
+      setNewBanner({
+        title: '',
+        subtitle: '',
+        badge: '✨ لومير الفاخرة',
+        desktopImageUrl: '/src/assets/images/lumir_hero_1792039742181.jpg',
+        ctaText: 'استكشاف باقات لومير',
+        ctaLink: 'catalog',
+        textPosition: 'right',
+        overlayDarkness: 0.35,
+        displayOrder: banners.length + 1,
+        isActive: true
+      });
+      showToast('تمت إضافة البنر بنجاح.');
+    } else {
+      showToast(res.error || 'تعذر إضافة البنر', 'error');
+    }
+  };
+
+  const handleUpdateBanner = async (banner: HeroBanner) => {
+    if (!token) return;
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('إدارة البنرات متاحة للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    const res = await adminUpdateBannerApi(token, banner.id, banner);
+    if (res.success && res.banner) {
+      setBanners(banners.map((b) => (b.id === banner.id ? res.banner! : b)));
+      setEditingBanner(null);
+      showToast('تم تعديل البنر بنجاح.');
+    } else {
+      showToast(res.error || 'تعذر تعديل البنر', 'error');
+    }
+  };
+
+  const handleDeleteBannerPrompt = (id: string, title: string) => {
+    if (!token) return;
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('حذف البنرات متاح للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'تأكيد حذف البنر الرئيسي',
+      description: `هل أنتِ متأكدة من إزالة البنر «${title}» من سلايدر الصفحة الرئيسية؟`,
+      confirmLabel: 'حذف البنر',
+      onConfirm: async () => {
+        const res = await adminDeleteBannerApi(token, id);
+        if (res.success) {
+          setBanners(banners.filter((b) => b.id !== id));
+          showToast('تم حذف البنر بنجاح.');
+        } else {
+          showToast(res.error || 'تعذر حذف البنر', 'error');
+        }
+      }
+    });
+  };
+
+  const handleSaveSliderSettings = async () => {
+    if (!token) return;
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('تعديل إعدادات السلايدر متاح للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    const res = await adminUpdateSliderSettingsApi(token, sliderSettings);
+    if (res.success && res.sliderSettings) {
+      setSliderSettings(res.sliderSettings);
+      showToast('تم حفظ إعدادات السلايدر بنجاح.');
+    } else {
+      showToast(res.error || 'تعذر حفظ إعدادات السلايدر', 'error');
+    }
+  };
+
+  const handleSaveAnnouncements = async (updated: AnnouncementBarSettings) => {
+    if (!token) return;
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('تعديل الشريط الإعلاني متاح للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    const res = await adminUpdateAnnouncementsApi(token, updated);
+    if (res.success && res.announcements) {
+      setAnnouncements(res.announcements);
+      showToast('تم حفظ إعدادات الشريط الإعلاني بنجاح.');
+    } else {
+      showToast(res.error || 'تعذر حفظ الشريط الإعلاني', 'error');
     }
   };
 
@@ -1949,32 +2489,89 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
 
                     {/* Packages Section */}
-                    {service.packages.length > 0 && (
-                      <div className="space-y-3 pt-2">
+                    <div className="space-y-3 pt-2">
+                      <div className="flex items-center justify-between">
                         <span className="font-bold text-xs text-[#2C1E18]">
                           الباقات المعتمدة ({service.packages.length} باقات):
                         </span>
+                        {hasRole(['super_admin', 'content_editor']) && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenAddPackage(service.id)}
+                            className="px-3 py-1 rounded-xl bg-[#2C1E18] text-[#FAF6F0] text-[11px] font-bold flex items-center gap-1 hover:bg-[#422E25] cursor-pointer shadow-2xs"
+                          >
+                            <Plus className="w-3.5 h-3.5 text-[#C8A96E]" />
+                            <span>إضافة باقة</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {service.packages.length === 0 ? (
+                        <div className="p-4 rounded-2xl bg-[#F3ECE1]/40 border border-dashed border-[#D8CBB8] text-center text-xs text-[#645249]">
+                          لا توجد باقات محددة لهذه الخدمة حالياً. يمكنكِ إضافة باقة بالضغط على زر «إضافة باقة».
+                        </div>
+                      ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                           {service.packages.map((pkg) => (
                             <div
                               key={pkg.id}
-                              className="p-4 rounded-2xl bg-[#F3ECE1]/70 border border-[#E6DCD2] text-xs space-y-2"
+                              className="p-4 rounded-2xl bg-[#F3ECE1]/70 border border-[#E6DCD2] text-xs space-y-2.5 flex flex-col justify-between"
                             >
-                              <div className="flex items-center justify-between font-bold">
-                                <span className="text-[#2C1E18]">{pkg.name}</span>
-                                <span className="font-mono-num text-[#8C6D36]">
-                                  {formatSar(pkg.price)}
-                                </span>
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between font-bold">
+                                  <span className="text-[#2C1E18]">{pkg.name}</span>
+                                  <span className="font-mono-num text-[#8C6D36]">
+                                    {formatSar(pkg.price)}
+                                  </span>
+                                </div>
+                                <div className="text-[11px] text-[#645249]">
+                                  {pkg.durationHours ? `${pkg.durationHours} ساعات · ` : ''}
+                                  تسليم: {pkg.deliveryTimeframe || '٤٨ ساعة'}
+                                </div>
+                                {pkg.features && pkg.features.length > 0 && (
+                                  <ul className="text-[10px] text-[#5C4940] space-y-0.5 pt-1 border-t border-[#E6DCD2]/60">
+                                    {pkg.features.slice(0, 3).map((f, fi) => (
+                                      <li key={fi} className="truncate">• {f}</li>
+                                    ))}
+                                    {pkg.features.length > 3 && (
+                                      <li className="text-[#8C6D36]">+{pkg.features.length - 3} ميزات أخرى</li>
+                                    )}
+                                  </ul>
+                                )}
                               </div>
-                              <div className="text-[11px] text-[#645249]">
-                                {pkg.durationHours ? `${pkg.durationHours} ساعات · ` : ''}
-                                تسليم: {pkg.deliveryTimeframe || '٤٨ ساعة'}
+
+                              <div className="flex items-center justify-between pt-2 border-t border-[#E6DCD2]">
+                                <span className="text-[10px] font-bold text-[#8C6D36]">
+                                  {pkg.popular ? '★ الأكثر طلباً' : 'باقة معتمدة'}
+                                </span>
+                                {hasRole(['super_admin', 'content_editor']) && (
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenEditPackage(service.id, pkg)}
+                                      className="p-1 rounded-md text-[#2C1E18] hover:bg-white text-[11px] font-bold cursor-pointer transition-colors"
+                                      title="تعديل الباقة"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleDeletePackagePrompt(service.id, pkg.id, pkg.name)
+                                      }
+                                      className="p-1 rounded-md text-[#8A2626] hover:bg-[#FDF2F2] cursor-pointer transition-colors"
+                                      title="حذف الباقة"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           ))}
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -2120,9 +2717,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           {city.cityName}
                         </h3>
                       </div>
-                      <span className="px-3 py-1 rounded-full bg-[#EDF7F0] text-[#1F5E3B] text-xs font-bold border border-[#B6DFC2]">
-                        {city.isActive ? 'مفعلة' : 'معطلة'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {hasRole(['super_admin', 'operations_manager']) && (
+                          <button
+                            type="button"
+                            onClick={() => setEditingCity({ ...city, districts: [...city.districts] })}
+                            className="px-3 py-1 rounded-xl bg-[#2C1E18] text-[#FAF6F0] text-xs font-bold hover:bg-[#422E25] cursor-pointer"
+                          >
+                            تعديل التغطية
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!hasRole(['super_admin', 'operations_manager'])) {
+                              showToast('تعديل حالة المدينة متاح للمدير العام ومديرة العمليات فقط', 'error');
+                              return;
+                            }
+                            const updated = cityCoverage.map((c) =>
+                              c.cityName === city.cityName ? { ...c, isActive: !c.isActive } : c
+                            );
+                            handleSaveCityCoverage(updated);
+                          }}
+                          className={`px-3 py-1 rounded-full text-xs font-bold border cursor-pointer ${
+                            city.isActive
+                              ? 'bg-[#EDF7F0] text-[#1F5E3B] border-[#B6DFC2]'
+                              : 'bg-[#FDF2F2] text-[#8A2626] border-[#E5B8B8]'
+                          }`}
+                        >
+                          {city.isActive ? 'مفعلة' : 'معطلة'}
+                        </button>
+                      </div>
                     </div>
 
                     <p className="text-xs text-[#645249]">{city.notice}</p>
@@ -2208,17 +2833,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
 
                       <div className="pt-2 border-t border-[#E6DCD2] flex items-center justify-between">
-                        <span className="text-[10px] text-[#1F5E3B] font-bold">
-                          {item.isPublic ? 'معروض' : 'مخفي'}
+                        <span className={`text-[10px] font-bold ${item.isPublic ? 'text-[#1F5E3B]' : 'text-[#8A2626]'}`}>
+                          {item.isPublic ? 'معروض للزوار' : 'مخفي مؤقتاً'}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => handleDeletePortfolio(item.id)}
-                          className="p-1.5 rounded-lg text-[#8A2626] hover:bg-[#FDF2F2] cursor-pointer"
-                          title="حذف العمل"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {hasRole(['super_admin', 'content_editor']) && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setEditingPortfolioItem(item)}
+                              className="p-1.5 rounded-lg text-[#2C1E18] hover:bg-[#E6DCD2] cursor-pointer"
+                              title="تعديل العمل"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePortfolio(item.id)}
+                              className="p-1.5 rounded-lg text-[#8A2626] hover:bg-[#FDF2F2] cursor-pointer"
+                              title="حذف العمل"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -2342,54 +2979,479 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           )}
 
-          {/* ================= 7. CONTENT & FAQS TAB ================= */}
+          {/* ================= 7. HOMEPAGE CONTENT, BANNERS & FAQS TAB ================= */}
           {activeTab === 'faqs' && (
             <div className="space-y-6 max-w-[1240px] mx-auto">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="font-display text-3xl font-bold text-[#2C1E18]">
-                    الأسئلة الشائعة ومحتوى المتجر ({faqs.length})
+                    إدارة محتوى الواجهة والصفحة الرئيسية
                   </h2>
                   <p className="text-xs text-[#645249] mt-1">
-                    إدارة الأسئلة المتكررة وتعديل الإجابات وتصنيفاتها.
+                    التحكم في بنرات السلايدر الرئيسي، الشريط الإعلاني العلوي، وقسم الأسئلة الشائعة.
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowAddFaqModal(true)}
-                  className="px-4 py-2.5 rounded-xl bg-[#2C1E18] text-[#FAF6F0] text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm hover:bg-[#422E25]"
-                >
-                  <Plus className="w-4 h-4 text-[#C8A96E]" />
-                  <span>إضافة سؤال شائع جديد</span>
-                </button>
+                {/* Sub Tab Buttons */}
+                <div className="flex items-center gap-1.5 p-1 bg-[#E6DCD2]/60 rounded-2xl border border-[#D8CBB8] text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setContentSubTab('faqs')}
+                    className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                      contentSubTab === 'faqs'
+                        ? 'bg-[#2C1E18] text-[#FAF6F0] shadow-xs'
+                        : 'text-[#645249] hover:text-[#2C1E18]'
+                    }`}
+                  >
+                    الأسئلة الشائعة ({faqs.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setContentSubTab('banners')}
+                    className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                      contentSubTab === 'banners'
+                        ? 'bg-[#2C1E18] text-[#FAF6F0] shadow-xs'
+                        : 'text-[#645249] hover:text-[#2C1E18]'
+                    }`}
+                  >
+                    بنرات السلايدر ({banners.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setContentSubTab('announcements')}
+                    className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                      contentSubTab === 'announcements'
+                        ? 'bg-[#2C1E18] text-[#FAF6F0] shadow-xs'
+                        : 'text-[#645249] hover:text-[#2C1E18]'
+                    }`}
+                  >
+                    الشريط الإعلاني
+                  </button>
+                </div>
               </div>
 
-              <div className="space-y-3">
-                {faqs.map((faq) => (
-                  <div
-                    key={faq.id}
-                    className="p-5 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-2 text-xs"
-                  >
-                    <div className="flex items-center justify-between font-bold">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded-md bg-[#F3ECE1] text-[#8C6D36] text-[10px]">
-                          {faq.category}
-                        </span>
-                        <span className="text-sm text-[#2C1E18]">{faq.question}</span>
-                      </div>
+              {/* Sub-View 1: FAQs */}
+              {contentSubTab === 'faqs' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#645249]">
+                      قائمة الأسئلة الشائعة المعروضة للعملاء ({faqs.length} أسئلة):
+                    </span>
+                    {hasRole(['super_admin', 'content_editor']) && (
                       <button
                         type="button"
-                        onClick={() => handleDeleteFaq(faq.id)}
-                        className="text-[#8A2626] hover:bg-[#FDF2F2] p-1.5 rounded-lg cursor-pointer"
+                        onClick={() => setShowAddFaqModal(true)}
+                        className="px-3.5 py-1.5 rounded-xl bg-[#2C1E18] text-[#FAF6F0] text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs hover:bg-[#422E25]"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Plus className="w-3.5 h-3.5 text-[#C8A96E]" />
+                        <span>إضافة سؤال شائع</span>
                       </button>
-                    </div>
-                    <p className="text-[#645249] leading-relaxed pr-2">{faq.answer}</p>
+                    )}
                   </div>
-                ))}
-              </div>
+
+                  <div className="space-y-3">
+                    {faqs.map((faq) => (
+                      <div
+                        key={faq.id}
+                        className="p-5 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-2 text-xs"
+                      >
+                        <div className="flex items-center justify-between font-bold">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-md bg-[#F3ECE1] text-[#8C6D36] text-[10px]">
+                              {faq.category}
+                            </span>
+                            <span className="text-sm text-[#2C1E18]">{faq.question}</span>
+                          </div>
+                          {hasRole(['super_admin', 'content_editor']) && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setEditingFaq(faq)}
+                                className="text-[#2C1E18] hover:bg-[#E6DCD2] p-1.5 rounded-lg cursor-pointer transition-colors"
+                                title="تعديل السؤال"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteFaq(faq.id)}
+                                className="text-[#8A2626] hover:bg-[#FDF2F2] p-1.5 rounded-lg cursor-pointer transition-colors"
+                                title="حذف السؤال"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-[#645249] leading-relaxed pr-2">{faq.answer}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sub-View 2: Hero Slider Banners */}
+              {contentSubTab === 'banners' && (
+                <div className="space-y-6">
+                  {/* Slider Settings Bar */}
+                  <div className="p-5 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+                    <div className="flex flex-wrap items-center gap-4">
+                      <label className="flex items-center gap-2 font-bold text-[#2C1E18] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={sliderSettings.autoPlay}
+                          onChange={(e) =>
+                            setSliderSettings({ ...sliderSettings, autoPlay: e.target.checked })
+                          }
+                          className="w-4 h-4 rounded text-[#2C1E18]"
+                        />
+                        <span>التبديل التلقائي للسلايدر</span>
+                      </label>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#645249]">مدة العرض بين البنرات:</span>
+                        <select
+                          value={sliderSettings.intervalSeconds}
+                          onChange={(e) =>
+                            setSliderSettings({
+                              ...sliderSettings,
+                              intervalSeconds: Number(e.target.value) || 3
+                            })
+                          }
+                          className="px-2.5 py-1 bg-[#FAF6F0] border border-[#D8CBB8] rounded-lg font-bold"
+                        >
+                          <option value="3">٣ ثوانٍ</option>
+                          <option value="4">٤ ثوانٍ</option>
+                          <option value="5">٥ ثوانٍ</option>
+                          <option value="6">٦ ثوانٍ</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {hasRole(['super_admin', 'content_editor']) && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleSaveSliderSettings}
+                            className="px-3.5 py-1.5 rounded-xl bg-[#1F5E3B] text-white font-bold hover:bg-[#18492E] cursor-pointer shadow-xs"
+                          >
+                            حفظ إعدادات السلايدر
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowAddBannerModal(true)}
+                            className="px-3.5 py-1.5 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold flex items-center gap-1.5 cursor-pointer shadow-xs hover:bg-[#422E25]"
+                          >
+                            <Plus className="w-3.5 h-3.5 text-[#C8A96E]" />
+                            <span>إضافة بنر جديد</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Banners Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {banners.map((banner) => (
+                      <div
+                        key={banner.id}
+                        className="p-5 rounded-3xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-4 shadow-xs flex flex-col justify-between"
+                      >
+                        <div className="space-y-3">
+                          <div className="relative aspect-16/9 rounded-2xl overflow-hidden bg-[#2C1E18]">
+                            <img
+                              src={banner.desktopImageUrl}
+                              alt={banner.title}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/40 flex flex-col justify-end p-4 text-white">
+                              {banner.badge && (
+                                <span className="inline-block px-2 py-0.5 rounded-full bg-[#C8A96E] text-[#2C1E18] text-[10px] font-bold w-fit mb-1">
+                                  {banner.badge}
+                                </span>
+                              )}
+                              <h4 className="font-display font-bold text-base leading-tight">
+                                {banner.title}
+                              </h4>
+                              {banner.subtitle && (
+                                <p className="text-[11px] text-[#FAF6F0]/80 line-clamp-1">
+                                  {banner.subtitle}
+                                </p>
+                              )}
+                            </div>
+                            <span
+                              className={`absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                banner.isActive
+                                  ? 'bg-[#1F5E3B] text-white'
+                                  : 'bg-black/60 text-white'
+                              }`}
+                            >
+                              {banner.isActive ? 'مفعل بالسلايدر' : 'معطل'}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 text-[11px] text-[#645249]">
+                            <div>
+                              زر التحويل:{' '}
+                              <strong className="text-[#2C1E18]">{banner.ctaText}</strong>
+                            </div>
+                            <div>
+                              الوجهة:{' '}
+                              <strong className="font-mono text-[#8C6D36]">
+                                {banner.ctaLink}
+                              </strong>
+                            </div>
+                            <div>
+                              الترتيب:{' '}
+                              <strong className="font-mono">{banner.displayOrder}</strong>
+                            </div>
+                            <div>
+                              موضع النص:{' '}
+                              <strong>{banner.textPosition === 'right' ? 'يمين' : 'وسط'}</strong>
+                            </div>
+                          </div>
+                        </div>
+
+                        {hasRole(['super_admin', 'content_editor']) && (
+                          <div className="pt-3 border-t border-[#E6DCD2] flex items-center justify-between text-xs">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleUpdateBanner({ ...banner, isActive: !banner.isActive });
+                              }}
+                              className={`px-3 py-1 rounded-xl font-bold border cursor-pointer ${
+                                banner.isActive
+                                  ? 'bg-[#EDF7F0] text-[#1F5E3B] border-[#B6DFC2]'
+                                  : 'bg-[#FDF2F2] text-[#8A2626] border-[#E5B8B8]'
+                              }`}
+                            >
+                              {banner.isActive ? 'تعطيل البنر' : 'تفعيل البنر'}
+                            </button>
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setEditingBanner(banner)}
+                                className="px-3 py-1 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold hover:bg-[#422E25] cursor-pointer flex items-center gap-1"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                                <span>تعديل</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleDeleteBannerPrompt(banner.id, banner.title)
+                                }
+                                className="p-1.5 rounded-lg text-[#8A2626] hover:bg-[#FDF2F2] cursor-pointer"
+                                title="حذف البنر"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sub-View 3: Announcement Bar */}
+              {contentSubTab === 'announcements' && (
+                <div className="space-y-6">
+                  {/* Announcement Bar Settings Card */}
+                  <div className="p-6 rounded-3xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-4 text-xs">
+                    <div className="flex items-center justify-between border-b border-[#E6DCD2] pb-3">
+                      <div className="flex items-center gap-2">
+                        <Megaphone className="w-5 h-5 text-[#8C6D36]" />
+                        <h3 className="font-display text-lg font-bold text-[#2C1E18]">
+                          إعدادات الشريط الإعلاني العلوي
+                        </h3>
+                      </div>
+
+                      <label className="flex items-center gap-2 font-bold text-[#2C1E18] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={announcements.isEnabled}
+                          onChange={(e) =>
+                            setAnnouncements({ ...announcements, isEnabled: e.target.checked })
+                          }
+                          className="w-4 h-4 rounded text-[#2C1E18]"
+                        />
+                        <span>{announcements.isEnabled ? 'الشريط مفعّل' : 'الشريط معطّل'}</span>
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <label className="block font-bold text-[#2C1E18]">نمط العرض:</label>
+                        <select
+                          value={announcements.isTicker ? 'ticker' : 'carousel'}
+                          onChange={(e) =>
+                            setAnnouncements({
+                              ...announcements,
+                              isTicker: e.target.value === 'ticker'
+                            })
+                          }
+                          className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                        >
+                          <option value="carousel">تبديل سلس (Carousel)</option>
+                          <option value="ticker">شريط متحرك مستمر (Ticker)</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="block font-bold text-[#2C1E18]">
+                          مدة التبديل بين الرسائل (ثوانٍ):
+                        </label>
+                        <input
+                          type="number"
+                          value={announcements.intervalSeconds || 4}
+                          onChange={(e) =>
+                            setAnnouncements({
+                              ...announcements,
+                              intervalSeconds: Number(e.target.value) || 4
+                            })
+                          }
+                          className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="block font-bold text-[#2C1E18]">لون الخلفية:</label>
+                        <input
+                          type="text"
+                          value={announcements.bgColor}
+                          onChange={(e) =>
+                            setAnnouncements({ ...announcements, bgColor: e.target.value })
+                          }
+                          className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    {hasRole(['super_admin', 'content_editor']) && (
+                      <div className="pt-2 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleSaveAnnouncements(announcements)}
+                          className="px-5 py-2 rounded-xl bg-[#1F5E3B] text-white font-bold hover:bg-[#18492E] cursor-pointer shadow-xs"
+                        >
+                          حفظ إعدادات الشريط
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Announcement Messages List */}
+                  <div className="p-6 rounded-3xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-4 text-xs">
+                    <span className="font-bold text-sm text-[#2C1E18] block">
+                      رسائل التنبيه والعروض في الشريط ({announcements.messages.length}):
+                    </span>
+
+                    <div className="space-y-2.5">
+                      {announcements.messages.map((msg, idx) => (
+                        <div
+                          key={msg.id}
+                          className="p-3.5 rounded-xl bg-[#F3ECE1] border border-[#E6DCD2] flex items-center justify-between gap-3"
+                        >
+                          <div className="flex items-center gap-2 flex-1">
+                            {msg.badge && (
+                              <span className="px-2 py-0.5 rounded-md bg-[#C8A96E] text-[#2C1E18] text-[10px] font-bold shrink-0">
+                                {msg.badge}
+                              </span>
+                            )}
+                            <span className="text-xs text-[#2C1E18] font-medium">{msg.text}</span>
+                          </div>
+
+                          {hasRole(['super_admin', 'content_editor']) && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updatedMsgs = announcements.messages.map((m, i) =>
+                                    i === idx ? { ...m, isActive: !m.isActive } : m
+                                  );
+                                  const updated = { ...announcements, messages: updatedMsgs };
+                                  setAnnouncements(updated);
+                                  handleSaveAnnouncements(updated);
+                                }}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border cursor-pointer ${
+                                  msg.isActive
+                                    ? 'bg-[#EDF7F0] text-[#1F5E3B] border-[#B6DFC2]'
+                                    : 'bg-[#FDF2F2] text-[#8A2626] border-[#E5B8B8]'
+                                }`}
+                              >
+                                {msg.isActive ? 'مفعل' : 'معطل'}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updatedMsgs = announcements.messages.filter(
+                                    (_, i) => i !== idx
+                                  );
+                                  const updated = { ...announcements, messages: updatedMsgs };
+                                  setAnnouncements(updated);
+                                  handleSaveAnnouncements(updated);
+                                }}
+                                className="p-1 rounded-lg text-[#8A2626] hover:bg-[#FDF2F2] cursor-pointer"
+                                title="حذف الرسالة"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Add new message form */}
+                    {hasRole(['super_admin', 'content_editor']) && (
+                      <div className="pt-3 border-t border-[#E6DCD2] flex flex-col sm:flex-row gap-2">
+                        <input
+                          type="text"
+                          placeholder="وسم (مثال: عرض خاص)"
+                          value={newAnnouncementBadge}
+                          onChange={(e) => setNewAnnouncementBadge(e.target.value)}
+                          className="sm:w-32 px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl text-xs"
+                        />
+                        <input
+                          type="text"
+                          placeholder="نص الرسالة أو الإعلان للزوار..."
+                          value={newAnnouncementText}
+                          onChange={(e) => setNewAnnouncementText(e.target.value)}
+                          className="flex-1 px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl text-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!newAnnouncementText.trim()) return;
+                            const newMsg = {
+                              id: `msg-${Date.now()}`,
+                              text: newAnnouncementText.trim(),
+                              badge: newAnnouncementBadge.trim() || undefined,
+                              isActive: true
+                            };
+                            const updated = {
+                              ...announcements,
+                              messages: [...announcements.messages, newMsg]
+                            };
+                            setAnnouncements(updated);
+                            handleSaveAnnouncements(updated);
+                            setNewAnnouncementText('');
+                          }}
+                          className="px-4 py-2 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <Plus className="w-3.5 h-3.5 text-[#C8A96E]" />
+                          <span>إضافة للشريط</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Add FAQ Modal */}
               {showAddFaqModal && (
@@ -2404,7 +3466,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </button>
 
                     <h3 className="font-display text-2xl font-bold text-[#2C1E18]">
-                      إضافة سؤال شائع
+                      إضافة سؤال شائع جديد
                     </h3>
 
                     <form onSubmit={handleAddFaq} className="space-y-3 text-xs">
@@ -2453,7 +3515,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           type="submit"
                           className="px-6 py-2 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold hover:bg-[#422E25] cursor-pointer"
                         >
-                          إضافة
+                          إضافة السؤال
                         </button>
                       </div>
                     </form>
@@ -2521,15 +3583,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
 
                     {hasRole(['super_admin']) && (
-                      <div className="pt-2 border-t border-[#E6DCD2] flex justify-end">
+                      <div className="pt-2 border-t border-[#E6DCD2] flex items-center justify-between">
                         <button
                           type="button"
-                          onClick={() => handleDeleteCoupon(cp.id)}
-                          className="text-[#8A2626] hover:bg-[#FDF2F2] p-1.5 rounded-lg cursor-pointer flex items-center gap-1"
+                          onClick={() => handleToggleCoupon(cp.id, cp.isActive)}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border cursor-pointer transition-colors ${
+                            cp.isActive
+                              ? 'bg-[#EDF7F0] text-[#1F5E3B] border-[#B6DFC2] hover:bg-[#B6DFC2]/30'
+                              : 'bg-[#FDF2F2] text-[#8A2626] border-[#E5B8B8] hover:bg-[#E5B8B8]/30'
+                          }`}
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>حذف</span>
+                          {cp.isActive ? 'تعطيل الكود' : 'تفعيل الكود'}
                         </button>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setEditingCoupon(cp)}
+                            className="text-[#2C1E18] hover:bg-[#E6DCD2] p-1.5 rounded-lg cursor-pointer flex items-center gap-1"
+                            title="تعديل الكوبون"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>تعديل</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCoupon(cp.id)}
+                            className="text-[#8A2626] hover:bg-[#FDF2F2] p-1.5 rounded-lg cursor-pointer flex items-center gap-1"
+                            title="حذف الكوبون"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>حذف</span>
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -2875,24 +3961,108 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* Admin Accounts List */}
               <div className="p-6 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-4">
-                <span className="font-bold text-xs text-[#2C1E18] block">حسابات المسؤولين المعتمدة:</span>
-                <div className="space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E6DCD2] pb-3">
+                  <div>
+                    <span className="font-bold text-xs text-[#2C1E18] block">
+                      حسابات المسؤولين المعتمدة ({adminsList.length}):
+                    </span>
+                    <span className="text-[11px] text-[#645249]">
+                      إدارة حسابات الفريق وتعيين الرتب والصلاحيات المحمية على الخادم وقاعدة البيانات.
+                    </span>
+                  </div>
+
+                  {hasRole(['super_admin']) && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAddUserModal(true)}
+                      className="px-3.5 py-2 rounded-xl bg-[#2C1E18] text-[#FAF6F0] text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs hover:bg-[#422E25] self-start sm:self-auto"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-[#C8A96E]" />
+                      <span>إضافة مسؤول جديد</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-2.5">
                   {adminsList.map((adm) => (
                     <div
                       key={adm.id}
-                      className="p-3.5 rounded-xl bg-[#F3ECE1] flex items-center justify-between text-xs"
+                      className="p-4 rounded-xl bg-[#F3ECE1] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs border border-[#E6DCD2]"
                     >
-                      <div>
-                        <strong className="text-[#2C1E18] ml-2">{adm.name}</strong>
-                        <span className="font-mono text-[#645249]">{adm.email}</span>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <strong className="text-[#2C1E18] text-sm">{adm.name}</strong>
+                          {currentUser?.id === adm.id && (
+                            <span className="px-2 py-0.5 rounded-md bg-[#2C1E18] text-[#C8A96E] text-[10px] font-bold">
+                              حسابكِ الحالي
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 text-[#645249] text-[11px]">
+                          <span className="font-mono">{adm.email}</span>
+                          {adm.phone && <span className="font-mono">{adm.phone}</span>}
+                          {adm.lastLoginAt && (
+                            <span>آخر دخول: {new Date(adm.lastLoginAt).toLocaleDateString('ar-SA')}</span>
+                          )}
+                        </div>
                       </div>
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${getRoleBadgeStyle(
-                          adm.role
-                        )}`}
-                      >
-                        {getRoleLabel(adm.role)}
-                      </span>
+
+                      <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#E6DCD2]">
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${getRoleBadgeStyle(
+                            adm.role
+                          )}`}
+                        >
+                          {getRoleLabel(adm.role)}
+                        </span>
+
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                            adm.isActive
+                              ? 'bg-[#EDF7F0] text-[#1F5E3B] border-[#B6DFC2]'
+                              : 'bg-[#FDF2F2] text-[#8A2626] border-[#E5B8B8]'
+                          }`}
+                        >
+                          {adm.isActive ? 'نشط' : 'معطل'}
+                        </span>
+
+                        {hasRole(['super_admin']) && (
+                          <div className="flex items-center gap-1.5 mr-2">
+                            <button
+                              type="button"
+                              onClick={() => setEditingUser(adm)}
+                              className="px-2.5 py-1 rounded-lg bg-[#FAF6F0] hover:bg-white text-[#2C1E18] border border-[#D8CBB8] text-[11px] font-bold cursor-pointer"
+                              title="تعديل الرتبة والبيانات"
+                            >
+                              تعديل الرتبة
+                            </button>
+
+                            {currentUser?.id !== adm.id && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleAdminActive(adm)}
+                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border cursor-pointer ${
+                                    adm.isActive
+                                      ? 'text-[#8A2626] border-[#E5B8B8] hover:bg-[#FDF2F2]'
+                                      : 'text-[#1F5E3B] border-[#B6DFC2] hover:bg-[#EDF7F0]'
+                                  }`}
+                                >
+                                  {adm.isActive ? 'تعطيل' : 'تنشيط'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteAdminUser(adm)}
+                                  className="p-1.5 rounded-lg text-[#8A2626] hover:bg-[#FDF2F2] cursor-pointer"
+                                  title="حذف المسؤول"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2901,6 +4071,1093 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           )}
         </main>
       </div>
+
+      {/* ================= 1. CONFIRMATION MODAL (Replaces window.confirm) ================= */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FAF6F0] rounded-3xl border border-[#D8CBB8] max-w-md w-full p-6 sm:p-7 space-y-4 shadow-2xl text-right">
+            <div className="w-12 h-12 rounded-2xl bg-[#FDF2F2] text-[#8A2626] border border-[#E5B8B8] flex items-center justify-center">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="font-display text-xl font-bold text-[#2C1E18]">
+                {confirmModal.title}
+              </h3>
+              <p className="text-xs text-[#645249] leading-relaxed">
+                {confirmModal.description}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E6DCD2]">
+              <button
+                type="button"
+                onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                className="px-4 py-2 rounded-xl border border-[#D8CBB8] hover:bg-[#E6DCD2] text-xs font-bold text-[#2C1E18] cursor-pointer"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const action = confirmModal.onConfirm;
+                  setConfirmModal({ ...confirmModal, isOpen: false });
+                  await action();
+                }}
+                className="px-5 py-2 rounded-xl bg-[#8A2626] hover:bg-[#681919] text-[#FAF6F0] text-xs font-bold cursor-pointer transition-colors shadow-xs"
+              >
+                {confirmModal.confirmLabel || 'تأكيد الحذف'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= 2. PACKAGE EDIT / ADD MODAL ================= */}
+      {editingPackage && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FAF6F0] rounded-3xl border border-[#D8CBB8] max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setEditingPackage(null)}
+              className="absolute left-6 top-6 p-2 rounded-full hover:bg-[#E6DCD2] cursor-pointer"
+            >
+              <X className="w-5 h-5 text-[#2C1E18]" />
+            </button>
+
+            <h3 className="font-display text-2xl font-bold text-[#2C1E18]">
+              {editingPackage.isNew ? 'إضافة باقة جديدة' : 'تعديل بيانات الباقة'}
+            </h3>
+
+            <form onSubmit={handleSavePackage} className="space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">اسم الباقة:</label>
+                <input
+                  type="text"
+                  required
+                  value={editingPackage.package.name}
+                  onChange={(e) =>
+                    setEditingPackage({
+                      ...editingPackage,
+                      package: { ...editingPackage.package, name: e.target.value }
+                    })
+                  }
+                  placeholder="مثال: باقة ٤ ساعات تغطية"
+                  className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C1E18]">السعر المعتمد (SAR):</label>
+                  <input
+                    type="number"
+                    required
+                    value={editingPackage.package.price}
+                    onChange={(e) =>
+                      setEditingPackage({
+                        ...editingPackage,
+                        package: {
+                          ...editingPackage.package,
+                          price: Number(e.target.value) || 0
+                        }
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C1E18]">مدة الخدمة (ساعات):</label>
+                  <input
+                    type="number"
+                    value={editingPackage.package.durationHours || 4}
+                    onChange={(e) =>
+                      setEditingPackage({
+                        ...editingPackage,
+                        package: {
+                          ...editingPackage.package,
+                          durationHours: Number(e.target.value) || 4
+                        }
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C1E18]">مدة التسليم:</label>
+                  <input
+                    type="text"
+                    value={editingPackage.package.deliveryTimeframe || '٤٨ ساعة'}
+                    onChange={(e) =>
+                      setEditingPackage({
+                        ...editingPackage,
+                        package: {
+                          ...editingPackage.package,
+                          deliveryTimeframe: e.target.value
+                        }
+                      })
+                    }
+                    placeholder="مثال: ٤٨ ساعة"
+                    className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                  />
+                </div>
+
+                <div className="flex items-center pt-5">
+                  <label className="flex items-center gap-2 font-bold text-[#2C1E18] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editingPackage.package.popular || false}
+                      onChange={(e) =>
+                        setEditingPackage({
+                          ...editingPackage,
+                          package: {
+                            ...editingPackage.package,
+                            popular: e.target.checked
+                          }
+                        })
+                      }
+                      className="w-4 h-4 rounded text-[#2C1E18]"
+                    />
+                    <span>تمييز كباقة «الأكثر طلباً»</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Package features list */}
+              <div className="space-y-2 pt-2 border-t border-[#E6DCD2]">
+                <label className="block font-bold text-[#2C1E18]">مميزات الباقة ومحتواها:</label>
+                <div className="space-y-1.5">
+                  {(editingPackage.package.features || []).map((feat, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between gap-2 p-2 bg-[#F3ECE1] rounded-xl text-xs"
+                    >
+                      <span>• {feat}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updatedFeats = editingPackage.package.features.filter(
+                            (_, i) => i !== idx
+                          );
+                          setEditingPackage({
+                            ...editingPackage,
+                            package: { ...editingPackage.package, features: updatedFeats }
+                          });
+                        }}
+                        className="text-[#8A2626] hover:bg-[#FDF2F2] p-1 rounded-md cursor-pointer"
+                        title="حذف الميزة"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <input
+                    type="text"
+                    placeholder="اكتبي ميزة جديدة (مثال: تصوير بدقة 4K)"
+                    value={newFeatureText}
+                    onChange={(e) => setNewFeatureText(e.target.value)}
+                    className="flex-1 px-3 py-1.5 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!newFeatureText.trim()) return;
+                      const updatedFeats = [
+                        ...(editingPackage.package.features || []),
+                        newFeatureText.trim()
+                      ];
+                      setEditingPackage({
+                        ...editingPackage,
+                        package: { ...editingPackage.package, features: updatedFeats }
+                      });
+                      setNewFeatureText('');
+                    }}
+                    className="px-3 py-1.5 bg-[#2C1E18] text-[#FAF6F0] font-bold rounded-xl text-xs hover:bg-[#422E25] cursor-pointer"
+                  >
+                    إضافة
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E6DCD2]">
+                <button
+                  type="button"
+                  onClick={() => setEditingPackage(null)}
+                  className="px-4 py-2 rounded-xl border border-[#D8CBB8] hover:bg-[#E6DCD2] cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold hover:bg-[#422E25] cursor-pointer"
+                >
+                  حفظ الباقة
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= 3. CITY COVERAGE EDIT MODAL ================= */}
+      {editingCity && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FAF6F0] rounded-3xl border border-[#D8CBB8] max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setEditingCity(null)}
+              className="absolute left-6 top-6 p-2 rounded-full hover:bg-[#E6DCD2] cursor-pointer"
+            >
+              <X className="w-5 h-5 text-[#2C1E18]" />
+            </button>
+
+            <h3 className="font-display text-2xl font-bold text-[#2C1E18]">
+              تعديل تغطية مدينة: {editingCity.cityName}
+            </h3>
+
+            <div className="space-y-4 text-xs">
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-[#F3ECE1]">
+                <span className="font-bold text-[#2C1E18]">حالة استقبال الطلبات بالمدينة:</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEditingCity({ ...editingCity, isActive: !editingCity.isActive })
+                  }
+                  className={`px-3 py-1 rounded-full font-bold border cursor-pointer ${
+                    editingCity.isActive
+                      ? 'bg-[#EDF7F0] text-[#1F5E3B] border-[#B6DFC2]'
+                      : 'bg-[#FDF2F2] text-[#8A2626] border-[#E5B8B8]'
+                  }`}
+                >
+                  {editingCity.isActive ? 'مفعلة وتستقبل حجوزات' : 'معطلة مؤقتاً'}
+                </button>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">
+                  رسوم الانتقال والتجهيز المعتمدة (SAR):
+                </label>
+                <input
+                  type="number"
+                  value={editingCity.transportFeeSar}
+                  onChange={(e) =>
+                    setEditingCity({
+                      ...editingCity,
+                      transportFeeSar: Number(e.target.value) || 0
+                    })
+                  }
+                  className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono font-bold"
+                />
+                <span className="text-[10px] text-[#645249]">
+                  ضعي 0 إذا كانت الرسوم مشمولة مجاناً بدون تكلفة إضافية.
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">تنبيه وإشعار المدينة للعملاء:</label>
+                <textarea
+                  rows={2}
+                  value={editingCity.notice || ''}
+                  onChange={(e) =>
+                    setEditingCity({ ...editingCity, notice: e.target.value })
+                  }
+                  className="w-full p-2.5 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                />
+              </div>
+
+              {/* Districts Tag Manager */}
+              <div className="space-y-2 pt-2 border-t border-[#E6DCD2]">
+                <label className="block font-bold text-[#2C1E18]">
+                  الأحياء المعتمدة المخدومة ({editingCity.districts.length} أحياء):
+                </label>
+                <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-1">
+                  {editingCity.districts.map((d) => (
+                    <span
+                      key={d}
+                      className="px-2.5 py-1 rounded-lg bg-[#F3ECE1] text-[#2C1E18] text-[11px] font-medium flex items-center gap-1.5 border border-[#D8CBB8]"
+                    >
+                      <span>{d}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updatedDistricts = editingCity.districts.filter((item) => item !== d);
+                          setEditingCity({ ...editingCity, districts: updatedDistricts });
+                        }}
+                        className="text-[#8A2626] hover:bg-[#FDF2F2] rounded-full p-0.5 cursor-pointer"
+                        title="إزالة الحي"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <input
+                    type="text"
+                    placeholder="اسم حي جديد..."
+                    value={newDistrictInput}
+                    onChange={(e) => setNewDistrictInput(e.target.value)}
+                    className="flex-1 px-3 py-1.5 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!newDistrictInput.trim()) return;
+                      if (editingCity.districts.includes(newDistrictInput.trim())) {
+                        showToast('هذا الحي مضاف مسبقاً', 'error');
+                        return;
+                      }
+                      const updated = [...editingCity.districts, newDistrictInput.trim()];
+                      setEditingCity({ ...editingCity, districts: updated });
+                      setNewDistrictInput('');
+                    }}
+                    className="px-3 py-1.5 bg-[#2C1E18] text-[#FAF6F0] font-bold rounded-xl text-xs hover:bg-[#422E25] cursor-pointer"
+                  >
+                    إضافة حي
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E6DCD2]">
+                <button
+                  type="button"
+                  onClick={() => setEditingCity(null)}
+                  className="px-4 py-2 rounded-xl border border-[#D8CBB8] hover:bg-[#E6DCD2] cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated = cityCoverage.map((c) =>
+                      c.cityName === editingCity.cityName ? editingCity : c
+                    );
+                    handleSaveCityCoverage(updated);
+                  }}
+                  className="px-6 py-2 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold hover:bg-[#422E25] cursor-pointer"
+                >
+                  حفظ تغطية المدينة
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= 4. HERO BANNER ADD / EDIT MODAL ================= */}
+      {(showAddBannerModal || editingBanner) && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FAF6F0] rounded-3xl border border-[#D8CBB8] max-w-lg w-full p-6 sm:p-8 space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddBannerModal(false);
+                setEditingBanner(null);
+              }}
+              className="absolute left-6 top-6 p-2 rounded-full hover:bg-[#E6DCD2] cursor-pointer"
+            >
+              <X className="w-5 h-5 text-[#2C1E18]" />
+            </button>
+
+            <h3 className="font-display text-2xl font-bold text-[#2C1E18]">
+              {editingBanner ? 'تعديل بنر السلايدر' : 'إضافة بنر رئيسي جديد'}
+            </h3>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (editingBanner) {
+                  handleUpdateBanner(editingBanner);
+                } else {
+                  handleAddBanner(e);
+                }
+              }}
+              className="space-y-3 text-xs"
+            >
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">عنوان البنر الرئيسي:</label>
+                <input
+                  type="text"
+                  required
+                  value={editingBanner ? editingBanner.title : newBanner.title}
+                  onChange={(e) => {
+                    if (editingBanner) {
+                      setEditingBanner({ ...editingBanner, title: e.target.value });
+                    } else {
+                      setNewBanner({ ...newBanner, title: e.target.value });
+                    }
+                  }}
+                  placeholder="مثال: نضيء لياليك وفرحة صغارك"
+                  className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">الوصف الفرعي:</label>
+                <textarea
+                  rows={2}
+                  value={editingBanner ? editingBanner.subtitle : newBanner.subtitle}
+                  onChange={(e) => {
+                    if (editingBanner) {
+                      setEditingBanner({ ...editingBanner, subtitle: e.target.value });
+                    } else {
+                      setNewBanner({ ...newBanner, subtitle: e.target.value });
+                    }
+                  }}
+                  placeholder="من تصوير أجمل اللحظات إلى عالم الأطفال الآمن..."
+                  className="w-full p-2.5 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C1E18]">شارة البنر (Badge):</label>
+                  <input
+                    type="text"
+                    value={editingBanner ? editingBanner.badge : newBanner.badge}
+                    onChange={(e) => {
+                      if (editingBanner) {
+                        setEditingBanner({ ...editingBanner, badge: e.target.value });
+                      } else {
+                        setNewBanner({ ...newBanner, badge: e.target.value });
+                      }
+                    }}
+                    placeholder="✨ الأكثر طلباً"
+                    className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C1E18]">ترتيب العرض:</label>
+                  <input
+                    type="number"
+                    value={editingBanner ? editingBanner.displayOrder : newBanner.displayOrder}
+                    onChange={(e) => {
+                      const val = Number(e.target.value) || 1;
+                      if (editingBanner) {
+                        setEditingBanner({ ...editingBanner, displayOrder: val });
+                      } else {
+                        setNewBanner({ ...newBanner, displayOrder: val });
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">رابط صورة سطح المكتب:</label>
+                <input
+                  type="text"
+                  required
+                  value={editingBanner ? editingBanner.desktopImageUrl : newBanner.desktopImageUrl}
+                  onChange={(e) => {
+                    if (editingBanner) {
+                      setEditingBanner({ ...editingBanner, desktopImageUrl: e.target.value });
+                    } else {
+                      setNewBanner({ ...newBanner, desktopImageUrl: e.target.value });
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono text-[11px]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C1E18]">نص زر التحويل (CTA):</label>
+                  <input
+                    type="text"
+                    value={editingBanner ? editingBanner.ctaText : newBanner.ctaText}
+                    onChange={(e) => {
+                      if (editingBanner) {
+                        setEditingBanner({ ...editingBanner, ctaText: e.target.value });
+                      } else {
+                        setNewBanner({ ...newBanner, ctaText: e.target.value });
+                      }
+                    }}
+                    placeholder="استكشاف باقات لومير"
+                    className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C1E18]">وجهة الزر:</label>
+                  <input
+                    type="text"
+                    value={editingBanner ? editingBanner.ctaLink : newBanner.ctaLink}
+                    onChange={(e) => {
+                      if (editingBanner) {
+                        setEditingBanner({ ...editingBanner, ctaLink: e.target.value });
+                      } else {
+                        setNewBanner({ ...newBanner, ctaLink: e.target.value });
+                      }
+                    }}
+                    placeholder="catalog أو mobile-photography"
+                    className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E6DCD2]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddBannerModal(false);
+                    setEditingBanner(null);
+                  }}
+                  className="px-4 py-2 rounded-xl border border-[#D8CBB8] hover:bg-[#E6DCD2] cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold hover:bg-[#422E25] cursor-pointer"
+                >
+                  {editingBanner ? 'حفظ تعديل البنر' : 'إضافة البنر للسلايدر'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= 5. FAQ EDIT MODAL ================= */}
+      {editingFaq && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FAF6F0] rounded-3xl border border-[#D8CBB8] max-w-lg w-full p-6 sm:p-8 space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setEditingFaq(null)}
+              className="absolute left-6 top-6 p-2 rounded-full hover:bg-[#E6DCD2] cursor-pointer"
+            >
+              <X className="w-5 h-5 text-[#2C1E18]" />
+            </button>
+
+            <h3 className="font-display text-2xl font-bold text-[#2C1E18]">
+              تعديل السؤال الشائع
+            </h3>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleUpdateFaq(editingFaq);
+              }}
+              className="space-y-3 text-xs"
+            >
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">السؤال:</label>
+                <input
+                  type="text"
+                  required
+                  value={editingFaq.question}
+                  onChange={(e) => setEditingFaq({ ...editingFaq, question: e.target.value })}
+                  className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">التصنيف:</label>
+                <input
+                  type="text"
+                  required
+                  value={editingFaq.category}
+                  onChange={(e) => setEditingFaq({ ...editingFaq, category: e.target.value })}
+                  className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">الإجابة:</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={editingFaq.answer}
+                  onChange={(e) => setEditingFaq({ ...editingFaq, answer: e.target.value })}
+                  className="w-full p-3 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E6DCD2]">
+                <button
+                  type="button"
+                  onClick={() => setEditingFaq(null)}
+                  className="px-4 py-2 rounded-xl border border-[#D8CBB8] hover:bg-[#E6DCD2] cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold hover:bg-[#422E25] cursor-pointer"
+                >
+                  حفظ التعديل
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= 6. PORTFOLIO ITEM EDIT MODAL ================= */}
+      {editingPortfolioItem && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FAF6F0] rounded-3xl border border-[#D8CBB8] max-w-lg w-full p-6 sm:p-8 space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setEditingPortfolioItem(null)}
+              className="absolute left-6 top-6 p-2 rounded-full hover:bg-[#E6DCD2] cursor-pointer"
+            >
+              <X className="w-5 h-5 text-[#2C1E18]" />
+            </button>
+
+            <h3 className="font-display text-2xl font-bold text-[#2C1E18]">
+              تعديل عمل من المعرض
+            </h3>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleUpdatePortfolio(editingPortfolioItem);
+              }}
+              className="space-y-3 text-xs"
+            >
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">عنوان العمل:</label>
+                <input
+                  type="text"
+                  required
+                  value={editingPortfolioItem.title}
+                  onChange={(e) =>
+                    setEditingPortfolioItem({ ...editingPortfolioItem, title: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C1E18]">الخدمة:</label>
+                  <select
+                    value={editingPortfolioItem.categoryKey}
+                    onChange={(e) =>
+                      setEditingPortfolioItem({
+                        ...editingPortfolioItem,
+                        categoryKey: e.target.value as ServiceCategoryKey
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                  >
+                    <option value="mobile_photography">تصوير الجوال</option>
+                    <option value="kids_corner">ركن الأطفال</option>
+                    <option value="childcare">رعاية الأطفال</option>
+                    <option value="wedding_support">مساندة وتنظيم</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C1E18]">المدينة:</label>
+                  <select
+                    value={editingPortfolioItem.city}
+                    onChange={(e) =>
+                      setEditingPortfolioItem({
+                        ...editingPortfolioItem,
+                        city: e.target.value as any
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                  >
+                    <option value="مكة المكرمة">مكة المكرمة</option>
+                    <option value="جدة">جدة</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">رابط الصورة أو الفيديو:</label>
+                <input
+                  type="text"
+                  required
+                  value={editingPortfolioItem.mediaUrl}
+                  onChange={(e) =>
+                    setEditingPortfolioItem({ ...editingPortfolioItem, mediaUrl: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono text-[11px]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">وصف العمل:</label>
+                <textarea
+                  rows={2}
+                  value={editingPortfolioItem.caption || ''}
+                  onChange={(e) =>
+                    setEditingPortfolioItem({ ...editingPortfolioItem, caption: e.target.value })
+                  }
+                  className="w-full p-2.5 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <label className="flex items-center gap-2 font-bold text-[#2C1E18] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingPortfolioItem.isPublic}
+                    onChange={(e) =>
+                      setEditingPortfolioItem({
+                        ...editingPortfolioItem,
+                        isPublic: e.target.checked
+                      })
+                    }
+                    className="w-4 h-4 rounded text-[#2C1E18]"
+                  />
+                  <span>عرض هذا العمل لعملاء وزوار المتجر</span>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E6DCD2]">
+                <button
+                  type="button"
+                  onClick={() => setEditingPortfolioItem(null)}
+                  className="px-4 py-2 rounded-xl border border-[#D8CBB8] hover:bg-[#E6DCD2] cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold hover:bg-[#422E25] cursor-pointer"
+                >
+                  حفظ التعديلات
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= 7. COUPON EDIT MODAL ================= */}
+      {editingCoupon && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FAF6F0] rounded-3xl border border-[#D8CBB8] max-w-lg w-full p-6 sm:p-8 space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setEditingCoupon(null)}
+              className="absolute left-6 top-6 p-2 rounded-full hover:bg-[#E6DCD2] cursor-pointer"
+            >
+              <X className="w-5 h-5 text-[#2C1E18]" />
+            </button>
+
+            <h3 className="font-display text-2xl font-bold text-[#2C1E18]">
+              تعديل كود الخصم: {editingCoupon.code}
+            </h3>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleUpdateCoupon(editingCoupon);
+              }}
+              className="space-y-3 text-xs"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C1E18]">نوع الخصم:</label>
+                  <select
+                    value={editingCoupon.discountType}
+                    onChange={(e) =>
+                      setEditingCoupon({
+                        ...editingCoupon,
+                        discountType: e.target.value as 'percentage' | 'fixed'
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                  >
+                    <option value="percentage">نسبة مئوية (%)</option>
+                    <option value="fixed">مبلغ ثابت (SAR)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C1E18]">قيمة الخصم:</label>
+                  <input
+                    type="number"
+                    required
+                    value={editingCoupon.discountValue}
+                    onChange={(e) =>
+                      setEditingCoupon({
+                        ...editingCoupon,
+                        discountValue: Number(e.target.value) || 0
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C1E18]">الحد الأدنى للطلب (SAR):</label>
+                  <input
+                    type="number"
+                    value={editingCoupon.minOrderAmountSar || 0}
+                    onChange={(e) =>
+                      setEditingCoupon({
+                        ...editingCoupon,
+                        minOrderAmountSar: Number(e.target.value) || 0
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C1E18]">الحد الأقصى للخصم (SAR):</label>
+                  <input
+                    type="number"
+                    value={editingCoupon.maxDiscountSar || 0}
+                    onChange={(e) =>
+                      setEditingCoupon({
+                        ...editingCoupon,
+                        maxDiscountSar: Number(e.target.value) || 0
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <label className="flex items-center gap-2 font-bold text-[#2C1E18] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingCoupon.isActive}
+                    onChange={(e) =>
+                      setEditingCoupon({
+                        ...editingCoupon,
+                        isActive: e.target.checked
+                      })
+                    }
+                    className="w-4 h-4 rounded text-[#2C1E18]"
+                  />
+                  <span>كود الخصم مفعّل وجاهز للاستخدام من قبل العملاء</span>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E6DCD2]">
+                <button
+                  type="button"
+                  onClick={() => setEditingCoupon(null)}
+                  className="px-4 py-2 rounded-xl border border-[#D8CBB8] hover:bg-[#E6DCD2] cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold hover:bg-[#422E25] cursor-pointer"
+                >
+                  حفظ تعديل الكوبون
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= 8. ADD ADMIN USER MODAL ================= */}
+      {showAddUserModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FAF6F0] rounded-3xl border border-[#D8CBB8] max-w-lg w-full p-6 sm:p-8 space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setShowAddUserModal(false)}
+              className="absolute left-6 top-6 p-2 rounded-full hover:bg-[#E6DCD2] cursor-pointer"
+            >
+              <X className="w-5 h-5 text-[#2C1E18]" />
+            </button>
+
+            <h3 className="font-display text-2xl font-bold text-[#2C1E18]">
+              إضافة مسؤول جديد وتحديد الصلاحيات
+            </h3>
+            <p className="text-xs text-[#645249]">
+              يتم إنشاء الحساب واعتماده على الخادم وقاعدة البيانات مع قواعد الصلاحيات المحددة.
+            </p>
+
+            <form onSubmit={handleAddAdminUser} className="space-y-3.5 text-xs">
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">الاسم الكامل:</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="مثال: سارة العتيبي"
+                  value={newUser.name}
+                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">البريد الإلكتروني المهني:</label>
+                <input
+                  type="email"
+                  required
+                  dir="ltr"
+                  placeholder="sara@lumir.sa"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">رقم الجوال للتواصل:</label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  placeholder="0500000000"
+                  value={newUser.phone}
+                  onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                  className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">الرتبة والصلاحية:</label>
+                <select
+                  value={newUser.role}
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value as AdminRole })}
+                  className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-bold"
+                >
+                  <option value="operations_manager">مشرفة العمليات والمواعيد (إدارة الطلبات والتقويم)</option>
+                  <option value="content_editor">مسؤولة المحتوى والكتالوج (الخدمات ومعرض الأعمال والأسئلة)</option>
+                  <option value="super_admin">المديرة العامة (Super Admin - صلاحيات كاملة)</option>
+                </select>
+              </div>
+
+              <div className="p-3 rounded-xl bg-[#F3ECE1] border border-[#E6DCD2] text-[11px] text-[#645249]">
+                كلمة المرور الافتراضية للحسابات الجديدة هي: <code className="font-mono font-bold text-[#2C1E18]">Lumir@2026</code>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E6DCD2]">
+                <button
+                  type="button"
+                  onClick={() => setShowAddUserModal(false)}
+                  className="px-4 py-2 rounded-xl border border-[#D8CBB8] hover:bg-[#E6DCD2] cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold hover:bg-[#422E25] cursor-pointer"
+                >
+                  إنشاء حساب المسؤول
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= 9. EDIT ADMIN USER MODAL ================= */}
+      {editingUser && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FAF6F0] rounded-3xl border border-[#D8CBB8] max-w-lg w-full p-6 sm:p-8 space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setEditingUser(null)}
+              className="absolute left-6 top-6 p-2 rounded-full hover:bg-[#E6DCD2] cursor-pointer"
+            >
+              <X className="w-5 h-5 text-[#2C1E18]" />
+            </button>
+
+            <h3 className="font-display text-2xl font-bold text-[#2C1E18]">
+              تعديل رتبة وصلاحيات المسؤول
+            </h3>
+            <p className="text-xs text-[#645249]">
+              حساب: <span className="font-bold text-[#2C1E18]">{editingUser.name}</span> ({editingUser.email})
+            </p>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleUpdateAdminUser(editingUser);
+              }}
+              className="space-y-3.5 text-xs"
+            >
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">الاسم:</label>
+                <input
+                  type="text"
+                  required
+                  value={editingUser.name}
+                  onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">رقم الجوال:</label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={editingUser.phone || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
+                  className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">الرتبة والصلاحية:</label>
+                <select
+                  value={editingUser.role}
+                  onChange={(e) =>
+                    setEditingUser({ ...editingUser, role: e.target.value as AdminRole })
+                  }
+                  className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-bold"
+                >
+                  <option value="operations_manager">مشرفة العمليات والمواعيد</option>
+                  <option value="content_editor">مسؤولة المحتوى والكتالوج</option>
+                  <option value="super_admin">المديرة العامة (Super Admin)</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <label className="flex items-center gap-2 font-bold text-[#2C1E18] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingUser.isActive}
+                    onChange={(e) =>
+                      setEditingUser({ ...editingUser, isActive: e.target.checked })
+                    }
+                    className="w-4 h-4 rounded text-[#2C1E18]"
+                  />
+                  <span>الحساب نشط ويملك حق الوصول للوحة الإدارة</span>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E6DCD2]">
+                <button
+                  type="button"
+                  onClick={() => setEditingUser(null)}
+                  className="px-4 py-2 rounded-xl border border-[#D8CBB8] hover:bg-[#E6DCD2] cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold hover:bg-[#422E25] cursor-pointer"
+                >
+                  حفظ الصلاحيات
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

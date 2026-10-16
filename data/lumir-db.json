@@ -16,6 +16,113 @@
     "approvedFeesSar": 0,
     "bookingNotice": "تنبيه إداري: يعتبر هذا الطلب مبدئياً ولا يتم تأكيد الموعد نهائياً إلا بعد مراجعة فريق الإدارة والتحقق من التوفر وجدولة الموعد رسمياً."
   },
+  "announcements": {
+    "isEnabled": true,
+    "bgColor": "#2C1E18",
+    "textColor": "#FAF6F0",
+    "accentColor": "#C8A96E",
+    "intervalSeconds": 3.5,
+    "isTicker": false,
+    "messages": [
+      {
+        "id": "msg-1",
+        "text": "موسم مناسبات ٢٠٢٦ في مكة المكرمة وجدة — احجزي موعدكِ الآن بأسعار خاصة",
+        "badge": "✨ عرض حصري",
+        "linkText": "احجزي الآن",
+        "linkTarget": "booking",
+        "isActive": true
+      },
+      {
+        "id": "msg-2",
+        "text": "تغطية تصوير بالجوال سينمائية مع تسليم الملفات والريلز خلال ٤٨ ساعة فقط بخصوصية تامة",
+        "badge": "📸 تسليم فوري",
+        "linkText": "استكشفي الباقات",
+        "linkTarget": "mobile-photography",
+        "isActive": true
+      },
+      {
+        "id": "msg-3",
+        "text": "استخدمي الكود LUMIR10 للحصول على خصم ١٠٪ على حجوزات المناسبات هذا الشهر",
+        "badge": "🎁 كود خصم",
+        "linkText": "تطبيق الخصم",
+        "linkTarget": "booking",
+        "isActive": true
+      }
+    ]
+  },
+  "sliderSettings": {
+    "autoPlay": true,
+    "intervalSeconds": 3,
+    "pauseOnHover": true,
+    "showArrows": true,
+    "showIndicators": true
+  },
+  "banners": [
+    {
+      "id": "banner-1",
+      "title": "توثيق سينمائي فاخر لأدق تفاصيل زفافكِ بعدسة الجوال",
+      "subtitle": "لقطات عفوية ومقاطع ريلز احترافية بأيدي مصورات سعوديات مع خصوصية تامة وتسليم سريع خلال ٤٨ ساعة في مكة وجدة.",
+      "badge": "✨ الباقة الأكثر طلباً لموسم ٢٠٢٦",
+      "desktopImageUrl": "/src/assets/images/lumir_hero_1792039742181.jpg",
+      "mobileImageUrl": "/src/assets/images/lumir_mobile_photo_1792039742936.jpg",
+      "ctaText": "احجزي تغطيتكِ الآن",
+      "ctaLink": "booking",
+      "secondaryCtaText": "مقارنة الباقات والأسعار",
+      "secondaryCtaLink": "mobile-photography",
+      "textPosition": "right",
+      "overlayDarkness": 0.45,
+      "displayOrder": 1,
+      "isActive": true
+    },
+    {
+      "id": "banner-2",
+      "title": "ركن الفرحة والإبداع لصغاركِ بأرقى معايير الأمان والبهجة",
+      "subtitle": "أنشطة تلوين وتشكيل بالطين ورسومات الوجه مع مشرفات متخصصات يضمنّ سلامة الأطفال وراحة بال الأمهات طوال الحفل.",
+      "badge": "🎨 عالم آمن وممتع للأطفال",
+      "desktopImageUrl": "/src/assets/images/lumir_kids_corner_1792039743563.jpg",
+      "mobileImageUrl": "/src/assets/images/lumir_kids_corner_1792039743563.jpg",
+      "ctaText": "استكشفي ركن الأطفال",
+      "ctaLink": "kids-corner",
+      "secondaryCtaText": "حجز الركن لمناسبتكِ",
+      "secondaryCtaLink": "booking",
+      "textPosition": "right",
+      "overlayDarkness": 0.45,
+      "displayOrder": 2,
+      "isActive": true
+    },
+    {
+      "id": "banner-3",
+      "title": "خدمات مساندة وتنظيم الأفراح بفخامة الضيافة السعودية الأصيلة",
+      "subtitle": "تنظيم استقبال الضيوف، ركن العبايات، التبخير بالعود، ومتابعة دقيقة لكل تفاصيل القاعة ليخرج يومكِ بأبهى صورة.",
+      "badge": "👑 تنظيم متكامل للأفراح",
+      "desktopImageUrl": "/src/assets/images/lumir_wedding_support_1792039744775.jpg",
+      "mobileImageUrl": "/src/assets/images/lumir_wedding_support_1792039744775.jpg",
+      "ctaText": "تفاصيل تنظيم الأفراح",
+      "ctaLink": "wedding-support",
+      "secondaryCtaText": "تواصل مباشر عبر واتساب",
+      "secondaryCtaLink": "contact",
+      "textPosition": "right",
+      "overlayDarkness": 0.45,
+      "displayOrder": 3,
+      "isActive": true
+    },
+    {
+      "id": "banner-4",
+      "title": "مشرفات ومرافقات الأطفال في الأفراح لراحة بال تامة وأمان لأطفالكِ",
+      "subtitle": "إشراف ترفيهي نسائي متخصص، رعاية مساندة طوال ساعات المناسبة، وأنشطة هادئة تضمن فرحة الصغار واستمتاع الأمهات.",
+      "badge": "🧸 رعاية وترفيه مساند",
+      "desktopImageUrl": "/src/assets/images/lumir_childcare_1792039744226.jpg",
+      "mobileImageUrl": "/src/assets/images/lumir_childcare_1792039744226.jpg",
+      "ctaText": "استكشفي خدمات الرعاية",
+      "ctaLink": "childcare",
+      "secondaryCtaText": "طلب مرافقة لمناسبتكِ",
+      "secondaryCtaLink": "booking",
+      "textPosition": "right",
+      "overlayDarkness": 0.45,
+      "displayOrder": 4,
+      "isActive": true
+    }
+  ],
   "services": [
     {
       "id": "srv-mobile-photo",
@@ -784,6 +891,36 @@
   ],
   "auditLogs": [
     {
+      "id": "log-1792127346250-706",
+      "timestamp": "2026-10-16T05:09:06.250Z",
+      "adminEmail": "media@lumir.sa",
+      "adminName": "مسؤولة المحتوى والكتالوج",
+      "adminRole": "content_editor",
+      "action": "تسجيل دخول إلى لوحة الإدارة",
+      "targetType": "settings",
+      "details": "تم تسجيل الدخول بنجاح من قبل مسؤولة المحتوى والكتالوج (media@lumir.sa)"
+    },
+    {
+      "id": "log-1792127333604-439",
+      "timestamp": "2026-10-16T05:08:53.604Z",
+      "adminEmail": "lumir.store.l@gmail.com",
+      "adminName": "المديرة العامة — لومير",
+      "adminRole": "super_admin",
+      "action": "تسجيل دخول إلى لوحة الإدارة",
+      "targetType": "settings",
+      "details": "تم تسجيل الدخول بنجاح من قبل المديرة العامة — لومير (lumir.store.l@gmail.com)"
+    },
+    {
+      "id": "log-1792127329615-663",
+      "timestamp": "2026-10-16T05:08:49.615Z",
+      "adminEmail": "lumir.store.l@gmail.com",
+      "adminName": "المديرة العامة — لومير",
+      "adminRole": "super_admin",
+      "action": "تسجيل دخول إلى لوحة الإدارة",
+      "targetType": "settings",
+      "details": "تم تسجيل الدخول بنجاح من قبل المديرة العامة — لومير (lumir.store.l@gmail.com)"
+    },
+    {
       "id": "log-1792041280926-799",
       "timestamp": "2026-10-15T05:14:40.926Z",
       "adminEmail": "media@lumir.sa",
@@ -890,7 +1027,8 @@
       "email": "lumir.store.l@gmail.com",
       "role": "super_admin",
       "phone": "0579105700",
-      "lastLoginAt": "2026-10-15T05:14:36.766Z"
+      "lastLoginAt": "2026-10-16T05:08:53.604Z",
+      "isActive": true
     },
     {
       "id": "adm-2",
@@ -898,7 +1036,8 @@
       "email": "ops@lumir.sa",
       "role": "operations_manager",
       "phone": "0550001122",
-      "lastLoginAt": "2026-10-14T20:30:00.000Z"
+      "lastLoginAt": "2026-10-14T20:30:00.000Z",
+      "isActive": true
     },
     {
       "id": "adm-3",
@@ -906,7 +1045,8 @@
       "email": "media@lumir.sa",
       "role": "content_editor",
       "phone": "0550003344",
-      "lastLoginAt": "2026-10-15T05:14:40.925Z"
+      "lastLoginAt": "2026-10-16T05:09:06.249Z",
+      "isActive": true
     }
   ]
 }

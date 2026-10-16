@@ -1,4 +1,5 @@
 import {
+  AdminRole,
   AdminUser,
   BookingStatus,
   BookingSubmission,
@@ -251,6 +252,47 @@ export async function adminUpdatePackageApi(
   }
 }
 
+export async function adminAddPackageApi(
+  token: string,
+  serviceId: string,
+  pkgData: any
+): Promise<{ success: boolean; package?: any; error?: string }> {
+  try {
+    const res = await fetch(`/api/admin/services/${serviceId}/packages`, {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(pkgData)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      return { success: true, package: data.package };
+    }
+    return { success: false, error: data.error || 'تعذر إضافة الباقة' };
+  } catch (err) {
+    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+  }
+}
+
+export async function adminDeletePackageApi(
+  token: string,
+  serviceId: string,
+  packageId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`/api/admin/services/${serviceId}/packages/${packageId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(token)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      return { success: true };
+    }
+    return { success: false, error: data.error || 'تعذر حذف الباقة' };
+  } catch (err) {
+    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+  }
+}
+
 export async function adminAddPortfolioApi(
   token: string,
   item: Omit<PortfolioMediaItem, 'id'>
@@ -290,6 +332,27 @@ export async function adminDeletePortfolioApi(
   }
 }
 
+export async function adminUpdatePortfolioApi(
+  token: string,
+  id: string,
+  item: Partial<PortfolioMediaItem>
+): Promise<{ success: boolean; item?: PortfolioMediaItem; error?: string }> {
+  try {
+    const res = await fetch(`/api/admin/portfolio/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(item)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      return { success: true, item: data.item };
+    }
+    return { success: false, error: data.error || 'تعذر تعديل العمل' };
+  } catch (err) {
+    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+  }
+}
+
 export async function adminAddFAQApi(
   token: string,
   faq: Omit<FAQItem, 'id'>
@@ -305,6 +368,27 @@ export async function adminAddFAQApi(
       return { success: true, faq: data.faq };
     }
     return { success: false, error: data.error || 'تعذر إضافة السؤال' };
+  } catch (err) {
+    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+  }
+}
+
+export async function adminUpdateFAQApi(
+  token: string,
+  id: string,
+  faq: Partial<FAQItem>
+): Promise<{ success: boolean; faq?: FAQItem; error?: string }> {
+  try {
+    const res = await fetch(`/api/admin/faqs/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(faq)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      return { success: true, faq: data.faq };
+    }
+    return { success: false, error: data.error || 'تعذر تعديل السؤال' };
   } catch (err) {
     return { success: false, error: 'خطأ في الاتصال بالخادم' };
   }
@@ -349,6 +433,27 @@ export async function adminAddCouponApi(
   }
 }
 
+export async function adminUpdateCouponApi(
+  token: string,
+  id: string,
+  coupon: Partial<CouponItem>
+): Promise<{ success: boolean; coupon?: CouponItem; error?: string }> {
+  try {
+    const res = await fetch(`/api/admin/coupons/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(coupon)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      return { success: true, coupon: data.coupon };
+    }
+    return { success: false, error: data.error || 'تعذر تعديل الكوبون' };
+  } catch (err) {
+    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+  }
+}
+
 export async function adminDeleteCouponApi(
   token: string,
   id: string
@@ -363,6 +468,85 @@ export async function adminDeleteCouponApi(
       return { success: true };
     }
     return { success: false, error: data.error || 'تعذر حذف الكوبون' };
+  } catch (err) {
+    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+  }
+}
+
+// ---------------- USER & ROLES MANAGEMENT APIS ----------------
+
+export async function adminGetUsersApi(
+  token: string
+): Promise<{ success: boolean; users?: AdminUser[]; error?: string }> {
+  try {
+    const res = await fetch('/api/admin/users', {
+      headers: getAuthHeaders(token)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      return { success: true, users: data.users };
+    }
+    return { success: false, error: data.error || 'تعذر جلب قائمة المسؤولين' };
+  } catch (err) {
+    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+  }
+}
+
+export async function adminAddUserApi(
+  token: string,
+  user: { name: string; email: string; role: AdminRole; phone?: string }
+): Promise<{ success: boolean; user?: AdminUser; error?: string }> {
+  try {
+    const res = await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(user)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      return { success: true, user: data.user };
+    }
+    return { success: false, error: data.error || 'تعذر إنشاء حساب المسؤول' };
+  } catch (err) {
+    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+  }
+}
+
+export async function adminUpdateUserApi(
+  token: string,
+  id: string,
+  user: Partial<AdminUser>
+): Promise<{ success: boolean; user?: AdminUser; error?: string }> {
+  try {
+    const res = await fetch(`/api/admin/users/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(user)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      return { success: true, user: data.user };
+    }
+    return { success: false, error: data.error || 'تعذر تحديث بيانات المسؤول' };
+  } catch (err) {
+    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+  }
+}
+
+export async function adminDeleteUserApi(
+  token: string,
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`/api/admin/users/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(token)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      return { success: true };
+    }
+    return { success: false, error: data.error || 'تعذر حذف حساب المسؤول' };
   } catch (err) {
     return { success: false, error: 'خطأ في الاتصال بالخادم' };
   }

@@ -202,7 +202,7 @@ export interface FAQItem {
 export interface CouponItem {
   id: string;
   code: string;
-  discountType: 'percentage' | 'fixed_sar';
+  discountType: 'percentage' | 'fixed_sar' | 'fixed';
   discountValue: number;
   minOrderAmountSar?: number;
   maxDiscountSar?: number;
@@ -230,7 +230,8 @@ export interface AuditLogEntry {
     | 'faq'
     | 'city'
     | 'banner'
-    | 'announcement';
+    | 'announcement'
+    | 'role';
   targetId?: string;
   details: string;
   previousValue?: string;
@@ -257,6 +258,7 @@ export interface AdminUser {
   role: AdminRole;
   phone?: string;
   lastLoginAt?: string;
+  isActive: boolean;
 }
 
 export interface LumirCentralData {

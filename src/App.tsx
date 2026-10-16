@@ -33,9 +33,76 @@ import { AdminDashboard } from './components/AdminDashboard';
 
 export function App() {
   const [data, setData] = useState<LumirCentralData>(() => loadCentralData());
-  const [currentView, setCurrentView] = useState<PageView>('home');
+  const getInitialView = (): PageView => {
+    try {
+      const hash = window.location.hash.replace(/^#\/?/, '').trim();
+      const validViews: PageView[] = [
+        'home',
+        'catalog',
+        'mobile-photography',
+        'kids-corner',
+        'childcare',
+        'wedding-support',
+        'service-detail',
+        'booking',
+        'booking-status',
+        'about',
+        'faq',
+        'privacy',
+        'terms',
+        'contact',
+        'admin'
+      ];
+      if (validViews.includes(hash as PageView)) {
+        return hash as PageView;
+      }
+    } catch {}
+    return 'home';
+  };
+
+  const [currentView, setCurrentView] = useState<PageView>(getInitialView);
   const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>(undefined);
   const [selectedPackageId, setSelectedPackageId] = useState<string | undefined>(undefined);
+
+  // Sync hash with currentView
+  const handleNavigate = (view: PageView) => {
+    setCurrentView(view);
+    if (view === 'home') {
+      history.replaceState(null, '', window.location.pathname);
+    } else {
+      window.location.hash = view;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace(/^#\/?/, '').trim();
+      const validViews: PageView[] = [
+        'home',
+        'catalog',
+        'mobile-photography',
+        'kids-corner',
+        'childcare',
+        'wedding-support',
+        'service-detail',
+        'booking',
+        'booking-status',
+        'about',
+        'faq',
+        'privacy',
+        'terms',
+        'contact',
+        'admin'
+      ];
+      if (validViews.includes(hash as PageView)) {
+        setCurrentView(hash as PageView);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Favorites / Wishlist State with local persistence
   const [favorites, setFavorites] = useState<FavoriteItem[]>(() => {
@@ -152,6 +219,31 @@ export function App() {
     } catch {}
   };
 
+  // Sync with server bootstrap data on load
+  useEffect(() => {
+    fetch('/api/bootstrap')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((serverData) => {
+        if (!serverData) return;
+        setData((prev) => {
+          const merged: LumirCentralData = {
+            ...prev,
+            settings: serverData.settings || prev.settings,
+            announcements: serverData.announcements || prev.announcements,
+            sliderSettings: serverData.sliderSettings || prev.sliderSettings,
+            banners: serverData.banners || prev.banners,
+            services: serverData.services || prev.services,
+            portfolio: serverData.portfolio || prev.portfolio,
+            faqs: serverData.faqs || prev.faqs,
+            cityCoverage: serverData.cityCoverage || prev.cityCoverage
+          };
+          saveCentralData(merged);
+          return merged;
+        });
+      })
+      .catch(() => {});
+  }, []);
+
   // Dynamic SEO page title
   useEffect(() => {
     const base = 'LUMIR | لومير — نضيء لياليك وفرحة صغارك';
@@ -211,7 +303,7 @@ export function App() {
         data={data}
         onSaveData={handleSaveData}
         onResetToDefaults={handleResetToDefaults}
-        navigate={setCurrentView}
+        navigate={handleNavigate}
       />
     );
   }
@@ -219,7 +311,7 @@ export function App() {
   return (
     <Layout
       currentView={currentView}
-      navigate={setCurrentView}
+      navigate={handleNavigate}
       settings={data.settings}
       announcements={data.announcements}
       services={data.services}
