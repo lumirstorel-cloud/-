@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { GalleryCategoryKey, PageView, PortfolioMediaItem, SiteSettings } from '../types';
 import { buildWhatsAppLink, getGalleryCategoryLabel } from '../utils/formatters';
+import { altForMediaUrl, responsiveWebPSrcSet, webpSrc } from '../utils/images';
 import {
   Camera,
   Play,
@@ -144,7 +145,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
       <div className="space-y-4 max-w-3xl">
         <div className="flex items-center gap-2 text-xs font-bold text-[#8C6D36]">
           <Sparkles className="w-4 h-4 text-[#C8A96E]" />
-          <span>معرض أعمال لومير المعتمد · مكة المكرمة وجدة</span>
+          <span>نماذج أسلوب لومير للتصوير والتجهيز · مكة المكرمة وجدة</span>
         </div>
         <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[#2C1E18] leading-tight">
           لحظات مضيئة وتفاصيل صنعت الفرق في مناسباتكم
@@ -155,7 +156,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
         </p>
       </div>
 
-      {/* 2. Clear Demo / Licensing & Child Privacy Disclaimers */}
+      {/* 2. Image source transparency & child privacy notice */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Licensing & Transparency Notice */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#F5EFE6] border border-[#E6DCD2] flex items-start gap-3.5 text-xs">
@@ -164,11 +165,11 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
           </div>
           <div className="space-y-1">
             <strong className="block text-[#2C1E18] font-bold text-[13px]">
-              شفافية النماذج التجريبية المرخصة:
+              مصدر الصور المعروضة:
             </strong>
             <p className="text-[#645249] leading-relaxed">
-              تستخدم لومير صوراً توضيحية مرخصة ومصرحة تعكس هوية وأسلوب الإخراج المعتمد لدينا، حتى
-              يتم رفع وتحديث أعمال لومير الحصرية الخاصة بكل مناسبة بعد أخذ الموافقة المسبقة.
+              تمثّل الصور المعروضة أسلوب الإخراج والتجهيز المعتمد لدى لومير في مكة المكرمة وجدة،
+              وتُحدَّث بالأعمال الأصلية فور توفر موافقات النشر الخاصة بكل مناسبة.
             </p>
           </div>
         </div>
@@ -357,12 +358,21 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
               >
                 {/* Visual Media Container */}
                 <div className="relative aspect-4/3 bg-[#F3ECE1] overflow-hidden">
-                  <img
-                    src={item.mediaUrl}
-                    alt={item.title}
-                    loading="lazy"
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
+                  <picture className="block w-full h-full">
+                    {webpSrc(item.mediaUrl) && (
+                      <source
+                        type="image/webp"
+                        srcSet={responsiveWebPSrcSet(item.mediaUrl) || webpSrc(item.mediaUrl)}
+                      />
+                    )}
+                    <img
+                      src={item.mediaUrl}
+                      alt={altForMediaUrl(item.mediaUrl, item.title)}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </picture>
 
                   {/* Gradient Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 opacity-70 group-hover:opacity-85 transition-opacity" />
@@ -384,10 +394,6 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
                       )}
                     </span>
 
-                    {/* Demo Marker Badge */}
-                    <span className="px-2 py-0.5 rounded-md bg-[#FAF6F0]/90 backdrop-blur-xs text-[#645249] text-[10px] font-medium border border-[#D8CBB8]">
-                      نموذج توضيحي مرخص
-                    </span>
                   </div>
 
                   {/* Center Play Button for Videos */}
@@ -526,7 +532,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
                 <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-black border border-white/10 aspect-16/9 w-full max-w-2xl flex items-center justify-center">
                   <img
                     src={activeItem.mediaUrl}
-                    alt={activeItem.title}
+                    alt={altForMediaUrl(activeItem.mediaUrl, activeItem.title)}
                     className="w-full h-full object-cover opacity-80"
                   />
                   <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-3 p-4 text-center">
@@ -544,7 +550,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
               ) : (
                 <img
                   src={activeItem.mediaUrl}
-                  alt={activeItem.title}
+                  alt={altForMediaUrl(activeItem.mediaUrl, activeItem.title)}
                   className="max-h-[70vh] max-w-full object-contain rounded-2xl shadow-2xl border border-white/10"
                 />
               )}
@@ -559,7 +565,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
                   <p className="text-sm text-[#FAF6F0] leading-relaxed">{activeItem.caption}</p>
                 )}
                 <div className="flex flex-wrap items-center gap-3 text-[11px] text-[#FAF6F0]/70">
-                  <span>نموذج توضيحي مرخص</span>
+                  <span>LUMIR | لومير</span>
                   <span aria-hidden="true">·</span>
                   <span>تغطية مكة المكرمة وجدة</span>
                   {(activeItem.categoryKey === 'kids_corner' ||

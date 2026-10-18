@@ -31,79 +31,53 @@ import {
 } from './components/InfoPages';
 import { AdminDashboard } from './components/AdminDashboard';
 import { GalleryView } from './components/GalleryView';
+import { ServiceDetailView } from './components/ServiceDetailView';
+import { NotFoundView } from './components/NotFoundView';
+import { parseRoute, pathForView } from './utils/routes';
+import { applySeoToDocument } from './utils/seoDocument';
 
 export function App() {
   const [data, setData] = useState<LumirCentralData>(() => loadCentralData());
-  const getInitialView = (): PageView => {
-    try {
-      const hash = window.location.hash.replace(/^#\/?/, '').trim();
-      const validViews: PageView[] = [
-        'home',
-        'catalog',
-        'gallery',
-        'mobile-photography',
-        'kids-corner',
-        'childcare',
-        'wedding-support',
-        'service-detail',
-        'booking',
-        'booking-status',
-        'about',
-        'faq',
-        'privacy',
-        'terms',
-        'contact',
-        'admin'
-      ];
-      if (validViews.includes(hash as PageView)) {
-        return hash as PageView;
-      }
-    } catch {}
-    return 'home';
-  };
-
-  const [currentView, setCurrentView] = useState<PageView>(getInitialView);
+  const initialRoute = parseRoute(window.location.pathname, window.location.hash);
+  const [currentView, setCurrentView] = useState<PageView>(initialRoute.view);
+  const [currentSlug, setCurrentSlug] = useState<string | undefined>(initialRoute.slug);
+  const [routeNotFound, setRouteNotFound] = useState<boolean>(Boolean(initialRoute.notFound));
   const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>(undefined);
   const [selectedPackageId, setSelectedPackageId] = useState<string | undefined>(undefined);
 
-  // Sync hash with currentView
-  const handleNavigate = (view: PageView) => {
-    setCurrentView(view);
-    if (view === 'home') {
-      history.replaceState(null, '', window.location.pathname);
-    } else {
-      window.location.hash = view;
+  // Path-based routing: every view has its own crawlable URL (/products, /services/...)
+  const handleNavigate = (view: PageView, slug?: string) => {
+    const path = pathForView(view, slug);
+    if (window.location.pathname !== path) {
+      history.pushState({ view, slug }, '', path);
     }
+    setCurrentView(view);
+    setCurrentSlug(slug);
+    setRouteNotFound(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace(/^#\/?/, '').trim();
-      const validViews: PageView[] = [
-        'home',
-        'catalog',
-        'mobile-photography',
-        'kids-corner',
-        'childcare',
-        'wedding-support',
-        'service-detail',
-        'booking',
-        'booking-status',
-        'about',
-        'faq',
-        'privacy',
-        'terms',
-        'contact',
-        'admin'
-      ];
-      if (validViews.includes(hash as PageView)) {
-        setCurrentView(hash as PageView);
-      }
+    // Rewrite legacy #hash links to their canonical path without a history entry
+    if (window.location.hash && window.location.hash.length > 1) {
+      const legacy = parseRoute(window.location.pathname, window.location.hash);
+      if (!legacy.notFound) history.replaceState(null, '', legacy.path);
+    }
+
+    const applyLocation = () => {
+      const route = parseRoute(window.location.pathname, window.location.hash);
+      setCurrentView(route.view);
+      setCurrentSlug(route.slug);
+      setRouteNotFound(Boolean(route.notFound));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', applyLocation);
+    window.addEventListener('hashchange', applyLocation);
+    return () => {
+      window.removeEventListener('popstate', applyLocation);
+      window.removeEventListener('hashchange', applyLocation);
+    };
   }, []);
 
   // Favorites / Wishlist State with local persistence
@@ -246,29 +220,14 @@ export function App() {
       .catch(() => {});
   }, []);
 
-  // Dynamic SEO page title
+  // Per-page SEO: unique title, meta description, canonical, social tags and JSON-LD
   useEffect(() => {
-    const base = 'LUMIR | لومير — نضيء لياليك وفرحة صغارك';
-    const titles: Record<PageView, string> = {
-      home: `${base} | مكة المكرمة وجدة`,
-      catalog: `كتالوج الخدمات والأسعار — ${base}`,
-      gallery: `معرض الأعمال ونماذج التغطيات — ${base}`,
-      'mobile-photography': `تصوير المناسبات بالجوال — ${base}`,
-      'kids-corner': `ركن الأطفال والأنشطة — ${base}`,
-      childcare: `مشرفات رعاية الأطفال — ${base}`,
-      'wedding-support': `خدمات مساندة الأفراح — ${base}`,
-      'service-detail': `تفاصيل الخدمة — ${base}`,
-      booking: `طلب حجز موعد — ${base}`,
-      'booking-status': `تتبع حالة الطلب — ${base}`,
-      about: `من نحن — ${base}`,
-      faq: `الأسئلة الشائعة — ${base}`,
-      privacy: `سياسة الخصوصية — ${base}`,
-      terms: `الشروط والأحكام — ${base}`,
-      contact: `تواصلي معنا — ${base}`,
-      admin: `لوحة الإدارة المركزية — ${base}`
-    };
-    document.title = titles[currentView] || base;
-  }, [currentView]);
+    const path =
+      currentView === 'not-found' || routeNotFound
+        ? window.location.pathname
+        : pathForView(currentView, currentSlug);
+    applySeoToDocument(path);
+  }, [currentView, currentSlug, routeNotFound]);
 
   const handleSelectServiceToBook = (serviceId: string, packageId?: string) => {
     setSelectedServiceId(serviceId);
@@ -327,6 +286,21 @@ export function App() {
       onClearCart={handleClearCart}
       onSelectServiceToBook={handleSelectServiceToBook}
     >
+      {currentView === 'not-found' && <NotFoundView navigate={handleNavigate} />}
+
+      {currentView === 'service-detail' && currentSlug && (
+        <ServiceDetailView
+          slug={currentSlug}
+          services={data.services}
+          settings={data.settings}
+          favorites={favorites}
+          onToggleFavorite={handleToggleFavorite}
+          onAddToCart={handleAddToCart}
+          navigate={handleNavigate}
+          onSelectServiceToBook={handleSelectServiceToBook}
+        />
+      )}
+
       {currentView === 'home' && (
         <HomeView
           services={data.services}

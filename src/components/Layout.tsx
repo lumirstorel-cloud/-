@@ -9,6 +9,7 @@ import {
   SiteSettings
 } from '../types';
 import { buildWhatsAppLink, formatArabicNumber } from '../utils/formatters';
+import { pathForView } from '../utils/routes';
 import { AnnouncementBar } from './AnnouncementBar';
 import {
   CustomerAccountModal,
@@ -76,6 +77,13 @@ export const Layout: React.FC<LayoutProps> = ({
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
 
+  // Crawlable internal links: real <a href> that still navigates in-app
+  const navClick = (v: PageView) => (e: React.MouseEvent) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
+    handleNav(v);
+  };
+
   const handleNav = (v: PageView) => {
     navigate(v);
     setMobileMenuOpen(false);
@@ -99,9 +107,7 @@ export const Layout: React.FC<LayoutProps> = ({
         <div className="max-w-[1280px] mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 py-3.5">
           {/* Right Zone: Brand Wordmark & Tagline */}
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => handleNav('home')}
+            <a href={pathForView('home')} onClick={navClick('home')}
               className="text-right cursor-pointer group flex flex-col items-start"
             >
               <span className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-[#2C1E18] group-hover:text-[#8C6D36] transition-colors whitespace-nowrap">
@@ -110,7 +116,7 @@ export const Layout: React.FC<LayoutProps> = ({
               <span className="text-[10px] text-[#8C6D36] tracking-normal hidden sm:block">
                 «{settings.slogan || 'نضيء لياليك وفرحة صغارك'}»
               </span>
-            </button>
+            </a>
           </div>
 
           {/* Center Zone: Main Navigation Links */}
@@ -118,9 +124,7 @@ export const Layout: React.FC<LayoutProps> = ({
             aria-label="التنقل الرئيسي"
             className="hidden xl:flex items-center gap-6 text-sm font-medium text-[#645249]"
           >
-            <button
-              type="button"
-              onClick={() => handleNav('home')}
+            <a href={pathForView('home')} onClick={navClick('home')}
               className={`hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 ${
                 currentView === 'home'
                   ? 'text-[#2C1E18] font-bold border-b-2 border-[#C8A96E]'
@@ -128,10 +132,8 @@ export const Layout: React.FC<LayoutProps> = ({
               }`}
             >
               الرئيسية
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNav('catalog')}
+            </a>
+            <a href={pathForView('catalog')} onClick={navClick('catalog')}
               className={`hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 ${
                 ['catalog', 'service-detail'].includes(currentView)
                   ? 'text-[#2C1E18] font-bold border-b-2 border-[#C8A96E]'
@@ -139,10 +141,8 @@ export const Layout: React.FC<LayoutProps> = ({
               }`}
             >
               كتالوج الخدمات
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNav('gallery')}
+            </a>
+            <a href={pathForView('gallery')} onClick={navClick('gallery')}
               className={`hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 ${
                 currentView === 'gallery'
                   ? 'text-[#2C1E18] font-bold border-b-2 border-[#C8A96E]'
@@ -150,10 +150,8 @@ export const Layout: React.FC<LayoutProps> = ({
               }`}
             >
               معرض الأعمال
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNav('mobile-photography')}
+            </a>
+            <a href={pathForView('mobile-photography')} onClick={navClick('mobile-photography')}
               className={`hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 ${
                 currentView === 'mobile-photography'
                   ? 'text-[#2C1E18] font-bold border-b-2 border-[#C8A96E]'
@@ -161,10 +159,8 @@ export const Layout: React.FC<LayoutProps> = ({
               }`}
             >
               تصوير الجوال
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNav('kids-corner')}
+            </a>
+            <a href={pathForView('kids-corner')} onClick={navClick('kids-corner')}
               className={`hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 ${
                 currentView === 'kids-corner'
                   ? 'text-[#2C1E18] font-bold border-b-2 border-[#C8A96E]'
@@ -172,10 +168,8 @@ export const Layout: React.FC<LayoutProps> = ({
               }`}
             >
               ركن الأطفال
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNav('childcare')}
+            </a>
+            <a href={pathForView('childcare')} onClick={navClick('childcare')}
               className={`hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 ${
                 currentView === 'childcare'
                   ? 'text-[#2C1E18] font-bold border-b-2 border-[#C8A96E]'
@@ -183,10 +177,8 @@ export const Layout: React.FC<LayoutProps> = ({
               }`}
             >
               مرافقة الأطفال
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNav('wedding-support')}
+            </a>
+            <a href={pathForView('wedding-support')} onClick={navClick('wedding-support')}
               className={`hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 ${
                 currentView === 'wedding-support'
                   ? 'text-[#2C1E18] font-bold border-b-2 border-[#C8A96E]'
@@ -194,10 +186,8 @@ export const Layout: React.FC<LayoutProps> = ({
               }`}
             >
               مساندة الأفراح
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNav('booking-status')}
+            </a>
+            <a href={pathForView('booking-status')} onClick={navClick('booking-status')}
               className={`hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 ${
                 currentView === 'booking-status'
                   ? 'text-[#2C1E18] font-bold border-b-2 border-[#C8A96E]'
@@ -205,7 +195,7 @@ export const Layout: React.FC<LayoutProps> = ({
               }`}
             >
               تتبع الحجز
-            </button>
+            </a>
           </nav>
 
           {/* Left Zone: Action Icons & Primary CTA */}
@@ -265,13 +255,11 @@ export const Layout: React.FC<LayoutProps> = ({
             </button>
 
             {/* Primary CTA button */}
-            <button
-              type="button"
-              onClick={() => handleNav('booking')}
+            <a href={pathForView('booking')} onClick={navClick('booking')}
               className="hidden sm:inline-flex items-center gap-1.5 px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-[#FAF6F0] bg-[#2C1E18] rounded-xl hover:bg-[#422E25] transition-all duration-200 shadow-sm hover:shadow cursor-pointer whitespace-nowrap"
             >
               <span>احجزي مناسبتكِ</span>
-            </button>
+            </a>
 
             {/* Mobile Menu Hamburger */}
             <button
@@ -290,111 +278,87 @@ export const Layout: React.FC<LayoutProps> = ({
           <div className="xl:hidden border-t border-[#E6DCD2] bg-[#FAF6F0] px-5 py-5 space-y-4 animate-fadeIn">
             <div className="flex items-center justify-between pb-3 border-b border-[#E6DCD2]">
               <span className="text-xs font-bold text-[#8C6D36]">أقسام وتصفح لومير:</span>
-              <button
-                type="button"
-                onClick={() => handleNav('booking')}
+              <a href={pathForView('booking')} onClick={navClick('booking')}
                 className="px-3.5 py-1.5 text-xs font-bold bg-[#2C1E18] text-[#FAF6F0] rounded-lg"
               >
                 طلب حجز جديد
-              </button>
+              </a>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <button
-                type="button"
-                onClick={() => handleNav('home')}
+              <a href={pathForView('home')} onClick={navClick('home')}
                 className={`text-right py-2 px-3 rounded-lg font-medium transition-colors ${
                   currentView === 'home' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
                 }`}
               >
                 الرئيسية
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNav('catalog')}
+              </a>
+              <a href={pathForView('catalog')} onClick={navClick('catalog')}
                 className={`text-right py-2 px-3 rounded-lg font-medium transition-colors ${
                   currentView === 'catalog' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
                 }`}
               >
                 كتالوج الخدمات
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNav('gallery')}
+              </a>
+              <a href={pathForView('gallery')} onClick={navClick('gallery')}
                 className={`text-right py-2 px-3 rounded-lg font-medium transition-colors ${
                   currentView === 'gallery' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
                 }`}
               >
                 🖼️ معرض الأعمال
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNav('mobile-photography')}
+              </a>
+              <a href={pathForView('mobile-photography')} onClick={navClick('mobile-photography')}
                 className={`text-right py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
                   currentView === 'mobile-photography' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
                 }`}
               >
                 📸 تصوير بالجوال (٤٨ ساعة)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNav('kids-corner')}
+              </a>
+              <a href={pathForView('kids-corner')} onClick={navClick('kids-corner')}
                 className={`text-right py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
                   currentView === 'kids-corner' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
                 }`}
               >
                 🎨 ركن الأطفال والأنشطة
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNav('childcare')}
+              </a>
+              <a href={pathForView('childcare')} onClick={navClick('childcare')}
                 className={`text-right py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
                   currentView === 'childcare' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
                 }`}
               >
                 🧸 مشرفات رعاية الأطفال
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNav('wedding-support')}
+              </a>
+              <a href={pathForView('wedding-support')} onClick={navClick('wedding-support')}
                 className={`text-right py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
                   currentView === 'wedding-support' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
                 }`}
               >
                 💍 مساندة وتنظيم الأفراح
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNav('booking-status')}
+              </a>
+              <a href={pathForView('booking-status')} onClick={navClick('booking-status')}
                 className={`text-right py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
                   currentView === 'booking-status' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
                 }`}
               >
                 🔍 تتبع حالة الطلب
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNav('faq')}
+              </a>
+              <a href={pathForView('faq')} onClick={navClick('faq')}
                 className={`text-right py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
                   currentView === 'faq' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
                 }`}
               >
                 ❓ الأسئلة الشائعة
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNav('about')}
+              </a>
+              <a href={pathForView('about')} onClick={navClick('about')}
                 className="text-right py-2 px-3 rounded-lg text-xs font-medium hover:bg-[#F3ECE1]"
               >
                 🏛️ من نحن
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNav('contact')}
+              </a>
+              <a href={pathForView('contact')} onClick={navClick('contact')}
                 className="text-right py-2 px-3 rounded-lg text-xs font-medium hover:bg-[#F3ECE1]"
               >
                 📞 تواصلي معنا
-              </button>
+              </a>
             </div>
 
             <div className="pt-3 border-t border-[#E6DCD2] flex items-center justify-between text-xs text-[#645249]">
@@ -421,9 +385,7 @@ export const Layout: React.FC<LayoutProps> = ({
               تصنيفات لومير السريعة:
             </span>
 
-            <button
-              type="button"
-              onClick={() => handleNav('catalog')}
+            <a href={pathForView('catalog')} onClick={navClick('catalog')}
               className={`px-3 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
                 currentView === 'catalog'
                   ? 'bg-[#2C1E18] text-[#FAF6F0] font-bold'
@@ -431,11 +393,9 @@ export const Layout: React.FC<LayoutProps> = ({
               }`}
             >
               <span>الكل</span>
-            </button>
+            </a>
 
-            <button
-              type="button"
-              onClick={() => handleNav('mobile-photography')}
+            <a href={pathForView('mobile-photography')} onClick={navClick('mobile-photography')}
               className={`px-3 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
                 currentView === 'mobile-photography'
                   ? 'bg-[#2C1E18] text-[#FAF6F0] font-bold'
@@ -444,11 +404,9 @@ export const Layout: React.FC<LayoutProps> = ({
             >
               <Camera className="w-3.5 h-3.5 text-[#8C6D36]" />
               <span>تصوير الجوال (من ٣٥٠ ر.س)</span>
-            </button>
+            </a>
 
-            <button
-              type="button"
-              onClick={() => handleNav('kids-corner')}
+            <a href={pathForView('kids-corner')} onClick={navClick('kids-corner')}
               className={`px-3 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
                 currentView === 'kids-corner'
                   ? 'bg-[#2C1E18] text-[#FAF6F0] font-bold'
@@ -457,11 +415,9 @@ export const Layout: React.FC<LayoutProps> = ({
             >
               <Palette className="w-3.5 h-3.5 text-[#4E8A8A]" />
               <span>ركن الأطفال (رسم، طين، وجه، حناء)</span>
-            </button>
+            </a>
 
-            <button
-              type="button"
-              onClick={() => handleNav('childcare')}
+            <a href={pathForView('childcare')} onClick={navClick('childcare')}
               className={`px-3 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
                 currentView === 'childcare'
                   ? 'bg-[#2C1E18] text-[#FAF6F0] font-bold'
@@ -470,11 +426,9 @@ export const Layout: React.FC<LayoutProps> = ({
             >
               <Users className="w-3.5 h-3.5 text-[#8C6D36]" />
               <span>مشرفات رعاية الأطفال</span>
-            </button>
+            </a>
 
-            <button
-              type="button"
-              onClick={() => handleNav('wedding-support')}
+            <a href={pathForView('wedding-support')} onClick={navClick('wedding-support')}
               className={`px-3 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
                 currentView === 'wedding-support'
                   ? 'bg-[#2C1E18] text-[#FAF6F0] font-bold'
@@ -483,7 +437,7 @@ export const Layout: React.FC<LayoutProps> = ({
             >
               <HeartHandshake className="w-3.5 h-3.5 text-[#A35D6A]" />
               <span>تنظيم ومساندة الأفراح</span>
-            </button>
+            </a>
           </div>
 
           <div className="hidden lg:flex items-center gap-3 whitespace-nowrap text-xs text-[#645249]">
@@ -561,49 +515,39 @@ export const Layout: React.FC<LayoutProps> = ({
               <h3 className="font-display text-lg text-[#FAF6F0]">خدماتنا المعتمدة</h3>
               <ul className="space-y-2 text-xs text-[#C7B8A8]">
                 <li>
-                  <button
-                    type="button"
-                    onClick={() => handleNav('mobile-photography')}
+                  <a href={pathForView('mobile-photography')} onClick={navClick('mobile-photography')}
                     className="hover:text-[#FAF6F0] cursor-pointer"
                   >
                     تصوير المناسبات بالجوال (٤٨ ساعة)
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button
-                    type="button"
-                    onClick={() => handleNav('kids-corner')}
+                  <a href={pathForView('kids-corner')} onClick={navClick('kids-corner')}
                     className="hover:text-[#FAF6F0] cursor-pointer"
                   >
                     ركن الأطفال والأنشطة الترفيهية
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button
-                    type="button"
-                    onClick={() => handleNav('childcare')}
+                  <a href={pathForView('childcare')} onClick={navClick('childcare')}
                     className="hover:text-[#FAF6F0] cursor-pointer"
                   >
                     رعاية ومرافقة الأطفال أثناء المناسبات
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button
-                    type="button"
-                    onClick={() => handleNav('wedding-support')}
+                  <a href={pathForView('wedding-support')} onClick={navClick('wedding-support')}
                     className="hover:text-[#FAF6F0] cursor-pointer"
                   >
                     خدمات مساندة وتنظيم الأفراح
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button
-                    type="button"
-                    onClick={() => handleNav('catalog')}
+                  <a href={pathForView('catalog')} onClick={navClick('catalog')}
                     className="hover:text-[#FAF6F0] cursor-pointer"
                   >
                     استعراض الكتالوج والأسعار بالكامل
-                  </button>
+                  </a>
                 </li>
               </ul>
             </div>
@@ -613,49 +557,39 @@ export const Layout: React.FC<LayoutProps> = ({
               <h3 className="font-display text-lg text-[#FAF6F0]">الروابط والسياسات</h3>
               <ul className="space-y-2 text-xs text-[#C7B8A8]">
                 <li>
-                  <button
-                    type="button"
-                    onClick={() => handleNav('booking-status')}
+                  <a href={pathForView('booking-status')} onClick={navClick('booking-status')}
                     className="hover:text-[#FAF6F0] cursor-pointer"
                   >
                     الاستعلام عن حالة الطلب
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button
-                    type="button"
-                    onClick={() => handleNav('about')}
+                  <a href={pathForView('about')} onClick={navClick('about')}
                     className="hover:text-[#FAF6F0] cursor-pointer"
                   >
                     من نحن ورؤيتنا
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button
-                    type="button"
-                    onClick={() => handleNav('faq')}
+                  <a href={pathForView('faq')} onClick={navClick('faq')}
                     className="hover:text-[#FAF6F0] cursor-pointer"
                   >
                     الأسئلة الشائعة
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button
-                    type="button"
-                    onClick={() => handleNav('privacy')}
+                  <a href={pathForView('privacy')} onClick={navClick('privacy')}
                     className="hover:text-[#FAF6F0] cursor-pointer"
                   >
                     سياسة الخصوصية وحماية الأطفال
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button
-                    type="button"
-                    onClick={() => handleNav('terms')}
+                  <a href={pathForView('terms')} onClick={navClick('terms')}
                     className="hover:text-[#FAF6F0] cursor-pointer"
                   >
                     الشروط والأحكام وسياسة الإلغاء
-                  </button>
+                  </a>
                 </li>
               </ul>
             </div>
@@ -699,30 +633,24 @@ export const Layout: React.FC<LayoutProps> = ({
               المملكة العربية السعودية.
             </p>
             <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={() => handleNav('privacy')}
+              <a href={pathForView('privacy')} onClick={navClick('privacy')}
                 className="hover:text-[#FAF6F0] cursor-pointer"
               >
                 الخصوصية
-              </button>
+              </a>
               <span aria-hidden="true">·</span>
-              <button
-                type="button"
-                onClick={() => handleNav('terms')}
+              <a href={pathForView('terms')} onClick={navClick('terms')}
                 className="hover:text-[#FAF6F0] cursor-pointer"
               >
                 الشروط
-              </button>
+              </a>
               <span aria-hidden="true">·</span>
-              <button
-                type="button"
-                onClick={() => handleNav('admin')}
+              <a href={pathForView('admin')} onClick={navClick('admin')}
                 className="inline-flex items-center gap-1 text-[#C8A96E] hover:text-[#FAF6F0] cursor-pointer"
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>لوحة تحكم الإدارة</span>
-              </button>
+              </a>
             </div>
           </div>
         </div>
@@ -746,9 +674,7 @@ export const Layout: React.FC<LayoutProps> = ({
         className="xl:hidden fixed bottom-0 inset-x-0 z-40 bg-[#FAF6F0]/95 backdrop-blur-md border-t border-[#E6DCD2] px-3 py-2 shadow-2xl flex items-center justify-around text-[10px] font-bold"
       >
         {/* 1. Home */}
-        <button
-          type="button"
-          onClick={() => handleNav('home')}
+        <a href={pathForView('home')} onClick={navClick('home')}
           className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-colors cursor-pointer ${
             currentView === 'home'
               ? 'text-[#2C1E18] font-black'
@@ -757,12 +683,10 @@ export const Layout: React.FC<LayoutProps> = ({
         >
           <Home className={`w-5 h-5 ${currentView === 'home' ? 'text-[#C8A96E]' : ''}`} />
           <span>الرئيسية</span>
-        </button>
+        </a>
 
         {/* 2. Catalog */}
-        <button
-          type="button"
-          onClick={() => handleNav('catalog')}
+        <a href={pathForView('catalog')} onClick={navClick('catalog')}
           className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-colors cursor-pointer ${
             ['catalog', 'service-detail'].includes(currentView)
               ? 'text-[#2C1E18] font-black'
@@ -775,12 +699,10 @@ export const Layout: React.FC<LayoutProps> = ({
             }`}
           />
           <span>الكتالوج</span>
-        </button>
+        </a>
 
         {/* 3. Gallery */}
-        <button
-          type="button"
-          onClick={() => handleNav('gallery')}
+        <a href={pathForView('gallery')} onClick={navClick('gallery')}
           className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-colors cursor-pointer ${
             currentView === 'gallery'
               ? 'text-[#2C1E18] font-black'
@@ -789,7 +711,7 @@ export const Layout: React.FC<LayoutProps> = ({
         >
           <ImageIcon className={`w-5 h-5 ${currentView === 'gallery' ? 'text-[#C8A96E]' : ''}`} />
           <span>المعرض</span>
-        </button>
+        </a>
 
         {/* 4. Wishlist / Favorites */}
         <button
@@ -809,9 +731,7 @@ export const Layout: React.FC<LayoutProps> = ({
         </button>
 
         {/* 5. Track Order */}
-        <button
-          type="button"
-          onClick={() => handleNav('booking-status')}
+        <a href={pathForView('booking-status')} onClick={navClick('booking-status')}
           className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-colors cursor-pointer ${
             currentView === 'booking-status'
               ? 'text-[#2C1E18] font-black'
@@ -822,7 +742,7 @@ export const Layout: React.FC<LayoutProps> = ({
             className={`w-5 h-5 ${currentView === 'booking-status' ? 'text-[#C8A96E]' : ''}`}
           />
           <span>تتبع الحجز</span>
-        </button>
+        </a>
       </nav>
     </div>
   );

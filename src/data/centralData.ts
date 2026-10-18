@@ -1,10 +1,10 @@
 import { LumirCentralData, ServiceItem } from '../types';
 
-export const HERO_IMAGE = '/src/assets/images/lumir_hero_1792039742181.jpg';
-export const MOBILE_PHOTO_IMAGE = '/src/assets/images/lumir_mobile_photo_1792039742936.jpg';
-export const KIDS_CORNER_IMAGE = '/src/assets/images/lumir_kids_corner_1792039743563.jpg';
-export const CHILDCARE_IMAGE = '/src/assets/images/lumir_childcare_1792039744226.jpg';
-export const WEDDING_SUPPORT_IMAGE = '/src/assets/images/lumir_wedding_support_1792039744775.jpg';
+export const HERO_IMAGE = '/images/lumir-hero-1440.jpg';
+export const MOBILE_PHOTO_IMAGE = '/images/lumir-mobile-photo-1440.jpg';
+export const KIDS_CORNER_IMAGE = '/images/lumir-kids-corner-1440.jpg';
+export const CHILDCARE_IMAGE = '/images/lumir-childcare-1440.jpg';
+export const WEDDING_SUPPORT_IMAGE = '/images/lumir-wedding-support-1440.jpg';
 
 export const INITIAL_SERVICES: ServiceItem[] = [
   // 1. تصوير المناسبات بالجوال
@@ -21,6 +21,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     minHours: 3,
     deliveryTimeframeHours: 48,
     imageUrl: MOBILE_PHOTO_IMAGE,
+    imageAlt: 'تصوير زفاف بالجوال بأسلوب سينمائي من لومير',
     isDemoImage: true,
     isAvailable: true,
     requiresSpaceAndSetup: false,
@@ -134,6 +135,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     basePrice: 500,
     minHours: 3,
     imageUrl: KIDS_CORNER_IMAGE,
+    imageAlt: 'ركن أنشطة إبداعية للأطفال في المناسبات',
     isDemoImage: true,
     isAvailable: true,
     requiresSpaceAndSetup: true,
@@ -215,7 +217,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     id: 'srv-childcare',
     category: 'childcare',
     slug: 'childcare',
-    name: 'خدمة مشرفات رعاية الأطفال أثناء المناسبات',
+    name: 'مشرفة أطفال للمناسبات',
     tagline: 'راحة بال للأمهات واهتمام حانٍ بالأطفال طوال ساعات الحفل',
     description:
       'حجز مشرفات مؤهلات للاهتمام بالأطفال ومرافقتهم داخل جناح الأطفال، وتنظيم أوقاتهم وألعابهم الجماعية الهادئة ومنع خروجهم لصالة الزفة لضمان سكينة الحفل.',
@@ -223,6 +225,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     basePrice: 300,
     minHours: 3,
     imageUrl: CHILDCARE_IMAGE,
+    imageAlt: 'مشرفة أطفال للمناسبات من لومير',
     isDemoImage: true,
     isAvailable: true,
     requiresSpaceAndSetup: false,
@@ -294,7 +297,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
   },
 
   // 4. خدمات مساندة الأفراح
-  // مشرفة جوالات: 400 ريال.
+  // مفرزة جوالات: 400 ريال.
   // حارسة الكوشة: 250 ريال.
   // مرافقة الطفل: 250 ريال.
   // خدمة العبايات: 250 ريال.
@@ -305,7 +308,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     id: 'srv-wedding-support-phones',
     category: 'wedding_support',
     slug: 'phone-supervisor',
-    name: 'مشرفة جوالات (حفظ الخصوصية)',
+    name: 'مفرزة جوالات للمناسبات',
     tagline: 'تنظيم بوابات الدخول ومنع التصوير غير المصرح به لحفظ خصوصية الحفل',
     description:
       'إشراف نسائي حازم ولبق عند بوابات الدخول للتأكد من حجب كاميرات الهواتف وتطبيق اشتراطات أهل الحفل بخصوصية تامة.',
@@ -313,6 +316,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     basePrice: 400,
     minHours: 5,
     imageUrl: WEDDING_SUPPORT_IMAGE,
+    imageAlt: 'خدمة مفرزة جوالات للمناسبات من لومير',
     isDemoImage: true,
     isAvailable: true,
     requiresSpaceAndSetup: false,
@@ -327,7 +331,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     packages: [
       {
         id: 'pkg-phone-sup-base',
-        name: 'مشرفة جوالات أساسية',
+        name: 'مفرزة جوالات أساسية',
         durationHours: 5,
         price: 400,
         features: ['مشرفة واحدة لبوابة الدخول الرئيسية', 'تغطية لمدة ٥ ساعات', 'ملصقات حجب الكاميرا عند الطلب']
@@ -347,6 +351,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     basePrice: 250,
     minHours: 5,
     imageUrl: WEDDING_SUPPORT_IMAGE,
+    imageAlt: 'حارسة الكوشة تحرص على خصوصية العروس أثناء لحظات الزفاف',
     isDemoImage: true,
     isAvailable: true,
     requiresSpaceAndSetup: false,
@@ -381,6 +386,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     basePrice: 250,
     minHours: 5,
     imageUrl: WEDDING_SUPPORT_IMAGE,
+    imageAlt: 'ركن ترقيم وتسليم عبايات الضيفات في مناسبة بتنظيم من لومير',
     isDemoImage: true,
     isAvailable: true,
     requiresSpaceAndSetup: true,
@@ -416,6 +422,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     basePrice: 250,
     minHours: 4,
     imageUrl: CHILDCARE_IMAGE,
+    imageAlt: 'مشرفة ترافق طفلة أثناء فعاليات حفل الزفاف',
     isDemoImage: true,
     isAvailable: true,
     requiresSpaceAndSetup: false,
@@ -451,6 +458,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     basePrice: 350,
     minHours: 5,
     imageUrl: WEDDING_SUPPORT_IMAGE,
+    imageAlt: 'إرشاد وصيفة العروس لتنسيق تفاصيل الفستان قبل الزفة',
     isDemoImage: true,
     isAvailable: true,
     requiresSpaceAndSetup: false,
@@ -485,6 +493,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     basePrice: 200,
     minHours: 4,
     imageUrl: WEDDING_SUPPORT_IMAGE,
+    imageAlt: 'طاقم نسائي يقدم الضيافة للضيفات في صالة الحفل',
     isDemoImage: true,
     isAvailable: true,
     requiresSpaceAndSetup: false,
@@ -534,6 +543,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     basePrice: 300,
     minHours: 4,
     imageUrl: WEDDING_SUPPORT_IMAGE,
+    imageAlt: 'دلة قهوة سعودية وأواني ذهبية على طاولة استقبال الضيافة',
     isDemoImage: true,
     isAvailable: true,
     requiresSpaceAndSetup: true,
@@ -574,7 +584,7 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
     workingHours: 'يومياً من ١٠:٠٠ ص حتى ١١:٠٠ م',
     mobilePhotoDefaultDelivery: '٤٨ ساعة',
     demoNotice:
-      'الصور المعروضة بنموذج تجريبي تعكس الهوية البصرية لعلامة لومير، ويمكن استبدالها وتعديلها في أي وقت من لوحة الإدارة.',
+      'الصور المعروضة تُمثّل أسلوب الإخراج والتجهيز المعتمد لدى لومير، وتُحدَّث بالأعمال الأصلية فور توفر موافقات النشر.',
     privacyPledge:
       'نلتزم التزاماً صارماً بخصوصية العائلات والأطفال: لا يتم تصوير أي طفل أو نشر أي صورة أو مقطع دون موافقة خطية صريحة من صاحب المناسبة.',
     childcareDisclaimer:
@@ -782,7 +792,6 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
       isFeatured: true,
       isPublic: true,
       displayOrder: 1,
-      isDemo: true
     },
     {
       id: 'port-2',
@@ -795,7 +804,6 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
       isFeatured: true,
       isPublic: true,
       displayOrder: 2,
-      isDemo: true
     },
     {
       id: 'port-3',
@@ -808,7 +816,6 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
       isFeatured: true,
       isPublic: true,
       displayOrder: 3,
-      isDemo: true,
       parentConsentApproved: true
     },
     {
@@ -822,7 +829,6 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
       isFeatured: false,
       isPublic: true,
       displayOrder: 4,
-      isDemo: true,
       parentConsentApproved: true
     },
     {
@@ -836,7 +842,6 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
       isFeatured: true,
       isPublic: true,
       displayOrder: 5,
-      isDemo: true,
       parentConsentApproved: true
     },
     {
@@ -850,7 +855,6 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
       isFeatured: false,
       isPublic: true,
       displayOrder: 6,
-      isDemo: true,
       parentConsentApproved: true
     },
     {
@@ -864,7 +868,6 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
       isFeatured: true,
       isPublic: true,
       displayOrder: 7,
-      isDemo: true
     },
     {
       id: 'port-8',
@@ -877,7 +880,6 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
       isFeatured: false,
       isPublic: true,
       displayOrder: 8,
-      isDemo: true
     },
     {
       id: 'port-9',
@@ -890,7 +892,6 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
       isFeatured: true,
       isPublic: true,
       displayOrder: 9,
-      isDemo: true
     },
     {
       id: 'port-10',
@@ -903,7 +904,6 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
       isFeatured: false,
       isPublic: true,
       displayOrder: 10,
-      isDemo: true
     }
   ],
   faqs: [

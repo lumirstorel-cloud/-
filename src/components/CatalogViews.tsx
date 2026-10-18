@@ -20,6 +20,8 @@ import {
   getPricingModelLabel
 } from '../utils/formatters';
 import { HERO_IMAGE } from '../data/centralData';
+import { getSeoMeta } from '../data/seo';
+import { pathForView } from '../utils/routes';
 import { ResilientImage } from './ResilientImage';
 import { HeroBannerSlider } from './HeroBannerSlider';
 import {
@@ -49,7 +51,7 @@ import {
 interface CatalogProps {
   services: ServiceItem[];
   settings: SiteSettings;
-  navigate: (view: PageView) => void;
+  navigate: (view: PageView, slug?: string) => void;
   onSelectServiceToBook: (serviceId: string, packageId?: string) => void;
   banners?: HeroBanner[];
   sliderSettings?: HeroSliderSettings;
@@ -58,6 +60,54 @@ interface CatalogProps {
   onToggleFavorite?: (serviceId: string, packageId?: string) => void;
   onAddToCart?: (service: ServiceItem, packageItem?: any) => void;
 }
+
+/** Crawlable internal link: a real <a href> that still navigates in-app. */
+const RouteLink: React.FC<{
+  view: PageView;
+  navigate: (view: PageView, slug?: string) => void;
+  className?: string;
+  children: React.ReactNode;
+}> = ({ view, navigate, className, children }) => (
+  <a
+    href={pathForView(view)}
+    className={className}
+    onClick={(e) => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+      e.preventDefault();
+      navigate(view);
+    }}
+  >
+    {children}
+  </a>
+);
+
+/** Canonical landing path for each service category. */
+const CATEGORY_PATHS: Record<ServiceCategoryKey, string> = {
+  mobile_photography: '/services/mobile-photography',
+  kids_corner: '/services/kids-corner',
+  childcare: '/services/childcare',
+  wedding_support: '/services/wedding-support'
+};
+
+/** Crawlable link to a single service page: /services/<slug>. */
+const ServiceLink: React.FC<{
+  slug: string;
+  navigate: (view: PageView, slug?: string) => void;
+  className?: string;
+  children: React.ReactNode;
+}> = ({ slug, navigate, className, children }) => (
+  <a
+    href={pathForView('service-detail', slug)}
+    className={className}
+    onClick={(e) => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+      e.preventDefault();
+      navigate('service-detail', slug);
+    }}
+  >
+    {children}
+  </a>
+);
 
 // ============================================================================
 // 1. HOME VIEW (الصفحة الرئيسية)
@@ -102,6 +152,22 @@ export const HomeView: React.FC<CatalogProps> = ({
         />
       )}
 
+      {/* 1. Page H1 — the single, unique heading for the home page */}
+      <section className="px-4 sm:px-6 pt-8">
+        <div className="max-w-[1240px] mx-auto space-y-2">
+          <p className="text-xs font-bold text-[#8C6D36]">
+            LUMIR | لومير · خدمات مناسبات في مكة المكرمة وجدة
+          </p>
+          <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold text-[#2C1E18] leading-snug">
+            لومير | خدمات احترافية للمناسبات وباقات مرنة في مكة وجدة
+          </h1>
+          <p className="text-sm text-[#5C4940] leading-relaxed max-w-3xl">
+            توثيق سينمائي بعدسة الجوال مع تسليم خلال ٤٨ ساعة، أركان أطفال وإشارة رعاية، ومشرفة
+            جوالات ومساندة ميدانية للأفراح — باقات وأسعار أولية واضحة لكل خدمة.
+          </p>
+        </div>
+      </section>
+
       {/* 2. 4 Key Categories KPI Strip */}
       <section className="px-4 sm:px-6">
         <div className="max-w-[1240px] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 p-6 rounded-2xl bg-[#F3ECE1] border border-[#E6DCD2] shadow-xs">
@@ -142,7 +208,7 @@ export const HomeView: React.FC<CatalogProps> = ({
             <div className="text-xs text-[#8C6D36] font-bold">٠٤. مساندة ميدانية</div>
             <div className="font-display text-lg font-bold text-[#2C1E18]">خدمات مساندة الأفراح</div>
             <p className="text-xs text-[#645249] leading-relaxed">
-              مشرفة جوالات، حارسة كوشة، عبايات، وصيفة عروس، ومباشرة وقهوة.
+              مفرزة جوالات، حارسة كوشة، عبايات، وصيفة عروس، ومباشرة وقهوة.
             </p>
           </div>
         </div>
@@ -163,7 +229,7 @@ export const HomeView: React.FC<CatalogProps> = ({
               onClick={() => navigate('catalog')}
               className="text-sm font-medium text-[#2C1E18] hover:text-[#8C6D36] inline-flex items-center gap-2 cursor-pointer"
             >
-              <span>فتح الكتالوج الكامل مع التصفية</span>
+              <span>جميع الخدمات والأسعار</span>
               <ArrowLeft className="w-4 h-4" />
             </button>
           </div>
@@ -178,10 +244,9 @@ export const HomeView: React.FC<CatalogProps> = ({
                   <div className="relative">
                     <ResilientImage
                       src={srv.imageUrl}
-                      alt={srv.name}
+                      alt={srv.imageAlt || srv.name}
                       className="w-full h-48 object-cover"
                       containerClassName="relative overflow-hidden bg-[#F3ECE1]"
-                      isDemo={srv.isDemoImage}
                     />
                     {onToggleFavorite && (
                       <button
@@ -223,18 +288,13 @@ export const HomeView: React.FC<CatalogProps> = ({
                 </div>
 
                 <div className="p-5 pt-0 space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (srv.category === 'mobile_photography') navigate('mobile-photography');
-                      else if (srv.category === 'kids_corner') navigate('kids-corner');
-                      else if (srv.category === 'childcare') navigate('childcare');
-                      else navigate('wedding-support');
-                    }}
-                    className="w-full py-2.5 text-xs font-medium border border-[#D8CBB8] text-[#2C1E18] rounded-lg hover:bg-[#F3ECE1] transition-colors cursor-pointer"
+                  <ServiceLink
+                    slug={srv.slug}
+                    navigate={navigate}
+                    className="w-full py-2.5 text-xs font-medium border border-[#D8CBB8] text-[#2C1E18] rounded-lg hover:bg-[#F3ECE1] transition-colors cursor-pointer block text-center"
                   >
-                    استعراض الباقات والخيارات
-                  </button>
+                    تفاصيل {srv.name} والباقات
+                  </ServiceLink>
                   <button
                     type="button"
                     onClick={() => onSelectServiceToBook(srv.id)}
@@ -382,7 +442,7 @@ export const HomeView: React.FC<CatalogProps> = ({
                   خدمات الأفراح
                 </strong>
                 <p className="text-[11px] text-[#645249] line-clamp-2">
-                  مشرفة جوالات، حارسة كوشة، وبخور العود.
+                  مفرزة جوالات، حارسة كوشة، وبخور العود.
                 </p>
               </div>
             </div>
@@ -548,6 +608,7 @@ export const FullCatalogView: React.FC<CatalogProps> = ({
   const [cityFilter, setCityFilter] = useState<'all' | 'مكة المكرمة' | 'جدة'>('all');
   const [catFilter, setCatFilter] = useState<'all' | ServiceCategoryKey>('all');
   const [budgetFilter, setBudgetFilter] = useState<'all' | 'under350' | 'under500' | 'under800' | 'above800'>('all');
+  const seo = getSeoMeta('/products');
 
   const filteredServices = useMemo(() => {
     return services.filter((s) => {
@@ -565,14 +626,11 @@ export const FullCatalogView: React.FC<CatalogProps> = ({
   return (
     <div className="max-w-[1240px] mx-auto px-6 py-12 space-y-10">
       <div className="space-y-3 max-w-3xl">
-        <div className="text-xs text-[#8C6D36]">كتالوج خدمات لومير المعتمد · مكة المكرمة وجدة</div>
-        <h1 className="font-display text-4xl sm:text-5xl font-bold text-[#2C1E18]">
-          استعراض وتصفية خدمات لومير
-        </h1>
-        <p className="text-base text-[#5C4940] leading-relaxed">
-          جميع الخدمات قابلة للتعديل والتحكم من لوحة الإدارة. يمكنكِ تصفية الخدمات حسب المدينة، نوع
-          الخدمة، أو الميزانية لاختيار ما يناسب تفاصيل مناسبتكِ.
-        </p>
+        <div className="text-xs text-[#8C6D36]">
+          LUMIR | لومير · خدمات المناسبات في مكة المكرمة وجدة
+        </div>
+        <h1 className="font-display text-4xl sm:text-5xl font-bold text-[#2C1E18]">{seo.h1}</h1>
+        <p className="text-base text-[#5C4940] leading-relaxed">{seo.intro || seo.description}</p>
       </div>
 
       {/* Filter Control Bar */}
@@ -662,9 +720,8 @@ export const FullCatalogView: React.FC<CatalogProps> = ({
                 <div className="relative">
                   <ResilientImage
                     src={srv.imageUrl}
-                    alt={srv.name}
+                    alt={srv.imageAlt || srv.name}
                     className="w-full h-52 object-cover"
-                    isDemo={srv.isDemoImage}
                   />
                   {onToggleFavorite && (
                     <button
@@ -722,18 +779,13 @@ export const FullCatalogView: React.FC<CatalogProps> = ({
               </div>
 
               <div className="p-6 pt-0 space-y-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (srv.category === 'mobile_photography') navigate('mobile-photography');
-                    else if (srv.category === 'kids_corner') navigate('kids-corner');
-                    else if (srv.category === 'childcare') navigate('childcare');
-                    else navigate('wedding-support');
-                  }}
-                  className="w-full py-2.5 text-xs font-medium border border-[#D8CBB8] text-[#2C1E18] rounded-lg hover:bg-[#F3ECE1] cursor-pointer"
+                <ServiceLink
+                  slug={srv.slug}
+                  navigate={navigate}
+                  className="w-full py-2.5 text-xs font-medium border border-[#D8CBB8] text-[#2C1E18] rounded-lg hover:bg-[#F3ECE1] cursor-pointer block text-center"
                 >
-                  استعراض الباقات والاشتراطات
-                </button>
+                  صفحة {srv.name} والباقات
+                </ServiceLink>
                 <button
                   type="button"
                   onClick={() => onSelectServiceToBook(srv.id)}
@@ -770,31 +822,38 @@ export const SpecializedCategoryView: React.FC<SpecializedViewProps> = ({
 }) => {
   const categoryServices = services.filter((s) => s.category === categoryKey && s.isAvailable);
   const primaryService = categoryServices[0] || services[0];
+  const seo = getSeoMeta(CATEGORY_PATHS[categoryKey]);
 
   return (
     <div className="max-w-[1240px] mx-auto px-6 py-12 space-y-16">
       {/* Breadcrumb */}
       <nav aria-label="مسار التصفح" className="text-xs text-[#645249] flex items-center gap-2">
-        <button type="button" onClick={() => navigate('home')} className="hover:text-[#2C1E18]">
+        <RouteLink view="home" navigate={navigate} className="hover:text-[#2C1E18]">
           الرئيسية
-        </button>
+        </RouteLink>
         <span>/</span>
-        <button type="button" onClick={() => navigate('catalog')} className="hover:text-[#2C1E18]">
+        <RouteLink view="catalog" navigate={navigate} className="hover:text-[#2C1E18]">
           الكتالوج
-        </button>
+        </RouteLink>
         <span>/</span>
-        <span className="font-bold text-[#2C1E18]">{getCategoryLabel(categoryKey)}</span>
+        <span className="font-bold text-[#2C1E18]">
+          {seo.breadcrumbLabel || getCategoryLabel(categoryKey)}
+        </span>
       </nav>
 
       {/* Header Banner */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center rounded-2xl bg-[#F3ECE1] border border-[#D8CBB8] p-8 sm:p-10">
         <div className="lg:col-span-7 space-y-4">
-          <div className="text-xs text-[#8C6D36]">قسم تخصصي معتمد · مكة المكرمة وجدة</div>
+          <div className="text-xs text-[#8C6D36]">
+            {getCategoryLabel(categoryKey)} · مكة المكرمة وجدة
+          </div>
           <h1 className="font-display text-3xl sm:text-4xl font-bold text-[#2C1E18]">
-            {primaryService.name}
+            {seo.h1 || primaryService.name}
           </h1>
           <p className="text-sm text-[#8C6D36] font-medium">{primaryService.tagline}</p>
-          <p className="text-sm text-[#5C4940] leading-relaxed">{primaryService.description}</p>
+          <p className="text-sm text-[#5C4940] leading-relaxed">
+            {seo.intro || primaryService.description}
+          </p>
 
           {/* Regulatory compliance box for Childcare */}
           {categoryKey === 'childcare' && primaryService.complianceNotice && (
@@ -827,9 +886,8 @@ export const SpecializedCategoryView: React.FC<SpecializedViewProps> = ({
         <div className="lg:col-span-5">
           <ResilientImage
             src={primaryService.imageUrl}
-            alt={primaryService.name}
+            alt={primaryService.imageAlt || primaryService.name}
             className="w-full h-72 object-cover rounded-xl"
-            isDemo={primaryService.isDemoImage}
           />
         </div>
       </div>

@@ -6,3 +6,9 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Local tooling, snapshots and generated reports (not deployed)
+.apt/
+tmp/
+backups/
+artifacts/

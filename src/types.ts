@@ -42,6 +42,8 @@ export interface ServiceItem {
   minHours?: number;
   deliveryTimeframeHours?: number; // e.g. 48 hours
   imageUrl: string;
+  /** Precise, unique alt text describing the service image. */
+  imageAlt?: string;
   isDemoImage: boolean;
   isAvailable: boolean; // hide/show
   requiresSpaceAndSetup: boolean;
@@ -316,6 +318,7 @@ export interface FavoriteItem {
 
 export type PageView =
   | 'home'
+  | 'not-found'
   | 'catalog'
   | 'gallery'
   | 'mobile-photography'

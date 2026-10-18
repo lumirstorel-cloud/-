@@ -118,6 +118,8 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
   const [isCheckingConflict, setIsCheckingConflict] = useState<boolean>(false);
   const [serverConflictWarning, setServerConflictWarning] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  // WhatsApp fallback used when the booking API is unavailable (static hosting)
+  const [whatsappFallbackUrl, setWhatsappFallbackUrl] = useState<string | null>(null);
 
   // Created booking result for Step 7
   const [confirmedBooking, setConfirmedBooking] = useState<BookingSubmission | null>(null);
@@ -252,6 +254,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
   // Step Validation & Navigation
   const validateStep = (stepNumber: number): boolean => {
     setStepError(null);
+    setWhatsappFallbackUrl(null);
 
     if (stepNumber === 1) {
       if (!serviceId) {
@@ -412,6 +415,22 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       setStepError(err.message || 'حدث خطأ أثناء إرسال الطلب. يرجى المحاولة مرة أخرى.');
+      // If the booking service is unreachable, keep an actionable route instead of a dead end.
+      setWhatsappFallbackUrl(
+        buildWhatsAppLink(settings.whatsappLocal, [
+          'طلب حجز جديد عبر موقع لومير:',
+          `الخدمة: ${selectedService?.name || ''}`,
+          selectedPackage ? `الباقة: ${selectedPackage.name}` : '',
+          `المدينة: ${city}`,
+          district ? `الحي: ${district}` : '',
+          eventDate ? `التاريخ: ${eventDate} — ${startTime}` : '',
+          `مدة المناسبة: ${durationHours} ساعات`,
+          clientName ? `الاسم: ${clientName}` : '',
+          clientPhone ? `الجوال: ${clientPhone}` : ''
+        ]
+          .filter(Boolean)
+          .join('\n')
+      ));
     } finally {
       setIsSubmitting(false);
     }
@@ -497,9 +516,22 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
 
       {/* Step Error Notice */}
       {stepError && (
-        <div className="p-4 rounded-xl bg-[#FDF2F2] border border-[#E5B8B8] text-xs font-medium text-[#8A2626] flex items-center gap-2.5">
-          <AlertCircle className="w-5 h-5 shrink-0" />
-          <span>{stepError}</span>
+        <div className="p-4 rounded-xl bg-[#FDF2F2] border border-[#E5B8B8] text-xs font-medium text-[#8A2626] space-y-2.5">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <span>{stepError}</span>
+          </div>
+          {whatsappFallbackUrl && (
+            <a
+              href={whatsappFallbackUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#1F5E3B] text-[#FAF6F0] font-bold hover:bg-[#18492E]"
+            >
+              <MessageCircle className="w-4 h-4" />
+              إرسال تفاصيل الحجز عبر واتساب
+            </a>
+          )}
         </div>
       )}
 
