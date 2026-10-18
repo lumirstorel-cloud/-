@@ -4,6 +4,7 @@ import {
   HeroBanner,
   HeroSliderSettings,
   PageView,
+  PortfolioMediaItem,
   PricingModel,
   ServiceCategoryKey,
   ServiceItem,
@@ -15,6 +16,7 @@ import {
   formatArabicTime,
   formatSar,
   getCategoryLabel,
+  getGalleryCategoryLabel,
   getPricingModelLabel
 } from '../utils/formatters';
 import { HERO_IMAGE } from '../data/centralData';
@@ -31,11 +33,14 @@ import {
   Filter,
   Heart,
   HeartHandshake,
+  Image as ImageIcon,
   Info,
   MapPin,
   MessageCircle,
   Palette,
+  Play,
   Shield,
+  ShieldCheck,
   ShoppingBag,
   Sparkles,
   Users
@@ -48,6 +53,7 @@ interface CatalogProps {
   onSelectServiceToBook: (serviceId: string, packageId?: string) => void;
   banners?: HeroBanner[];
   sliderSettings?: HeroSliderSettings;
+  portfolio?: PortfolioMediaItem[];
   favorites?: FavoriteItem[];
   onToggleFavorite?: (serviceId: string, packageId?: string) => void;
   onAddToCart?: (service: ServiceItem, packageItem?: any) => void;
@@ -64,6 +70,7 @@ export const HomeView: React.FC<CatalogProps> = ({
   onSelectServiceToBook,
   banners,
   sliderSettings,
+  portfolio = [],
   favorites = [],
   onToggleFavorite,
   onAddToCart
@@ -238,6 +245,190 @@ export const HomeView: React.FC<CatalogProps> = ({
                 </div>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 3. Luxury 5-Category Gallery Preview Section */}
+      <section className="px-4 sm:px-6">
+        <div className="max-w-[1240px] mx-auto p-6 sm:p-10 rounded-3xl bg-[#F5EFE6] border border-[#E6DCD2] space-y-8 shadow-xs">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#E6DCD2] pb-6">
+            <div className="space-y-2 max-w-2xl">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#8C6D36]">
+                <Sparkles className="w-4 h-4 text-[#C8A96E]" />
+                <span>معرض الأعمال وتوثيق المناسبات · ٥ أقسام متخصصة</span>
+              </div>
+              <h2 className="font-display text-3xl sm:text-4xl font-bold text-[#2C1E18]">
+                لمحات من إبداع لومير في مناسبات مكة وجدة
+              </h2>
+              <p className="text-xs sm:text-sm text-[#5C4940] leading-relaxed">
+                استكشفي أسلوبنا في التوثيق السينمائي العفوي بالجوال، أركان فرحة الصغار الآمنة،
+                مشرفات الرعاية، تنظيم مساندة الأفراح، وتجهيزات الضيافة.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('gallery')}
+              className="px-5 py-3 rounded-xl bg-[#2C1E18] text-[#FAF6F0] text-xs sm:text-sm font-bold inline-flex items-center gap-2 hover:bg-[#422E25] transition-all cursor-pointer shadow-xs whitespace-nowrap self-start md:self-auto"
+            >
+              <ImageIcon className="w-4 h-4 text-[#C8A96E]" />
+              <span>استعراض المعرض الكامل مع الفيديوهات</span>
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* 5-Division Preview Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Division 1: تصوير المناسبات بالجوال */}
+            <div
+              onClick={() => navigate('gallery')}
+              className="rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] overflow-hidden group cursor-pointer hover:-translate-y-1 transition-all duration-300 shadow-xs flex flex-col justify-between"
+            >
+              <div className="relative aspect-4/3 bg-[#F3ECE1] overflow-hidden">
+                <img
+                  src={portfolio.find((p) => p.categoryKey === 'mobile_photography')?.mediaUrl || HERO_IMAGE}
+                  alt="تصوير المناسبات بالجوال"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-bold">
+                  توثيق ٤٨ ساعة
+                </span>
+              </div>
+              <div className="p-3.5 space-y-1">
+                <span className="text-[10px] font-bold text-[#8C6D36] block">القسم الأول</span>
+                <strong className="text-xs text-[#2C1E18] block group-hover:text-[#8C6D36] transition-colors">
+                  تصوير المناسبات بالجوال
+                </strong>
+                <p className="text-[11px] text-[#645249] line-clamp-2">
+                  ريلز سينمائي ولقطات عفوية بأعلى خصوصية.
+                </p>
+              </div>
+            </div>
+
+            {/* Division 2: أركان الأطفال */}
+            <div
+              onClick={() => navigate('gallery')}
+              className="rounded-2xl bg-[#FAF6F0] border border-[#E8DFD8] overflow-hidden group cursor-pointer hover:-translate-y-1 transition-all duration-300 shadow-xs flex flex-col justify-between"
+            >
+              <div className="relative aspect-4/3 bg-[#F3ECE1] overflow-hidden">
+                <img
+                  src={portfolio.find((p) => p.categoryKey === 'kids_corner')?.mediaUrl || HERO_IMAGE}
+                  alt="أركان الأطفال"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-[#4E8A8A]/90 text-white text-[10px] font-bold">
+                  ألوان الباستيل
+                </span>
+              </div>
+              <div className="p-3.5 space-y-1">
+                <span className="text-[10px] font-bold text-[#4E8A8A] block">القسم الثاني</span>
+                <strong className="text-xs text-[#2C1E18] block group-hover:text-[#4E8A8A] transition-colors">
+                  أركان الأطفال
+                </strong>
+                <p className="text-[11px] text-[#645249] line-clamp-2">
+                  خيم قطنية ومساحات لعب آمنة ومبهجة.
+                </p>
+              </div>
+            </div>
+
+            {/* Division 3: أنشطة الأطفال */}
+            <div
+              onClick={() => navigate('gallery')}
+              className="rounded-2xl bg-[#FAF6F0] border border-[#E8DFD8] overflow-hidden group cursor-pointer hover:-translate-y-1 transition-all duration-300 shadow-xs flex flex-col justify-between"
+            >
+              <div className="relative aspect-4/3 bg-[#F3ECE1] overflow-hidden">
+                <img
+                  src={
+                    portfolio.find((p) => p.categoryKey === 'kids_activities' || p.categoryKey === ('childcare' as any))
+                      ?.mediaUrl || HERO_IMAGE
+                  }
+                  alt="أنشطة الأطفال"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-[#B86B6B]/90 text-white text-[10px] font-bold">
+                  إشراف تربوي
+                </span>
+              </div>
+              <div className="p-3.5 space-y-1">
+                <span className="text-[10px] font-bold text-[#B86B6B] block">القسم الثالث</span>
+                <strong className="text-xs text-[#2C1E18] block group-hover:text-[#B86B6B] transition-colors">
+                  أنشطة الأطفال
+                </strong>
+                <p className="text-[11px] text-[#645249] line-clamp-2">
+                  رسم وتلوين وطين وصلصال صحي ورسومات وجه.
+                </p>
+              </div>
+            </div>
+
+            {/* Division 4: خدمات الأفراح */}
+            <div
+              onClick={() => navigate('gallery')}
+              className="rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] overflow-hidden group cursor-pointer hover:-translate-y-1 transition-all duration-300 shadow-xs flex flex-col justify-between"
+            >
+              <div className="relative aspect-4/3 bg-[#F3ECE1] overflow-hidden">
+                <img
+                  src={portfolio.find((p) => p.categoryKey === 'wedding_support')?.mediaUrl || HERO_IMAGE}
+                  alt="خدمات الأفراح"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-bold">
+                  ضيافة سعودية
+                </span>
+              </div>
+              <div className="p-3.5 space-y-1">
+                <span className="text-[10px] font-bold text-[#8C6D36] block">القسم الرابع</span>
+                <strong className="text-xs text-[#2C1E18] block group-hover:text-[#8C6D36] transition-colors">
+                  خدمات الأفراح
+                </strong>
+                <p className="text-[11px] text-[#645249] line-clamp-2">
+                  مشرفة جوالات، حارسة كوشة، وبخور العود.
+                </p>
+              </div>
+            </div>
+
+            {/* Division 5: تجهيزات المناسبات */}
+            <div
+              onClick={() => navigate('gallery')}
+              className="rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] overflow-hidden group cursor-pointer hover:-translate-y-1 transition-all duration-300 shadow-xs flex flex-col justify-between"
+            >
+              <div className="relative aspect-4/3 bg-[#F3ECE1] overflow-hidden">
+                <img
+                  src={portfolio.find((p) => p.categoryKey === 'event_setups')?.mediaUrl || HERO_IMAGE}
+                  alt="تجهيزات المناسبات"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-[#8C6D36] text-white text-[10px] font-bold">
+                  أوانٍ ذهبية
+                </span>
+              </div>
+              <div className="p-3.5 space-y-1">
+                <span className="text-[10px] font-bold text-[#8C6D36] block">القسم الخامس</span>
+                <strong className="text-xs text-[#2C1E18] block group-hover:text-[#8C6D36] transition-colors">
+                  تجهيزات المناسبات
+                </strong>
+                <p className="text-[11px] text-[#645249] line-clamp-2">
+                  دلال شقراء، مباخر نحاسية، واستكانات راقية.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Privacy & Licensing Strip */}
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-[#645249] border-t border-[#E6DCD2]">
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-[#8C6D36]" />
+              <span>
+                الصور مرخصة ومصرحة كنماذج إخراجية — محتوى الأطفال خاضع لموافقة الولي دون نشر أي أسماء.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('gallery')}
+              className="text-[#8C6D36] font-bold hover:underline cursor-pointer"
+            >
+              عرض التفاصيل الكاملة بالمعرض ←
+            </button>
           </div>
         </div>
       </section>

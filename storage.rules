@@ -1,0 +1,48 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Check authentication
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'super_admin' ||
+        request.auth.token.role == 'operations_manager' ||
+        request.auth.token.role == 'content_editor'
+      );
+    }
+
+    // Public read for portfolio images and banners
+    // Strict write restrictions:
+    // - Authenticated Admins only
+    // - Images max 5MB, must be image/*
+    // - Videos max 25MB, must be video/*
+    match /portfolio/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin()
+                   && (
+                     (request.resource.contentType.matches('image/.*') && request.resource.size < 5 * 1024 * 1024)
+                     || (request.resource.contentType.matches('video/.*') && request.resource.size < 25 * 1024 * 1024)
+                   );
+    }
+    
+    match /banners/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin()
+                   && request.resource.contentType.matches('image/.*')
+                   && request.resource.size < 5 * 1024 * 1024;
+    }
+    
+    // Receipt attachments from customers for booking confirmation
+    // Read: Admins only
+    // Write: Max 5MB images or PDF receipts
+    match /receipts/{bookingId}/{fileName} {
+      allow read: if isAdmin();
+      allow write: if request.resource.size < 5 * 1024 * 1024
+                   && (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf');
+    }
+  }
+}

@@ -28,9 +28,25 @@ const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'lumir-db.json');
+const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
+const BACKUPS_DIR = path.join(DATA_DIR, 'backups');
 const JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'lumir_luxury_arabic_secret_2026';
 
-app.use(express.json());
+// Ensure directories exist
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+
+// Production Security Headers
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
+
+app.use(express.json({ limit: '15mb' }));
+app.use('/uploads', express.static(UPLOADS_DIR));
 
 // In-memory / persistent DB
 let database: LumirCentralData = INITIAL_LUMIR_DATA;
@@ -48,7 +64,10 @@ function loadDatabase(): void {
         database = {
           ...INITIAL_LUMIR_DATA,
           ...parsed,
-          portfolio: parsed.portfolio || INITIAL_LUMIR_DATA.portfolio,
+          portfolio:
+            Array.isArray(parsed.portfolio) && parsed.portfolio.length >= 8
+              ? parsed.portfolio
+              : INITIAL_LUMIR_DATA.portfolio,
           faqs: parsed.faqs || INITIAL_LUMIR_DATA.faqs,
           coupons: parsed.coupons || INITIAL_LUMIR_DATA.coupons,
           auditLogs: parsed.auditLogs || INITIAL_LUMIR_DATA.auditLogs,
@@ -76,7 +95,9 @@ function saveDatabase(): void {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
-    fs.writeFileSync(DB_FILE, JSON.stringify(database, null, 2), 'utf-8');
+    const tempFile = `${DB_FILE}.tmp.${Date.now()}`;
+    fs.writeFileSync(tempFile, JSON.stringify(database, null, 2), 'utf-8');
+    fs.renameSync(tempFile, DB_FILE);
   } catch (err) {
     console.warn('Could not save database to disk:', err);
   }
@@ -292,20 +313,77 @@ app.post('/api/bookings/check-conflict', (req: Request, res: Response) => {
   });
 });
 
-// Public Create Booking (Always pending_review or draft, never confirmed)
+// Public Create Booking (Always pending_review or draft, never confirmed, authoritative pricing)
 app.post('/api/bookings', (req: Request, res: Response) => {
   const data = req.body;
 
-  if (!data.clientName || !data.clientPhone || !data.eventDate || !data.serviceId) {
-    return res.status(400).json({ error: 'يرجى إكمال الحقول الإلزامية للطلب' });
+  // 1. Validate required fields
+  if (
+    !data.clientName ||
+    !data.clientPhone ||
+    !data.eventDate ||
+    !data.startTime ||
+    !data.serviceId ||
+    !data.city
+  ) {
+    return res.status(400).json({
+      error: 'يرجى إكمال الحقول الإلزامية للطلب (اسم العميل، رقم الجوال، تاريخ المناسبة، وقت البدء، الخدمة، والمدينة)'
+    });
   }
 
-  // Conflict check on server
+  // 2. Validate client phone number
+  const phoneDigits = String(data.clientPhone).replace(/\D/g, '');
+  if (phoneDigits.length < 9) {
+    return res.status(400).json({
+      error: 'رقم الجوال المدخل غير صحيح، يرجى كتابة رقم هاتف صالح لا يقل عن ٩ أرقام'
+    });
+  }
+
+  // 3. Lookup service from database & verify catalog existence
+  const srv = database.services.find((s) => s.id === data.serviceId);
+  if (!srv) {
+    return res.status(400).json({ error: 'الخدمة المختارة غير موجودة في كتالوج لومير' });
+  }
+
+  // 4. Authoritative Price Calculation on the Server
+  let authoritativeBasePrice = srv.basePrice;
+  let authoritativePackageName = data.packageName || '';
+  let authoritativeDuration = data.durationHours || srv.minHours || 4;
+
+  if (data.packageId) {
+    const pkg = srv.packages.find((p) => p.id === data.packageId);
+    if (pkg) {
+      authoritativeBasePrice = pkg.price;
+      authoritativePackageName = pkg.name;
+      if (pkg.durationHours) authoritativeDuration = pkg.durationHours;
+    } else {
+      return res.status(400).json({ error: 'الباقة المحددة غير موجودة في تفاصيل هذه الخدمة' });
+    }
+  }
+
+  // Calculate selected addons price authoritatively
+  let addonsTotal = 0;
+  const verifiedAddonIds: string[] = [];
+  if (Array.isArray(data.selectedAddonIds)) {
+    for (const addonId of data.selectedAddonIds) {
+      const addon = srv.addons.find((a) => a.id === addonId);
+      if (addon) {
+        addonsTotal += addon.price;
+        verifiedAddonIds.push(addon.id);
+      }
+    }
+  }
+
+  const authoritativeSubtotalSar = authoritativeBasePrice + addonsTotal;
+  const approvedFeesSar = database.settings.approvedFeesSar || 0;
+  const authoritativeEstimatedTotalSar = authoritativeSubtotalSar + approvedFeesSar;
+
+  // 5. Conflict check on server
   const conflict = checkConflictOnServer({
     eventDate: data.eventDate,
     startTime: data.startTime,
-    durationHours: data.durationHours || 4,
-    categoryKey: data.categoryKey,
+    durationHours: authoritativeDuration,
+    categoryKey: srv.category,
     city: data.city
   });
 
@@ -319,6 +397,7 @@ app.post('/api/bookings', (req: Request, res: Response) => {
     });
   }
 
+  // 6. Security: Status cannot be set to 'confirmed' from public API
   const finalStatus: BookingStatus = data.status === 'draft' ? 'draft' : 'pending_review';
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
   const referenceCode = data.referenceCode || `LMR-2610-${randomSuffix}`;
@@ -327,11 +406,18 @@ app.post('/api/bookings', (req: Request, res: Response) => {
     ...data,
     id: data.id || `bk-${Date.now()}-${randomSuffix}`,
     referenceCode,
+    serviceId: srv.id,
+    serviceName: srv.name,
+    categoryKey: srv.category,
+    packageId: data.packageId,
+    packageName: authoritativePackageName,
+    durationHours: authoritativeDuration,
+    selectedAddonIds: verifiedAddonIds,
     createdAt: data.createdAt || new Date().toISOString(),
     status: finalStatus,
-    approvedFeesSar: database.settings.approvedFeesSar || 0,
-    estimatedTotalSar:
-      (data.subtotalSar || 0) + (database.settings.approvedFeesSar || 0)
+    subtotalSar: authoritativeSubtotalSar,
+    approvedFeesSar,
+    estimatedTotalSar: authoritativeEstimatedTotalSar
   };
 
   database.bookings.unshift(newBooking);
@@ -1201,6 +1287,186 @@ app.post(
 
     saveDatabase();
     return res.json({ success: true, message: 'تم حفظ ومزامنة البيانات المركزية بالكامل' });
+  }
+);
+
+// 17. Secure File Upload (Images & Video with MIME and size verification)
+app.post(
+  '/api/admin/upload',
+  requireAuth,
+  requireRole(['super_admin', 'content_editor']),
+  (req: AuthenticatedRequest, res: Response) => {
+    const { fileName, fileType, fileData } = req.body;
+
+    if (!fileName || !fileType || !fileData) {
+      return res.status(400).json({ error: 'البيانات المرسلة غير مكتملة (اسم الملف، نوعه، والمحتوى)' });
+    }
+
+    // Allowed MIME types
+    const allowedMimes: Record<string, string> = {
+      'image/jpeg': '.jpg',
+      'image/png': '.png',
+      'image/webp': '.webp',
+      'video/mp4': '.mp4'
+    };
+
+    if (!allowedMimes[fileType]) {
+      return res.status(400).json({
+        error: 'نوع الملف غير مدعوم. الأنواع المسموح بها هي: JPG, PNG, WEBP, MP4 فقط.'
+      });
+    }
+
+    // Validate size (max 5MB for images, 25MB for video)
+    const base64Clean = fileData.replace(/^data:[^;]+;base64,/, '');
+    const byteLength = Buffer.byteLength(base64Clean, 'base64');
+    const isVideo = fileType === 'video/mp4';
+    const maxBytes = isVideo ? 25 * 1024 * 1024 : 5 * 1024 * 1024;
+
+    if (byteLength > maxBytes) {
+      return res.status(400).json({
+        error: isVideo
+          ? 'حجم الفيديو يتجاوز الحد الأقصى المسموح به (٢٥ ميغابايت)'
+          : 'حجم الصورة يتجاوز الحد الأقصى المسموح به (٥ ميغابايت)'
+      });
+    }
+
+    const safeRandom = crypto.randomBytes(6).toString('hex');
+    const ext = allowedMimes[fileType];
+    const safeName = `lumir-${Date.now()}-${safeRandom}${ext}`;
+    const targetPath = path.join(UPLOADS_DIR, safeName);
+
+    try {
+      fs.writeFileSync(targetPath, Buffer.from(base64Clean, 'base64'));
+
+      logAuditEvent({
+        admin: req.adminUser!,
+        action: 'رفع ملف وسائط آمن',
+        targetType: 'portfolio',
+        details: `تم رفع ملف ${fileName} (${fileType}, ${(byteLength / 1024).toFixed(1)} KB)`
+      });
+
+      return res.status(201).json({
+        success: true,
+        url: `/uploads/${safeName}`,
+        fileName: safeName,
+        sizeBytes: byteLength
+      });
+    } catch (err: any) {
+      console.error('File write error:', err);
+      return res.status(500).json({ error: 'فشل حفظ الملف على الخادم' });
+    }
+  }
+);
+
+// 18. Database Backup Snapshot (Super Admin only)
+app.all(
+  ['/api/admin/backup', '/api/admin/backups/create'],
+  requireAuth,
+  requireRole(['super_admin']),
+  (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupFilename = `lumir-backup-${timestamp}.json`;
+      const backupFilePath = path.join(BACKUPS_DIR, backupFilename);
+
+      const snapshot = JSON.stringify(database, null, 2);
+      fs.writeFileSync(backupFilePath, snapshot, 'utf-8');
+
+      logAuditEvent({
+        admin: req.adminUser!,
+        action: 'إنشاء نسخة احتياطية من قاعدة البيانات',
+        targetType: 'settings',
+        details: `تم إنشاء نسخة احتياطية: ${backupFilename}`
+      });
+
+      return res.json({
+        success: true,
+        message: 'تم إنشاء النسخة الاحتياطية بنجاح',
+        filename: backupFilename,
+        backupFileName: backupFilename,
+        timestamp: new Date().toISOString(),
+        backup: database
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: `فشل إنشاء النسخة الاحتياطية: ${err.message}` });
+    }
+  }
+);
+
+// 19. Database Restore (Super Admin only)
+app.post(
+  '/api/admin/restore',
+  requireAuth,
+  requireRole(['super_admin']),
+  (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { backupData, filename } = req.body;
+      let targetData: LumirCentralData | null = null;
+
+      if (backupData && Array.isArray(backupData.services) && Array.isArray(backupData.bookings)) {
+        targetData = backupData;
+      } else if (filename) {
+        // Sanitize filename to prevent directory traversal
+        const safeBase = path.basename(filename);
+        const filePath = path.join(BACKUPS_DIR, safeBase);
+        if (fs.existsSync(filePath)) {
+          const raw = fs.readFileSync(filePath, 'utf-8');
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.services)) {
+            targetData = parsed;
+          }
+        }
+      }
+
+      if (!targetData) {
+        return res.status(400).json({ error: 'ملف أو بيانات النسخة الاحتياطية غير صالحة' });
+      }
+
+      database = {
+        ...INITIAL_LUMIR_DATA,
+        ...targetData
+      };
+      saveDatabase();
+
+      logAuditEvent({
+        admin: req.adminUser!,
+        action: 'استعادة نسخة احتياطية لقاعدة البيانات',
+        targetType: 'settings',
+        details: 'تمت استعادة كافة الجداول والخدمات والطلبات بنجاح من نسخة احتياطية'
+      });
+
+      return res.json({
+        success: true,
+        message: 'تمت استعادة قاعدة البيانات بنجاح',
+        servicesCount: database.services.length,
+        bookingsCount: database.bookings.length
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: `فشل استعادة قاعدة البيانات: ${err.message}` });
+    }
+  }
+);
+
+// 20. List Backups (Super Admin only)
+app.get(
+  ['/api/admin/backups', '/api/admin/backups/list'],
+  requireAuth,
+  requireRole(['super_admin']),
+  (_req: AuthenticatedRequest, res: Response) => {
+    try {
+      const files = fs.readdirSync(BACKUPS_DIR).filter((f) => f.endsWith('.json'));
+      const backups = files.map((fileName) => {
+        const stats = fs.statSync(path.join(BACKUPS_DIR, fileName));
+        return {
+          fileName,
+          sizeBytes: stats.size,
+          createdAt: stats.birthtime.toISOString()
+        };
+      });
+      return res.json({ success: true, backups });
+    } catch (err: any) {
+      return res.status(500).json({ error: 'تعذر قراءة قائمة النسخ الاحتياطية' });
+    }
   }
 );
 

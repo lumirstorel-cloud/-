@@ -590,7 +590,9 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
     textColor: '#FAF6F0',
     accentColor: '#C8A96E',
     intervalSeconds: 3.5,
-    isTicker: false,
+    isTicker: true,
+    speed: 'normal',
+    pauseOnHover: true,
     messages: [
       {
         id: 'msg-1',
@@ -614,6 +616,14 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
         badge: '🎁 كود خصم',
         linkText: 'تطبيق الخصم',
         linkTarget: 'booking',
+        isActive: true
+      },
+      {
+        id: 'msg-4',
+        text: 'أركان إبداعية وأنشطة تلوين وطين للأطفال مع مشرفات مؤهلات لراحة بال الأمهات',
+        badge: '🎨 أركان الأطفال',
+        linkText: 'شاهدي الأركان',
+        linkTarget: 'kids-corner',
         isActive: true
       }
     ]
@@ -763,51 +773,137 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
   portfolio: [
     {
       id: 'port-1',
-      title: 'توثيق كوشة زفاف وتفاصيل الضيافة',
+      title: 'توثيق كوشة زفاف وتفاصيل الضيافة الفاخرة',
       categoryKey: 'mobile_photography',
       mediaType: 'image',
       mediaUrl: MOBILE_PHOTO_IMAGE,
-      caption: 'لقطات سينمائية بكاميرا iPhone 16 Pro مع إضاءة دافئة',
+      caption: 'لقطات سينمائية بكاميرا iPhone 16 Pro مع إضاءة دافئة وتركيز على أدق التفاصيل',
       city: 'مكة المكرمة',
       isFeatured: true,
       isPublic: true,
-      displayOrder: 1
+      displayOrder: 1,
+      isDemo: true
     },
     {
       id: 'port-2',
-      title: 'ركن الفرحة والإبداع للصغار',
-      categoryKey: 'kids_corner',
-      mediaType: 'image',
-      mediaUrl: KIDS_CORNER_IMAGE,
-      caption: 'ركن آمن يجمع بين الرسم والتشكيل بالطين والبهجة',
+      title: 'ريلز سينمائي لدخول العروس وتفاصيل الفستان',
+      categoryKey: 'mobile_photography',
+      mediaType: 'video',
+      mediaUrl: HERO_IMAGE,
+      caption: 'مقطع ريلز طولي عالي الدقة 4K تم تسليمه خلال ٤٨ ساعة بجودة احترافية',
       city: 'جدة',
       isFeatured: true,
       isPublic: true,
-      displayOrder: 2
+      displayOrder: 2,
+      isDemo: true
     },
     {
       id: 'port-3',
-      title: 'مشرفات رعاية الأطفال المتخصصات',
-      categoryKey: 'childcare',
+      title: 'ركن الفرحة والإبداع للصغار بألوان الباستيل',
+      categoryKey: 'kids_corner',
       mediaType: 'image',
-      mediaUrl: CHILDCARE_IMAGE,
-      caption: 'عناية فائقة وراحة بال للأمهات طوال ساعات الحفل',
-      city: 'مكة المكرمة',
-      isFeatured: true,
-      isPublic: true,
-      displayOrder: 3
-    },
-    {
-      id: 'port-4',
-      title: 'استقبال فاخر وتنظيم ضيافة الأعراس',
-      categoryKey: 'wedding_support',
-      mediaType: 'image',
-      mediaUrl: WEDDING_SUPPORT_IMAGE,
-      caption: 'فريق سعودي محترف لتنظيم العبايات واستقبال الضيوف والبخور',
+      mediaUrl: KIDS_CORNER_IMAGE,
+      caption: 'خيمة قطنية وطاولات خشبية صغيرة مجهزة بألعاب فنية متقنة',
       city: 'جدة',
       isFeatured: true,
       isPublic: true,
-      displayOrder: 4
+      displayOrder: 3,
+      isDemo: true,
+      parentConsentApproved: true
+    },
+    {
+      id: 'port-4',
+      title: 'تنسيق ركن الأطفال بالقاعات الكبرى',
+      categoryKey: 'kids_corner',
+      mediaType: 'image',
+      mediaUrl: KIDS_CORNER_IMAGE,
+      caption: 'مساحة منظمة تفصل الأطفال عن صالة الزفة بأمان وهدوء',
+      city: 'مكة المكرمة',
+      isFeatured: false,
+      isPublic: true,
+      displayOrder: 4,
+      isDemo: true,
+      parentConsentApproved: true
+    },
+    {
+      id: 'port-5',
+      title: 'ورشة التلوين والألعاب الفنية الهادئة',
+      categoryKey: 'kids_activities',
+      mediaType: 'image',
+      mediaUrl: CHILDCARE_IMAGE,
+      caption: 'أنشطة تلوين وتركيب بأدوات آمنة مع مشرفات متخصصات لحفظ هدوء الصالة',
+      city: 'مكة المكرمة',
+      isFeatured: true,
+      isPublic: true,
+      displayOrder: 5,
+      isDemo: true,
+      parentConsentApproved: true
+    },
+    {
+      id: 'port-6',
+      title: 'نشاط التشكيل بالطين والصلصال الصحي',
+      categoryKey: 'kids_activities',
+      mediaType: 'video',
+      mediaUrl: CHILDCARE_IMAGE,
+      caption: 'صغار يستمتعون بتشكيل مجسمات فنية مبهجة بإشراف تربوي راقٍ',
+      city: 'جدة',
+      isFeatured: false,
+      isPublic: true,
+      displayOrder: 6,
+      isDemo: true,
+      parentConsentApproved: true
+    },
+    {
+      id: 'port-7',
+      title: 'استقبال ضيفات الحفل وبخور العود الملكي',
+      categoryKey: 'wedding_support',
+      mediaType: 'image',
+      mediaUrl: WEDDING_SUPPORT_IMAGE,
+      caption: 'مشرفات سعوديات بلباس موحد راقٍ وتنسيق مبهر لمراسم الاستقبال',
+      city: 'جدة',
+      isFeatured: true,
+      isPublic: true,
+      displayOrder: 7,
+      isDemo: true
+    },
+    {
+      id: 'port-8',
+      title: 'تنظيم جناح العبايات وترقيم القسائم',
+      categoryKey: 'wedding_support',
+      mediaType: 'image',
+      mediaUrl: WEDDING_SUPPORT_IMAGE,
+      caption: 'تسليم واستلام منظم يضمن راحة ضيفات الحفل وسرعة المغادرة',
+      city: 'مكة المكرمة',
+      isFeatured: false,
+      isPublic: true,
+      displayOrder: 8,
+      isDemo: true
+    },
+    {
+      id: 'port-9',
+      title: 'تجهيزات ضيافة القهوة والشاي بالأواني الذهبية',
+      categoryKey: 'event_setups',
+      mediaType: 'image',
+      mediaUrl: HERO_IMAGE,
+      caption: 'دلال شقراء فاخرة، كاسات واستكانات كريستالية راقية تنسجم مع هوية العرس',
+      city: 'مكة المكرمة',
+      isFeatured: true,
+      isPublic: true,
+      displayOrder: 9,
+      isDemo: true
+    },
+    {
+      id: 'port-10',
+      title: 'تجهيز طاولات ضيافة الاستقبال والمباخر',
+      categoryKey: 'event_setups',
+      mediaType: 'image',
+      mediaUrl: WEDDING_SUPPORT_IMAGE,
+      caption: 'مباخر نحاسية مطلية بالذهب ومرشات العطر والورد لتجربة ترحيبية لا تُنسى',
+      city: 'جدة',
+      isFeatured: false,
+      isPublic: true,
+      displayOrder: 10,
+      isDemo: true
     }
   ],
   faqs: [

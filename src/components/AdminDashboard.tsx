@@ -29,6 +29,7 @@ import {
   formatArabicTime,
   formatSar,
   getCategoryLabel,
+  getGalleryCategoryLabel,
   getPricingModelLabel,
   getStatusBadgeStyle,
   getStatusLabel
@@ -109,7 +110,12 @@ import {
   X,
   Megaphone,
   SlidersHorizontal,
-  Edit3
+  Edit3,
+  ArrowUp,
+  ArrowDown,
+  Play,
+  Pause,
+  Palette
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -153,6 +159,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     | 'services'
     | 'cities'
     | 'portfolio'
+    | 'announcements'
     | 'faqs'
     | 'coupons'
     | 'settings'
@@ -191,13 +198,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       bgColor: '#2C1E18',
       textColor: '#FAF6F0',
       accentColor: '#C8A96E',
-      intervalSeconds: 4,
-      isTicker: false,
+      intervalSeconds: 3.5,
+      isTicker: true,
+      speed: 'normal',
+      pauseOnHover: true,
       messages: []
     }
   );
   const [newAnnouncementBadge, setNewAnnouncementBadge] = useState('');
   const [newAnnouncementText, setNewAnnouncementText] = useState('');
+
+  // Enhanced Announcements Management State
+  const [showAddAnnouncementModal, setShowAddAnnouncementModal] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<any | null>(null);
+  const [announcementForm, setAnnouncementForm] = useState<{
+    text: string;
+    badge: string;
+    linkTarget: string;
+    linkText: string;
+    isActive: boolean;
+  }>({
+    text: '',
+    badge: '✨ عرض حصري',
+    linkTarget: 'booking',
+    linkText: 'احجزي الآن',
+    isActive: true
+  });
+  const [previewTickerPaused, setPreviewTickerPaused] = useState(false);
 
   // Content Sub Tab ('faqs' | 'banners' | 'announcements')
   const [contentSubTab, setContentSubTab] = useState<'faqs' | 'banners' | 'announcements'>('faqs');
@@ -1177,10 +1204,165 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const res = await adminUpdateAnnouncementsApi(token, updated);
     if (res.success && res.announcements) {
       setAnnouncements(res.announcements);
-      showToast('تم حفظ إعدادات الشريط الإعلاني بنجاح.');
+      onSaveData({
+        ...data,
+        announcements: res.announcements
+      });
+      showToast('تم حفظ وتحديث نصوص وإعدادات الشريط العلوي المتحرك بنجاح.');
     } else {
       showToast(res.error || 'تعذر حفظ الشريط الإعلاني', 'error');
     }
+  };
+
+  const handleOpenAddAnnouncement = () => {
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('إضافة نصوص الشريط متاحة للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    setEditingAnnouncement(null);
+    setAnnouncementForm({
+      text: '',
+      badge: '✨ عرض حصري',
+      linkTarget: 'booking',
+      linkText: 'احجزي الآن',
+      isActive: true
+    });
+    setShowAddAnnouncementModal(true);
+  };
+
+  const handleOpenEditAnnouncement = (msg: any) => {
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('تعديل نصوص الشريط متاح للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    setEditingAnnouncement(msg);
+    setAnnouncementForm({
+      text: msg.text,
+      badge: msg.badge || '',
+      linkTarget: msg.linkTarget || 'booking',
+      linkText: msg.linkText || 'احجزي الآن',
+      isActive: msg.isActive !== false
+    });
+    setShowAddAnnouncementModal(true);
+  };
+
+  const handleSaveAnnouncementModalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!announcementForm.text.trim()) {
+      showToast('يرجى كتابة نص الإعلان أو التنبيه', 'error');
+      return;
+    }
+    let updatedMessages: any[];
+    if (editingAnnouncement) {
+      updatedMessages = announcements.messages.map((m) =>
+        m.id === editingAnnouncement.id
+          ? {
+              ...m,
+              text: announcementForm.text.trim(),
+              badge: announcementForm.badge.trim() || undefined,
+              linkTarget: announcementForm.linkTarget.trim() || undefined,
+              linkText: announcementForm.linkText.trim() || undefined,
+              isActive: announcementForm.isActive
+            }
+          : m
+      );
+    } else {
+      const newMsg = {
+        id: `msg-${Date.now()}`,
+        text: announcementForm.text.trim(),
+        badge: announcementForm.badge.trim() || undefined,
+        linkTarget: announcementForm.linkTarget.trim() || undefined,
+        linkText: announcementForm.linkText.trim() || undefined,
+        isActive: announcementForm.isActive
+      };
+      updatedMessages = [...announcements.messages, newMsg];
+    }
+    const updated = {
+      ...announcements,
+      messages: updatedMessages
+    };
+    setAnnouncements(updated);
+    setShowAddAnnouncementModal(false);
+    setEditingAnnouncement(null);
+    await handleSaveAnnouncements(updated);
+  };
+
+  const handleToggleAnnouncementActive = async (id: string) => {
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('تعديل حالة النصوص متاح للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    const updatedMessages = announcements.messages.map((m) =>
+      m.id === id ? { ...m, isActive: !m.isActive } : m
+    );
+    const updated = { ...announcements, messages: updatedMessages };
+    setAnnouncements(updated);
+    await handleSaveAnnouncements(updated);
+  };
+
+  const handleMoveAnnouncement = async (index: number, direction: 'up' | 'down') => {
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('ترتيب الرسائل متاح للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= announcements.messages.length) return;
+    const msgs = [...announcements.messages];
+    const temp = msgs[index];
+    msgs[index] = msgs[targetIndex];
+    msgs[targetIndex] = temp;
+    const updated = { ...announcements, messages: msgs };
+    setAnnouncements(updated);
+    await handleSaveAnnouncements(updated);
+  };
+
+  const handleDeleteAnnouncementPrompt = (id: string, text: string) => {
+    if (!token) return;
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('حذف نصوص الشريط متاح للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'حذف نص من الشريط المتحرك',
+      description: `هل أنتِ متأكدة من حذف هذا النص من الشريط المتحرك: «${text.slice(0, 50)}»؟`,
+      confirmLabel: 'تأكيد الحذف',
+      onConfirm: async () => {
+        const updatedMessages = announcements.messages.filter((m) => m.id !== id);
+        const updated = { ...announcements, messages: updatedMessages };
+        setAnnouncements(updated);
+        await handleSaveAnnouncements(updated);
+      }
+    });
+  };
+
+  const handleApplyColorTheme = async (bg: string, text: string, accent: string) => {
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('تغيير الألوان متاح للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    const updated = {
+      ...announcements,
+      bgColor: bg,
+      textColor: text,
+      accentColor: accent
+    };
+    setAnnouncements(updated);
+    await handleSaveAnnouncements(updated);
+  };
+
+  const handleApplySpeed = async (speed: 'slow' | 'normal' | 'fast', intervalSeconds: number) => {
+    if (!hasRole(['super_admin', 'content_editor'])) {
+      showToast('تعديل السرعة متاح للمدير العام ومسؤول المحتوى فقط', 'error');
+      return;
+    }
+    const updated = {
+      ...announcements,
+      speed,
+      intervalSeconds
+    };
+    setAnnouncements(updated);
+    await handleSaveAnnouncements(updated);
   };
 
   // ================= TAB 9: SETTINGS UPDATE =================
@@ -1478,6 +1660,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               { id: 'services', label: 'الخدمات والباقات والأسعار', icon: Layers },
               { id: 'cities', label: 'تغطية مكة وجدة', icon: MapPin },
               { id: 'portfolio', label: 'معرض الأعمال (صور وفيديو)', icon: ImageIcon },
+              { id: 'announcements', label: 'الشريط العلوي المتحرك', icon: Megaphone },
               { id: 'faqs', label: 'محتوى المتجر والأسئلة', icon: HelpCircle },
               { id: 'coupons', label: 'الخصومات والكوبونات', icon: Percent },
               { id: 'settings', label: 'إعدادات واتساب والتواصل', icon: Settings },
@@ -1661,7 +1844,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Recent Audit Logs Quick Box */}
+              {/* Top Moving Ticker Quick Control Bar in Overview */}
+              <div className="p-5 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#2C1E18] text-[#C8A96E] flex items-center justify-center shrink-0 shadow-xs">
+                    <Megaphone className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-xs text-[#2C1E18]">الشريط العلوي المتحرك (Marquee Ticker):</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${announcements.isEnabled ? 'bg-[#EDF7F0] text-[#1F5E3B]' : 'bg-[#FDF2F2] text-[#8A2626]'}`}>
+                        {announcements.isEnabled ? 'مفعّل ويعمل الآن' : 'معطّل ومخفي'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#645249] mt-0.5">
+                      يحتوي على <strong className="text-[#2C1E18]">{announcements.messages.filter(m => m.isActive).length}</strong> نصوص نشطة تتحرك بانسيابية في أعلى الموقع أمام الزوار.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('announcements')}
+                    className="px-4 py-2 rounded-xl bg-[#2C1E18] text-[#FAF6F0] text-xs font-bold hover:bg-[#422E25] cursor-pointer flex items-center gap-1.5 transition-colors shadow-xs"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-[#C8A96E]" />
+                    <span>تعديل نصوص وإعدادات الشريط</span>
+                  </button>
+                </div>
+              </div>
               <div className="p-6 rounded-2xl bg-[#FAF6F0] border border-[#D8CBB8] space-y-4">
                 <div className="flex items-center justify-between border-b border-[#E6DCD2] pb-3">
                   <div className="flex items-center gap-2">
@@ -2823,7 +3035,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <div>
                         <div className="font-bold text-[#2C1E18]">{item.title}</div>
                         <div className="text-[11px] text-[#8C6D36]">
-                          {getCategoryLabel(item.categoryKey)} {item.city ? `· ${item.city}` : ''}
+                          {getGalleryCategoryLabel(item.categoryKey)} {item.city ? `· ${item.city}` : ''}
                         </div>
                         {item.caption && (
                           <p className="text-[11px] text-[#645249] mt-1 line-clamp-2">
@@ -2906,10 +3118,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             }
                             className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
                           >
-                            <option value="mobile_photography">تصوير الجوال</option>
-                            <option value="kids_corner">ركن الأطفال</option>
-                            <option value="childcare">رعاية الأطفال</option>
-                            <option value="wedding_support">مساندة وتنظيم</option>
+                            <option value="mobile_photography">١. تصوير المناسبات بالجوال</option>
+                            <option value="kids_corner">٢. أركان الأطفال</option>
+                            <option value="kids_activities">٣. أنشطة الأطفال</option>
+                            <option value="wedding_support">٤. خدمات الأفراح</option>
+                            <option value="event_setups">٥. تجهيزات المناسبات</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="block font-bold text-[#2C1E18]">نوع الوسائط:</label>
+                          <select
+                            value={newPortfolioItem.mediaType || 'image'}
+                            onChange={(e) =>
+                              setNewPortfolioItem({
+                                ...newPortfolioItem,
+                                mediaType: e.target.value as 'image' | 'video'
+                              })
+                            }
+                            className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                          >
+                            <option value="image">صورة فوتوغرافية</option>
+                            <option value="video">مقطع فيديو / ريلز</option>
                           </select>
                         </div>
 
@@ -2956,6 +3186,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           className="w-full p-2.5 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
                         />
                       </div>
+
+                      {(newPortfolioItem.categoryKey === 'kids_corner' ||
+                        newPortfolioItem.categoryKey === 'kids_activities' ||
+                        newPortfolioItem.categoryKey === ('childcare' as any)) && (
+                        <div className="p-3 rounded-xl bg-[#F7EBEB] border border-[#EED7D7] space-y-1">
+                          <label className="flex items-center gap-2 font-bold text-[#2C1E18] cursor-pointer">
+                            <input
+                              type="checkbox"
+                              required
+                              checked={newPortfolioItem.parentConsentApproved || false}
+                              onChange={(e) =>
+                                setNewPortfolioItem({
+                                  ...newPortfolioItem,
+                                  parentConsentApproved: e.target.checked
+                                })
+                              }
+                              className="w-4 h-4 rounded text-[#2C1E18]"
+                            />
+                            <span>تم الحصول على موافقة ولي الأمر الصريحة على النشر</span>
+                          </label>
+                          <p className="text-[10px] text-[#645249] pr-6">
+                            يمنع نظام لومير عرض أسماء الأطفال أو أي معلومات تدل على هوياتهم الشخصية في المعرض.
+                          </p>
+                        </div>
+                      )}
 
                       <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E6DCD2]">
                         <button
@@ -3522,6 +3777,562 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ================= DEDICATED ANNOUNCEMENTS (TICKER) TAB ================= */}
+          {activeTab === 'announcements' && (
+            <div className="space-y-6 max-w-[1240px] mx-auto">
+              {/* Header Zone */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#C8A96E]/20 text-[#8C6D36] text-[10px] font-bold border border-[#C8A96E]/40 flex items-center gap-1 w-fit">
+                      <Sparkles className="w-3 h-3 text-[#8C6D36]" />
+                      <span>شريط العروض والرسائل التفاعلي</span>
+                    </span>
+                  </div>
+                  <h2 className="font-display text-3xl font-bold text-[#2C1E18]">
+                    الشريط العلوي المتحرك (Marquee Ticker)
+                  </h2>
+                  <p className="text-xs text-[#645249] mt-1">
+                    أضيفي نصوص العروض والتنبيهات للزوار، واجعليها تتحرك بانسيابية في أعلى صفحات المتجر مع التحكم الكامل بالسرعة والألوان والروابط.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2.5">
+                  {hasRole(['super_admin', 'content_editor']) && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleOpenAddAnnouncement}
+                        className="px-4 py-2.5 rounded-xl bg-[#2C1E18] text-[#FAF6F0] text-xs font-bold flex items-center gap-2 cursor-pointer shadow-xs hover:bg-[#422E25] transition-all"
+                      >
+                        <Plus className="w-4 h-4 text-[#C8A96E]" />
+                        <span>إضافة نص جديد للشريط</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveAnnouncements(announcements)}
+                        className="px-4 py-2.5 rounded-xl bg-[#1F5E3B] text-white text-xs font-bold flex items-center gap-2 cursor-pointer shadow-xs hover:bg-[#18492E] transition-all"
+                      >
+                        <Save className="w-4 h-4 text-[#C8A96E]" />
+                        <span>حفظ التعديلات</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* 1. Live Animated Interactive Preview */}
+              <div className="p-5 rounded-3xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-3 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-[#8C6D36]" />
+                    <span className="text-xs font-bold text-[#2C1E18]">
+                      معاينة حية ومتحركة لما يظهر للزوار الآن في أعلى الموقع:
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewTickerPaused((p) => !p)}
+                      className="px-2.5 py-1 rounded-lg bg-[#F3ECE1] text-[#2C1E18] text-[11px] font-bold border border-[#D8CBB8] flex items-center gap-1.5 cursor-pointer hover:bg-[#E6DCD2]"
+                    >
+                      {previewTickerPaused ? (
+                        <>
+                          <Play className="w-3 h-3 text-[#1F5E3B]" />
+                          <span>استئناف الحركة</span>
+                        </>
+                      ) : (
+                        <>
+                          <Pause className="w-3 h-3 text-[#8A2626]" />
+                          <span>إيقاف مؤقت</span>
+                        </>
+                      )}
+                    </button>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        announcements.isEnabled
+                          ? 'bg-[#EDF7F0] text-[#1F5E3B]'
+                          : 'bg-[#FDF2F2] text-[#8A2626]'
+                      }`}
+                    >
+                      {announcements.isEnabled ? 'الشريط مفعّل للزوار' : 'الشريط مخفي ومعطّل'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* The Moving Preview Box */}
+                <div
+                  style={{
+                    backgroundColor: announcements.bgColor || '#2C1E18',
+                    color: announcements.textColor || '#FAF6F0'
+                  }}
+                  className="rounded-2xl p-2.5 sm:p-3 overflow-hidden shadow-inner relative flex items-center select-none"
+                  dir="rtl"
+                >
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/30 text-[#C8A96E] text-[10px] font-bold shrink-0 border border-[#C8A96E]/20 ml-3">
+                    <Sparkles className="w-2.5 h-2.5 text-[#C8A96E] animate-pulse" />
+                    <span>لومير</span>
+                  </div>
+
+                  <div className="flex-1 overflow-hidden relative flex items-center min-h-[22px]">
+                    <div
+                      className="w-full overflow-hidden flex items-center"
+                      dir="ltr"
+                    >
+                      <div
+                        className={`animate-marquee-continuous flex items-center gap-8 ${
+                          previewTickerPaused ? 'paused' : ''
+                        }`}
+                        style={{
+                          '--marquee-duration':
+                            announcements.speed === 'fast'
+                              ? '14s'
+                              : announcements.speed === 'slow'
+                              ? '38s'
+                              : `${(announcements.intervalSeconds || 3.5) * 7}s`
+                        } as React.CSSProperties}
+                      >
+                        {announcements.messages
+                          .filter((m) => m.isActive)
+                          .concat(announcements.messages.filter((m) => m.isActive))
+                          .concat(announcements.messages.filter((m) => m.isActive))
+                          .concat(announcements.messages.filter((m) => m.isActive))
+                          .map((msg, idx) => (
+                            <div
+                              key={`${msg.id}-prev-${idx}`}
+                              dir="rtl"
+                              className="inline-flex items-center gap-2 sm:gap-3 whitespace-nowrap px-3 text-xs"
+                            >
+                              {msg.badge && (
+                                <span
+                                  style={{
+                                    backgroundColor: announcements.accentColor || '#C8A96E',
+                                    color: '#2C1E18'
+                                  }}
+                                  className="px-2 py-0.5 rounded-full text-[10px] font-bold shadow-xs inline-flex items-center gap-1"
+                                >
+                                  <Sparkles className="w-2.5 h-2.5" />
+                                  <span>{msg.badge}</span>
+                                </span>
+                              )}
+                              <span className="font-medium">{msg.text}</span>
+                              {msg.linkText && (
+                                <span
+                                  style={{ color: announcements.accentColor || '#C8A96E' }}
+                                  className="underline underline-offset-2 font-bold text-[11px]"
+                                >
+                                  {msg.linkText} ←
+                                </span>
+                              )}
+                              <span
+                                style={{ color: announcements.accentColor || '#C8A96E' }}
+                                className="opacity-40 text-xs pr-3"
+                              >
+                                ✦
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Controls & Color Customization */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                {/* General Settings Card */}
+                <div className="lg:col-span-6 p-6 rounded-3xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-5 text-xs">
+                  <div className="flex items-center justify-between border-b border-[#E6DCD2] pb-3">
+                    <div className="flex items-center gap-2 font-bold text-sm text-[#2C1E18]">
+                      <SlidersHorizontal className="w-4 h-4 text-[#8C6D36]" />
+                      <span>خصائص الحركة وسرعة التمرير</span>
+                    </div>
+
+                    <label className="flex items-center gap-2 font-bold text-[#2C1E18] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={announcements.isEnabled}
+                        onChange={(e) =>
+                          setAnnouncements({ ...announcements, isEnabled: e.target.checked })
+                        }
+                        className="w-4 h-4 rounded text-[#2C1E18]"
+                      />
+                      <span>تفعيل الشريط</span>
+                    </label>
+                  </div>
+
+                  {/* Mode & Speed */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block font-bold text-[#2C1E18] mb-1">
+                        نمط العرض:
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setAnnouncements({ ...announcements, isTicker: true })}
+                          className={`p-2.5 rounded-xl border font-bold text-xs flex flex-col items-center gap-1 cursor-pointer transition-all ${
+                            announcements.isTicker !== false
+                              ? 'bg-[#2C1E18] text-[#FAF6F0] border-[#2C1E18] shadow-xs'
+                              : 'bg-[#F3ECE1] text-[#645249] border-[#D8CBB8] hover:bg-[#E6DCD2]'
+                          }`}
+                        >
+                          <span>شريط متحرك مستمر (Ticker)</span>
+                          <span className="text-[10px] opacity-80">«موصى به لحركة سلسة»</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setAnnouncements({ ...announcements, isTicker: false })}
+                          className={`p-2.5 rounded-xl border font-bold text-xs flex flex-col items-center gap-1 cursor-pointer transition-all ${
+                            announcements.isTicker === false
+                              ? 'bg-[#2C1E18] text-[#FAF6F0] border-[#2C1E18] shadow-xs'
+                              : 'bg-[#F3ECE1] text-[#645249] border-[#D8CBB8] hover:bg-[#E6DCD2]'
+                          }`}
+                        >
+                          <span>تبديل سلايدر (Carousel)</span>
+                          <span className="text-[10px] opacity-80">«تبديل رسالة تلو الأخرى»</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Speed Presets */}
+                    <div>
+                      <label className="block font-bold text-[#2C1E18] mb-1.5">
+                        سرعة حركة التمرير:
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: 'slow', label: 'هادئ وفاخر', sec: 40 },
+                          { id: 'normal', label: 'متوازن وطبيعي', sec: 24 },
+                          { id: 'fast', label: 'سريع ونشط', sec: 14 }
+                        ].map((sp) => (
+                          <button
+                            key={sp.id}
+                            type="button"
+                            onClick={() =>
+                              handleApplySpeed(sp.id as any, sp.sec / 7)
+                            }
+                            className={`p-2 rounded-xl border font-bold text-xs text-center cursor-pointer transition-all ${
+                              (announcements.speed || 'normal') === sp.id
+                                ? 'bg-[#C8A96E] text-[#2C1E18] border-[#8C6D36] shadow-xs'
+                                : 'bg-[#F3ECE1] text-[#645249] border-[#D8CBB8] hover:bg-[#E6DCD2]'
+                            }`}
+                          >
+                            {sp.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Pause on hover */}
+                    <div className="pt-2">
+                      <label className="flex items-center gap-2 font-bold text-[#2C1E18] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={announcements.pauseOnHover !== false}
+                          onChange={(e) =>
+                            setAnnouncements({
+                              ...announcements,
+                              pauseOnHover: e.target.checked
+                            })
+                          }
+                          className="w-4 h-4 rounded text-[#2C1E18]"
+                        />
+                        <span>إيقاف الحركة مؤقتاً عند مرور الماوس أو اللمس (مريح للعميل أثناء القراءة)</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Color Palette Card */}
+                <div className="lg:col-span-6 p-6 rounded-3xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-4 text-xs">
+                  <div className="flex items-center gap-2 border-b border-[#E6DCD2] pb-3 font-bold text-sm text-[#2C1E18]">
+                    <Palette className="w-4 h-4 text-[#8C6D36]" />
+                    <span>تنسيق ألوان الشريط وهوية لومير</span>
+                  </div>
+
+                  {/* 4 Luxury Color Presets */}
+                  <div className="space-y-2">
+                    <label className="block font-bold text-[#2C1E18]">
+                      لوحات ألوان فاخرة جاهزة بنقرة واحدة:
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        {
+                          name: 'كحلي لومير الكلاسيكي',
+                          bg: '#2C1E18',
+                          txt: '#FAF6F0',
+                          acc: '#C8A96E'
+                        },
+                        {
+                          name: 'ذهبي ملكي لومير',
+                          bg: '#8C6D36',
+                          txt: '#FAF6F0',
+                          acc: '#FFFFFF'
+                        },
+                        {
+                          name: 'أسود سهرة الأفراح',
+                          bg: '#1A130F',
+                          txt: '#FAF6F0',
+                          acc: '#D4AF37'
+                        },
+                        {
+                          name: 'عنابي ليالي الزفاف',
+                          bg: '#3B1F2B',
+                          txt: '#FAF6F0',
+                          acc: '#E6C594'
+                        }
+                      ].map((preset, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => handleApplyColorTheme(preset.bg, preset.txt, preset.acc)}
+                          className="p-2.5 rounded-xl border border-[#D8CBB8] bg-[#F3ECE1] hover:bg-[#E6DCD2] flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                        >
+                          <span className="font-bold text-[11px] text-[#2C1E18] truncate">
+                            {preset.name}
+                          </span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span
+                              className="w-3.5 h-3.5 rounded-full border border-black/20"
+                              style={{ backgroundColor: preset.bg }}
+                            />
+                            <span
+                              className="w-3.5 h-3.5 rounded-full border border-black/20"
+                              style={{ backgroundColor: preset.acc }}
+                            />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Custom Hex Inputs */}
+                  <div className="grid grid-cols-3 gap-2.5 pt-2">
+                    <div className="space-y-1">
+                      <label className="block font-bold text-[#2C1E18] text-[11px]">لون الخلفية:</label>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="color"
+                          value={announcements.bgColor || '#2C1E18'}
+                          onChange={(e) =>
+                            setAnnouncements({ ...announcements, bgColor: e.target.value })
+                          }
+                          className="w-7 h-7 rounded-lg border border-[#D8CBB8] cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          dir="ltr"
+                          value={announcements.bgColor}
+                          onChange={(e) =>
+                            setAnnouncements({ ...announcements, bgColor: e.target.value })
+                          }
+                          className="w-full px-2 py-1.5 bg-[#FAF6F0] border border-[#D8CBB8] rounded-lg font-mono text-[10px]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block font-bold text-[#2C1E18] text-[11px]">لون النص:</label>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="color"
+                          value={announcements.textColor || '#FAF6F0'}
+                          onChange={(e) =>
+                            setAnnouncements({ ...announcements, textColor: e.target.value })
+                          }
+                          className="w-7 h-7 rounded-lg border border-[#D8CBB8] cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          dir="ltr"
+                          value={announcements.textColor}
+                          onChange={(e) =>
+                            setAnnouncements({ ...announcements, textColor: e.target.value })
+                          }
+                          className="w-full px-2 py-1.5 bg-[#FAF6F0] border border-[#D8CBB8] rounded-lg font-mono text-[10px]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block font-bold text-[#2C1E18] text-[11px]">لون الوسم والروابط:</label>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="color"
+                          value={announcements.accentColor || '#C8A96E'}
+                          onChange={(e) =>
+                            setAnnouncements({ ...announcements, accentColor: e.target.value })
+                          }
+                          className="w-7 h-7 rounded-lg border border-[#D8CBB8] cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          dir="ltr"
+                          value={announcements.accentColor}
+                          onChange={(e) =>
+                            setAnnouncements({ ...announcements, accentColor: e.target.value })
+                          }
+                          className="w-full px-2 py-1.5 bg-[#FAF6F0] border border-[#D8CBB8] rounded-lg font-mono text-[10px]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Messages List Card */}
+              <div className="p-6 rounded-3xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-4 text-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E6DCD2] pb-3">
+                  <div>
+                    <h3 className="font-display text-lg font-bold text-[#2C1E18]">
+                      نصوص ورسائل الشريط المتحرك ({announcements.messages.length})
+                    </h3>
+                    <p className="text-[11px] text-[#645249]">
+                      يمكنكِ تقديم أو تأخير ظهور الرسائل وتفعيلها أو إيقافها، وتعديل النصوص والروابط في أي وقت.
+                    </p>
+                  </div>
+
+                  {hasRole(['super_admin', 'content_editor']) && (
+                    <button
+                      type="button"
+                      onClick={handleOpenAddAnnouncement}
+                      className="px-3.5 py-2 rounded-xl bg-[#2C1E18] text-[#FAF6F0] text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs hover:bg-[#422E25] self-start sm:self-auto"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-[#C8A96E]" />
+                      <span>إضافة نص إعلاني</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  {announcements.messages.map((msg, idx) => (
+                    <div
+                      key={msg.id}
+                      className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                        msg.isActive
+                          ? 'bg-[#FAF6F0] border-[#D8CBB8] shadow-xs'
+                          : 'bg-[#F3ECE1]/60 border-[#E6DCD2] opacity-75'
+                      }`}
+                    >
+                      {/* Left: Reorder & Info */}
+                      <div className="flex items-start sm:items-center gap-3 flex-1">
+                        {/* Order & Reorder Arrows */}
+                        {hasRole(['super_admin', 'content_editor']) && (
+                          <div className="flex flex-col items-center gap-0.5 shrink-0 bg-[#F3ECE1] p-1 rounded-xl border border-[#D8CBB8]">
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              onClick={() => handleMoveAnnouncement(idx, 'up')}
+                              className={`p-1 rounded hover:bg-[#E6DCD2] cursor-pointer ${
+                                idx === 0 ? 'opacity-30 cursor-not-allowed' : 'text-[#2C1E18]'
+                              }`}
+                              title="تقديم الترتيب"
+                            >
+                              <ArrowUp className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="font-mono font-bold text-[10px] text-[#8C6D36]">
+                              {idx + 1}
+                            </span>
+                            <button
+                              type="button"
+                              disabled={idx === announcements.messages.length - 1}
+                              onClick={() => handleMoveAnnouncement(idx, 'down')}
+                              className={`p-1 rounded hover:bg-[#E6DCD2] cursor-pointer ${
+                                idx === announcements.messages.length - 1
+                                  ? 'opacity-30 cursor-not-allowed'
+                                  : 'text-[#2C1E18]'
+                              }`}
+                              title="تأخير الترتيب"
+                            >
+                              <ArrowDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Content */}
+                        <div className="space-y-1.5 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {msg.badge && (
+                              <span className="px-2.5 py-0.5 rounded-full bg-[#C8A96E] text-[#2C1E18] text-[10px] font-bold shadow-xs">
+                                {msg.badge}
+                              </span>
+                            )}
+                            <span className="font-bold text-xs text-[#2C1E18]">{msg.text}</span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 text-[11px] text-[#645249]">
+                            {msg.linkTarget ? (
+                              <span className="flex items-center gap-1 text-[#8C6D36]">
+                                <span>الوجهة:</span>
+                                <strong className="font-mono">
+                                  {msg.linkTarget === 'booking'
+                                    ? 'حجز موعد'
+                                    : msg.linkTarget === 'mobile-photography'
+                                    ? 'تصوير الجوال'
+                                    : msg.linkTarget === 'kids-corner'
+                                    ? 'أركان الأطفال'
+                                    : msg.linkTarget === 'childcare'
+                                    ? 'مشرفات الأطفال'
+                                    : msg.linkTarget === 'wedding-support'
+                                    ? 'مساندة الأفراح'
+                                    : msg.linkTarget === 'gallery'
+                                    ? 'المعرض'
+                                    : msg.linkTarget === 'whatsapp'
+                                    ? 'واتساب مباشر'
+                                    : msg.linkTarget}
+                                </strong>
+                                {msg.linkText && <span>(زر: {msg.linkText})</span>}
+                              </span>
+                            ) : (
+                              <span className="text-[#8C6D36]/80">• نص إعلاني بدون رابط</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Actions */}
+                      {hasRole(['super_admin', 'content_editor']) && (
+                        <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#E6DCD2]">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleAnnouncementActive(msg.id)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border cursor-pointer transition-colors ${
+                              msg.isActive
+                                ? 'bg-[#EDF7F0] text-[#1F5E3B] border-[#B6DFC2] hover:bg-[#B6DFC2]/30'
+                                : 'bg-[#FDF2F2] text-[#8A2626] border-[#E5B8B8] hover:bg-[#E5B8B8]/30'
+                            }`}
+                          >
+                            {msg.isActive ? 'مفعّل بالشريط' : 'معطّل مؤقتاً'}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditAnnouncement(msg)}
+                            className="px-3 py-1.5 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold text-xs flex items-center gap-1 hover:bg-[#422E25] cursor-pointer"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-[#C8A96E]" />
+                            <span>تعديل</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAnnouncementPrompt(msg.id, msg.text)}
+                            className="p-1.5 rounded-xl text-[#8A2626] hover:bg-[#FDF2F2] cursor-pointer transition-colors"
+                            title="حذف هذا النص"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
@@ -4754,10 +5565,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     }
                     className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
                   >
-                    <option value="mobile_photography">تصوير الجوال</option>
-                    <option value="kids_corner">ركن الأطفال</option>
-                    <option value="childcare">رعاية الأطفال</option>
-                    <option value="wedding_support">مساندة وتنظيم</option>
+                    <option value="mobile_photography">١. تصوير المناسبات بالجوال</option>
+                    <option value="kids_corner">٢. أركان الأطفال</option>
+                    <option value="kids_activities">٣. أنشطة الأطفال</option>
+                    <option value="wedding_support">٤. خدمات الأفراح</option>
+                    <option value="event_setups">٥. تجهيزات المناسبات</option>
                   </select>
                 </div>
 
@@ -5152,6 +5964,163 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   className="px-6 py-2 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold hover:bg-[#422E25] cursor-pointer"
                 >
                   حفظ الصلاحيات
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* ================= 10. ADD / EDIT ANNOUNCEMENT MODAL ================= */}
+      {showAddAnnouncementModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FAF6F0] rounded-3xl border border-[#D8CBB8] max-w-lg w-full p-6 sm:p-8 space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddAnnouncementModal(false);
+                setEditingAnnouncement(null);
+              }}
+              className="absolute left-6 top-6 p-2 rounded-full hover:bg-[#E6DCD2] cursor-pointer"
+            >
+              <X className="w-5 h-5 text-[#2C1E18]" />
+            </button>
+
+            <div className="flex items-center gap-2">
+              <Megaphone className="w-5 h-5 text-[#8C6D36]" />
+              <h3 className="font-display text-2xl font-bold text-[#2C1E18]">
+                {editingAnnouncement ? 'تعديل نص الإعلان بالشريط' : 'إضافة نص جديد للشريط المتحرك'}
+              </h3>
+            </div>
+            <p className="text-xs text-[#645249]">
+              اكتبي النص الذي سيتحرك في أعلى الموقع للزوار، مع إمكانية إضافة وسم مميز ورابط تحويل مباشر.
+            </p>
+
+            <form onSubmit={handleSaveAnnouncementModalSubmit} className="space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C1E18]">
+                  نص الإعلان أو التنبيه (مطلوب):
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="مثال: موسم مناسبات ٢٠٢٦ في مكة المكرمة وجدة — احجزي موعدكِ الآن بأسعار خاصة"
+                  value={announcementForm.text}
+                  onChange={(e) =>
+                    setAnnouncementForm({ ...announcementForm, text: e.target.value })
+                  }
+                  className="w-full p-3 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl text-xs leading-relaxed"
+                />
+              </div>
+
+              {/* Badge & Quick suggestions */}
+              <div className="space-y-1.5">
+                <label className="block font-bold text-[#2C1E18]">
+                  الوسم المميز (اختياري - يظهر كشارة ملونة قبل النص):
+                </label>
+                <input
+                  type="text"
+                  placeholder="مثال: ✨ عرض حصري"
+                  value={announcementForm.badge}
+                  onChange={(e) =>
+                    setAnnouncementForm({ ...announcementForm, badge: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                />
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[10px] text-[#645249]">اقتراحات سريعة:</span>
+                  {[
+                    '✨ عرض حصري',
+                    '📸 تسليم فوري',
+                    '🎁 كود خصم',
+                    '🎨 أركان الأطفال',
+                    '💍 مساندة أفراح',
+                    '⚡ مكة وجدة'
+                  ].map((sug) => (
+                    <button
+                      key={sug}
+                      type="button"
+                      onClick={() => setAnnouncementForm({ ...announcementForm, badge: sug })}
+                      className="px-2 py-0.5 rounded-full bg-[#F3ECE1] hover:bg-[#E6DCD2] border border-[#D8CBB8] text-[10px] font-bold text-[#2C1E18] cursor-pointer"
+                    >
+                      {sug}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Link Target & Link Text */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C1E18]">
+                    الوجهة / الرابط عند النقر:
+                  </label>
+                  <select
+                    value={announcementForm.linkTarget}
+                    onChange={(e) =>
+                      setAnnouncementForm({ ...announcementForm, linkTarget: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-bold"
+                  >
+                    <option value="">بدون رابط (نص إعلاني فقط)</option>
+                    <option value="booking">طلب حجز موعد (Booking)</option>
+                    <option value="mobile-photography">تصوير المناسبات بالجوال</option>
+                    <option value="kids-corner">ركن الأطفال والأنشطة</option>
+                    <option value="childcare">مشرفات رعاية الأطفال</option>
+                    <option value="wedding-support">خدمات مساندة الأفراح</option>
+                    <option value="gallery">معرض الأعمال والنماذج</option>
+                    <option value="catalog">كتالوج الخدمات الكامل</option>
+                    <option value="whatsapp">محادثة واتساب مباشرة</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C1E18]">
+                    نص زر التحويل (اختياري):
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: احجزي الآن"
+                    value={announcementForm.linkText}
+                    onChange={(e) =>
+                      setAnnouncementForm({ ...announcementForm, linkText: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"
+                  />
+                </div>
+              </div>
+
+              {/* Active Toggle */}
+              <div className="pt-1">
+                <label className="flex items-center gap-2 font-bold text-[#2C1E18] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={announcementForm.isActive}
+                    onChange={(e) =>
+                      setAnnouncementForm({ ...announcementForm, isActive: e.target.checked })
+                    }
+                    className="w-4 h-4 rounded text-[#2C1E18]"
+                  />
+                  <span>تفعيل هذا النص فوراً في الشريط المتحرك</span>
+                </label>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E6DCD2]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddAnnouncementModal(false);
+                    setEditingAnnouncement(null);
+                  }}
+                  className="px-4 py-2 rounded-xl border border-[#D8CBB8] hover:bg-[#E6DCD2] cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold hover:bg-[#422E25] cursor-pointer shadow-xs"
+                >
+                  {editingAnnouncement ? 'حفظ تعديلات النص' : 'إضافة النص للشريط'}
                 </button>
               </div>
             </form>

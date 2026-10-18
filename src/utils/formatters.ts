@@ -73,6 +73,24 @@ export function getCategoryLabel(cat: ServiceCategoryKey): string {
   }
 }
 
+export function getGalleryCategoryLabel(cat: string): string {
+  switch (cat) {
+    case 'mobile_photography':
+      return 'تصوير المناسبات بالجوال';
+    case 'kids_corner':
+      return 'أركان الأطفال';
+    case 'kids_activities':
+    case 'childcare':
+      return 'أنشطة الأطفال';
+    case 'wedding_support':
+      return 'خدمات الأفراح';
+    case 'event_setups':
+      return 'تجهيزات المناسبات';
+    default:
+      return cat;
+  }
+}
+
 export function getPricingModelLabel(model: PricingModel): string {
   switch (model) {
     case 'fixed':

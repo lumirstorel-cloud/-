@@ -141,8 +141,10 @@ export interface AnnouncementBarSettings {
   bgColor: string; // e.g. '#2C1E18'
   textColor: string; // e.g. '#FAF6F0'
   accentColor: string; // e.g. '#C8A96E'
-  intervalSeconds: number; // rotation duration per message (default 3 or 4)
+  intervalSeconds: number; // rotation duration or speed factor
   isTicker: boolean; // true for scrolling ticker, false for smooth fading carousel
+  speed?: 'slow' | 'normal' | 'fast';
+  pauseOnHover?: boolean;
   messages: AnnouncementMessage[];
 }
 
@@ -174,11 +176,18 @@ export interface HeroSliderSettings {
   showIndicators: boolean;
 }
 
+export type GalleryCategoryKey =
+  | 'mobile_photography'
+  | 'kids_corner'
+  | 'kids_activities'
+  | 'wedding_support'
+  | 'event_setups';
+
 // Portfolio media item
 export interface PortfolioMediaItem {
   id: string;
   title: string;
-  categoryKey: ServiceCategoryKey;
+  categoryKey: GalleryCategoryKey | ServiceCategoryKey;
   mediaType: 'image' | 'video';
   mediaUrl: string;
   thumbnailUrl?: string;
@@ -187,6 +196,8 @@ export interface PortfolioMediaItem {
   isFeatured: boolean;
   isPublic: boolean;
   displayOrder: number;
+  isDemo?: boolean;
+  parentConsentApproved?: boolean; // For children media
 }
 
 // FAQ item
@@ -306,6 +317,7 @@ export interface FavoriteItem {
 export type PageView =
   | 'home'
   | 'catalog'
+  | 'gallery'
   | 'mobile-photography'
   | 'kids-corner'
   | 'childcare'

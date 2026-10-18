@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PageView, SiteSettings } from '../types';
+import { FAQItem, PageView, SiteSettings } from '../types';
 import { buildWhatsAppLink } from '../utils/formatters';
 import {
   FileText,
@@ -67,8 +67,11 @@ export const AboutView: React.FC<{
   </div>
 );
 
-export const FaqView: React.FC<{ settings: SiteSettings }> = ({ settings }) => {
-  const faqs = [
+export const FaqView: React.FC<{ settings: SiteSettings; faqs?: FAQItem[] }> = ({
+  settings,
+  faqs: dynamicFaqs
+}) => {
+  const defaultFaqs = [
     {
       q: 'ما هي باقات وأسعار تصوير المناسبات بالجوال ومدة التسليم؟',
       a: 'تبدأ باقات تصوير الجوال من ٣٥٠ ر.س (٣ ساعات)، ٤٠٠ ر.س (٤ ساعات)، ٥٠٠ ر.س (٥ ساعات)، ٦٠٠ ر.س (٦ ساعات)، و٧٠٠ ر.س (٧ ساعات). مدة التسليم المبدئية هي ٤٨ ساعة فقط عبر رابط سحابي خاص أو تسليم فوري في نفس الليلة بالقاعة عبر AirDrop.'
@@ -91,6 +94,11 @@ export const FaqView: React.FC<{ settings: SiteSettings }> = ({ settings }) => {
     }
   ];
 
+  const itemsToDisplay =
+    dynamicFaqs && dynamicFaqs.length > 0
+      ? dynamicFaqs.map((f) => ({ q: f.question, a: f.answer, cat: f.category }))
+      : defaultFaqs;
+
   return (
     <div className="max-w-[920px] mx-auto px-6 py-14 space-y-10">
       <div className="space-y-3">
@@ -104,7 +112,7 @@ export const FaqView: React.FC<{ settings: SiteSettings }> = ({ settings }) => {
       </div>
 
       <div className="space-y-4">
-        {faqs.map((f, i) => (
+        {itemsToDisplay.map((f, i) => (
           <div key={i} className="p-6 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-2">
             <h2 className="font-display text-lg font-bold text-[#2C1E18]">{f.q}</h2>
             <p className="text-xs sm:text-sm text-[#5C4940] leading-relaxed">{f.a}</p>

@@ -24,6 +24,27 @@
   }
 }
 
+@keyframes marquee-scroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee-continuous {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll var(--marquee-duration, 25s) linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-continuous:hover,
+.animate-marquee-continuous.paused {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: 0.01ms !important;

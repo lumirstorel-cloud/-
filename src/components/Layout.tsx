@@ -31,7 +31,10 @@ import {
   Users,
   HeartHandshake,
   MapPin,
-  ChevronDown
+  ChevronDown,
+  Home,
+  Image as ImageIcon,
+  CalendarCheck
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -85,7 +88,7 @@ export const Layout: React.FC<LayoutProps> = ({
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF6F0] text-[#2C1E18]" dir="rtl">
+    <div className="min-h-screen flex flex-col bg-[#FAF6F0] text-[#2C1E18] pb-20 xl:pb-0" dir="rtl">
       {/* 1. Top Announcement Bar */}
       {announcements && (
         <AnnouncementBar settings={announcements} navigate={navigate} />
@@ -136,6 +139,17 @@ export const Layout: React.FC<LayoutProps> = ({
               }`}
             >
               كتالوج الخدمات
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNav('gallery')}
+              className={`hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 ${
+                currentView === 'gallery'
+                  ? 'text-[#2C1E18] font-bold border-b-2 border-[#C8A96E]'
+                  : ''
+              }`}
+            >
+              معرض الأعمال
             </button>
             <button
               type="button"
@@ -303,6 +317,15 @@ export const Layout: React.FC<LayoutProps> = ({
                 }`}
               >
                 كتالوج الخدمات
+              </button>
+              <button
+                type="button"
+                onClick={() => handleNav('gallery')}
+                className={`text-right py-2 px-3 rounded-lg font-medium transition-colors ${
+                  currentView === 'gallery' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
+                }`}
+              >
+                🖼️ معرض الأعمال
               </button>
               <button
                 type="button"
@@ -705,17 +728,102 @@ export const Layout: React.FC<LayoutProps> = ({
         </div>
       </footer>
 
-      {/* Floating WhatsApp Action Button */}
+      {/* Floating WhatsApp Action Button (Positioned above mobile bottom bar) */}
       <a
         href={whatsappHref}
         target="_blank"
         rel="noopener noreferrer"
         aria-label="تواصل مع لومير عبر واتساب"
-        className="fixed bottom-5 left-5 z-40 inline-flex items-center gap-2 bg-[#1F5E3B] text-[#FAF6F0] px-4 py-3 rounded-full shadow-lg hover:bg-[#18492E] transition-transform hover:-translate-y-0.5 cursor-pointer"
+        className="fixed bottom-20 xl:bottom-6 left-4 xl:left-6 z-40 inline-flex items-center gap-2 bg-[#1F5E3B] hover:bg-[#18492E] text-[#FAF6F0] px-4 py-3 rounded-full shadow-xl transition-all duration-200 hover:-translate-y-0.5 cursor-pointer border border-[#FAF6F0]/20"
       >
         <MessageCircle className="w-5 h-5 shrink-0" />
-        <span className="text-xs font-medium hidden sm:inline">تواصلي عبر واتساب</span>
+        <span className="text-xs font-bold hidden sm:inline">تواصلي عبر واتساب</span>
       </a>
+
+      {/* 3. Luxury Mobile Bottom Navigation Bar (xl:hidden) */}
+      <nav
+        aria-label="شريط التنقل السفلي للجوال"
+        className="xl:hidden fixed bottom-0 inset-x-0 z-40 bg-[#FAF6F0]/95 backdrop-blur-md border-t border-[#E6DCD2] px-3 py-2 shadow-2xl flex items-center justify-around text-[10px] font-bold"
+      >
+        {/* 1. Home */}
+        <button
+          type="button"
+          onClick={() => handleNav('home')}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-colors cursor-pointer ${
+            currentView === 'home'
+              ? 'text-[#2C1E18] font-black'
+              : 'text-[#645249] hover:text-[#2C1E18]'
+          }`}
+        >
+          <Home className={`w-5 h-5 ${currentView === 'home' ? 'text-[#C8A96E]' : ''}`} />
+          <span>الرئيسية</span>
+        </button>
+
+        {/* 2. Catalog */}
+        <button
+          type="button"
+          onClick={() => handleNav('catalog')}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-colors cursor-pointer ${
+            ['catalog', 'service-detail'].includes(currentView)
+              ? 'text-[#2C1E18] font-black'
+              : 'text-[#645249] hover:text-[#2C1E18]'
+          }`}
+        >
+          <ShoppingBag
+            className={`w-5 h-5 ${
+              ['catalog', 'service-detail'].includes(currentView) ? 'text-[#C8A96E]' : ''
+            }`}
+          />
+          <span>الكتالوج</span>
+        </button>
+
+        {/* 3. Gallery */}
+        <button
+          type="button"
+          onClick={() => handleNav('gallery')}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-colors cursor-pointer ${
+            currentView === 'gallery'
+              ? 'text-[#2C1E18] font-black'
+              : 'text-[#645249] hover:text-[#2C1E18]'
+          }`}
+        >
+          <ImageIcon className={`w-5 h-5 ${currentView === 'gallery' ? 'text-[#C8A96E]' : ''}`} />
+          <span>المعرض</span>
+        </button>
+
+        {/* 4. Wishlist / Favorites */}
+        <button
+          type="button"
+          onClick={() => setFavoritesDrawerOpen(true)}
+          className="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-colors cursor-pointer text-[#645249] hover:text-[#2C1E18] relative"
+        >
+          <div className="relative">
+            <Heart className="w-5 h-5" />
+            {favorites.length > 0 && (
+              <span className="absolute -top-1.5 -right-2 w-4 h-4 rounded-full bg-rose-600 text-white text-[9px] font-bold flex items-center justify-center font-mono">
+                {formatArabicNumber(favorites.length)}
+              </span>
+            )}
+          </div>
+          <span>المفضلة</span>
+        </button>
+
+        {/* 5. Track Order */}
+        <button
+          type="button"
+          onClick={() => handleNav('booking-status')}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-colors cursor-pointer ${
+            currentView === 'booking-status'
+              ? 'text-[#2C1E18] font-black'
+              : 'text-[#645249] hover:text-[#2C1E18]'
+          }`}
+        >
+          <CalendarCheck
+            className={`w-5 h-5 ${currentView === 'booking-status' ? 'text-[#C8A96E]' : ''}`}
+          />
+          <span>تتبع الحجز</span>
+        </button>
+      </nav>
     </div>
   );
 };

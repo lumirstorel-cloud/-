@@ -1,0 +1,105 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if request is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to verify admin claims / roles
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'super_admin' ||
+        request.auth.token.role == 'operations_manager' ||
+        request.auth.token.role == 'content_editor'
+      );
+    }
+    
+    function isSuperAdmin() {
+      return isAuthenticated() && request.auth.token.role == 'super_admin';
+    }
+
+    // 1. Services, Packages, Addons & Pricing
+    // Read: Public (anyone can view catalog)
+    // Write: Strictly Super Admin or Content Editor. Public cannot modify prices.
+    match /services/{serviceId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // 2. City Coverage & Delivery/Event zones
+    match /cities/{cityId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // 3. Portfolio & Media
+    match /portfolio/{itemId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // 4. Announcements & Banners
+    match /announcements/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /faqs/{faqId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // 5. Booking Orders & Customer Requests
+    // Public creation allowed ONLY with strict validation:
+    // - status must be 'pending_review' or 'draft' (NEVER 'confirmed')
+    // - clientName and clientPhone are required
+    // - Customer cannot read all bookings. Customers can only read their own by auth UID or secure backend proxy.
+    // - Admin can read and update all bookings (e.g. approve, schedule, assign).
+    match /bookings/{bookingId} {
+      allow create: if request.resource.data.clientName is string
+                    && request.resource.data.clientPhone is string
+                    && request.resource.data.eventDate is string
+                    && request.resource.data.startTime is string
+                    && (request.resource.data.status == 'pending_review' || request.resource.data.status == 'draft');
+                    
+      // Prevent public listing or reading arbitrary customer orders
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      
+      // Only staff/admins can update booking status, approve dates, or edit details
+      allow update, delete: if isAdmin();
+    }
+    
+    // 6. Coupons & Discounts
+    // Read: Public can look up active codes, but cannot list all coupons or write
+    match /coupons/{couponId} {
+      allow read: if isAdmin() || resource.data.isActive == true;
+      allow write: if isSuperAdmin();
+    }
+    
+    // 7. Store Settings & WhatsApp
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+    
+    // 8. Audit Logs
+    // Highly restricted: Append-only for admins, read-only for super_admin
+    match /auditLogs/{logId} {
+      allow read: if isSuperAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false; // Immutable audit log
+    }
+    
+    // 9. Admin Users & Permissions
+    match /adminUsers/{userId} {
+      allow read, write: if isSuperAdmin();
+    }
+  }
+}

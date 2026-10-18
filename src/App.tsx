@@ -30,6 +30,7 @@ import {
   TermsView
 } from './components/InfoPages';
 import { AdminDashboard } from './components/AdminDashboard';
+import { GalleryView } from './components/GalleryView';
 
 export function App() {
   const [data, setData] = useState<LumirCentralData>(() => loadCentralData());
@@ -39,6 +40,7 @@ export function App() {
       const validViews: PageView[] = [
         'home',
         'catalog',
+        'gallery',
         'mobile-photography',
         'kids-corner',
         'childcare',
@@ -250,6 +252,7 @@ export function App() {
     const titles: Record<PageView, string> = {
       home: `${base} | مكة المكرمة وجدة`,
       catalog: `كتالوج الخدمات والأسعار — ${base}`,
+      gallery: `معرض الأعمال ونماذج التغطيات — ${base}`,
       'mobile-photography': `تصوير المناسبات بالجوال — ${base}`,
       'kids-corner': `ركن الأطفال والأنشطة — ${base}`,
       childcare: `مشرفات رعاية الأطفال — ${base}`,
@@ -330,10 +333,11 @@ export function App() {
           settings={data.settings}
           banners={data.banners}
           sliderSettings={data.sliderSettings}
+          portfolio={data.portfolio}
           favorites={favorites}
           onToggleFavorite={handleToggleFavorite}
           onAddToCart={handleAddToCart}
-          navigate={setCurrentView}
+          navigate={handleNavigate}
           onSelectServiceToBook={handleSelectServiceToBook}
         />
       )}
@@ -345,7 +349,16 @@ export function App() {
           favorites={favorites}
           onToggleFavorite={handleToggleFavorite}
           onAddToCart={handleAddToCart}
-          navigate={setCurrentView}
+          navigate={handleNavigate}
+          onSelectServiceToBook={handleSelectServiceToBook}
+        />
+      )}
+
+      {currentView === 'gallery' && (
+        <GalleryView
+          portfolio={data.portfolio}
+          settings={data.settings}
+          navigate={handleNavigate}
           onSelectServiceToBook={handleSelectServiceToBook}
         />
       )}
@@ -410,7 +423,7 @@ export function App() {
           preselectedServiceId={selectedServiceId}
           preselectedPackageId={selectedPackageId}
           onBookingCreated={handleBookingCreated}
-          navigate={setCurrentView}
+          navigate={handleNavigate}
         />
       )}
 
@@ -418,15 +431,15 @@ export function App() {
         <StatusTrackerView
           bookings={data.bookings}
           settings={data.settings}
-          navigate={setCurrentView}
+          navigate={handleNavigate}
         />
       )}
 
       {currentView === 'about' && (
-        <AboutView settings={data.settings} navigate={setCurrentView} />
+        <AboutView settings={data.settings} navigate={handleNavigate} />
       )}
 
-      {currentView === 'faq' && <FaqView settings={data.settings} />}
+      {currentView === 'faq' && <FaqView settings={data.settings} faqs={data.faqs} />}
 
       {currentView === 'privacy' && <PrivacyView settings={data.settings} />}
 
