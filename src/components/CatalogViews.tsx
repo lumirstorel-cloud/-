@@ -56,6 +56,7 @@ interface CatalogProps {
   banners?: HeroBanner[];
   sliderSettings?: HeroSliderSettings;
   portfolio?: PortfolioMediaItem[];
+  faqs?: any[];
   favorites?: FavoriteItem[];
   onToggleFavorite?: (serviceId: string, packageId?: string) => void;
   onAddToCart?: (service: ServiceItem, packageItem?: any) => void;
@@ -121,6 +122,7 @@ export const HomeView: React.FC<CatalogProps> = ({
   banners,
   sliderSettings,
   portfolio = [],
+  faqs = [],
   favorites = [],
   onToggleFavorite,
   onAddToCart
@@ -564,7 +566,48 @@ export const HomeView: React.FC<CatalogProps> = ({
         </div>
       </section>
 
-      {/* WhatsApp CTA */}
+      {/* 7. Frequently Asked Questions (الأسئلة الشائعة) */}
+      {faqs && faqs.length > 0 && (
+        <section className="px-6">
+          <div className="max-w-[1240px] mx-auto space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#E6DCD2] pb-6">
+              <div className="space-y-2">
+                <div className="text-xs text-[#8C6D36]">الشفافية والمعلومات</div>
+                <h2 className="font-display text-3xl font-bold text-[#2C1E18]">
+                  الأسئلة الأكثر شيوعاً
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('faq')}
+                className="text-sm font-medium text-[#8C6D36] hover:text-[#2C1E18] inline-flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+              >
+                <span>جميع الأسئلة والأجوبة ({formatArabicNumber(faqs.length)})</span>
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {faqs.slice(0, 4).map((faq) => (
+                <div
+                  key={faq.id}
+                  className="rounded-2xl border border-[#E6DCD2] bg-[#FAF6F0] p-5 space-y-2 shadow-xs"
+                >
+                  <h3 className="font-display text-base font-bold text-[#2C1E18] flex items-start gap-2">
+                    <span className="text-[#8C6D36] font-mono-num font-bold">؟</span>
+                    <span>{faq.question}</span>
+                  </h3>
+                  <p className="text-xs text-[#5C4940] leading-relaxed pr-4">
+                    {faq.answer}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 8. WhatsApp CTA (دعوة التواصل والحجز) */}
       <section className="px-6">
         <div className="max-w-[1240px] mx-auto rounded-2xl bg-[#F3ECE1] border border-[#D8CBB8] p-8 sm:p-12 flex flex-col lg:flex-row items-center justify-between gap-8">
           <div className="space-y-2 max-w-2xl">

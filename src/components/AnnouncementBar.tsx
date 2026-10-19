@@ -25,6 +25,22 @@ export const AnnouncementBar: React.FC<AnnouncementBarProps> = ({
   const [isDismissed, setIsDismissed] = useState(false);
   const [isFading, setIsFading] = useState(false);
 
+  // Check prefers-reduced-motion
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mediaQuery.matches) {
+      setIsPaused(true);
+    }
+    const handler = (e: MediaQueryListEvent) => {
+      if (e.matches) setIsPaused(true);
+    };
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handler);
+      return () => mediaQuery.removeEventListener('change', handler);
+    }
+  }, []);
+
   // Calculate speed duration
   const getDurationSeconds = () => {
     const count = activeMessages.length || 1;

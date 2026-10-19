@@ -304,6 +304,17 @@ export interface CartItem {
   addedAt: string;
 }
 
+export interface CustomerReview {
+  id: string;
+  serviceId: string;
+  customerName: string;
+  city?: string;
+  rating: number; // 1-5
+  comment: string;
+  createdAt: string;
+  verifiedBooking?: boolean;
+}
+
 export interface FavoriteItem {
   id: string; // unique identifier e.g. `${serviceId}-${packageId || 'main'}`
   serviceId: string;

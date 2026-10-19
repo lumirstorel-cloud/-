@@ -308,6 +308,7 @@ export function App() {
           banners={data.banners}
           sliderSettings={data.sliderSettings}
           portfolio={data.portfolio}
+          faqs={data.faqs}
           favorites={favorites}
           onToggleFavorite={handleToggleFavorite}
           onAddToCart={handleAddToCart}
@@ -345,7 +346,7 @@ export function App() {
           favorites={favorites}
           onToggleFavorite={handleToggleFavorite}
           onAddToCart={handleAddToCart}
-          navigate={setCurrentView}
+          navigate={handleNavigate}
           onSelectServiceToBook={handleSelectServiceToBook}
         />
       )}
@@ -358,7 +359,7 @@ export function App() {
           favorites={favorites}
           onToggleFavorite={handleToggleFavorite}
           onAddToCart={handleAddToCart}
-          navigate={setCurrentView}
+          navigate={handleNavigate}
           onSelectServiceToBook={handleSelectServiceToBook}
         />
       )}
@@ -371,7 +372,7 @@ export function App() {
           favorites={favorites}
           onToggleFavorite={handleToggleFavorite}
           onAddToCart={handleAddToCart}
-          navigate={setCurrentView}
+          navigate={handleNavigate}
           onSelectServiceToBook={handleSelectServiceToBook}
         />
       )}
@@ -384,7 +385,7 @@ export function App() {
           favorites={favorites}
           onToggleFavorite={handleToggleFavorite}
           onAddToCart={handleAddToCart}
-          navigate={setCurrentView}
+          navigate={handleNavigate}
           onSelectServiceToBook={handleSelectServiceToBook}
         />
       )}

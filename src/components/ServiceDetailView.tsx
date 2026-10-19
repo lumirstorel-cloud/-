@@ -4,6 +4,7 @@ import { formatArabicNumber, formatSar, getPricingModelLabel } from '../utils/fo
 import { pathForView } from '../utils/routes';
 import { getSeoMeta } from '../data/seo';
 import { ResilientImage } from './ResilientImage';
+import { ReviewForm } from './ReviewForm';
 import {
   ArrowLeft,
   Check,
@@ -288,6 +289,9 @@ export const ServiceDetailView: React.FC<ServiceDetailProps> = ({
           )}
         </section>
       )}
+
+      {/* Customer Reviews & Feedback Form */}
+      <ReviewForm service={service} />
 
       {/* Booking CTA */}
       <section className="rounded-2xl bg-[#231712] text-[#FAF6F0] p-8 sm:p-10 flex flex-col lg:flex-row items-center justify-between gap-6">

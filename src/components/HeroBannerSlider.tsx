@@ -35,6 +35,20 @@ export const HeroBannerSlider: React.FC<HeroBannerSliderProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  // Detect user preference for reduced motion
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handler);
+      return () => mediaQuery.removeEventListener('change', handler);
+    }
+  }, []);
 
   // Swipe detection refs
   const touchStartX = useRef<number | null>(null);
@@ -58,9 +72,9 @@ export const HeroBannerSlider: React.FC<HeroBannerSliderProps> = ({
     setProgress(0);
   }, [totalBanners]);
 
-  // Auto-play timer every 3 seconds with visual progress
+  // Auto-play timer every 3 seconds with visual progress (stopped if prefersReducedMotion)
   useEffect(() => {
-    if (!settings?.autoPlay || totalBanners <= 1 || isPaused) {
+    if (!settings?.autoPlay || totalBanners <= 1 || isPaused || prefersReducedMotion) {
       return;
     }
 
@@ -160,7 +174,9 @@ export const HeroBannerSlider: React.FC<HeroBannerSliderProps> = ({
             <div
               key={banner.id}
               aria-hidden={!isActive}
-              className={`absolute inset-0 transition-all duration-700 ease-in-out ${
+              className={`absolute inset-0 transition-all ${
+                prefersReducedMotion ? 'duration-0' : 'duration-700'
+              } ease-in-out ${
                 isActive
                   ? 'opacity-100 scale-100 z-10 pointer-events-auto'
                   : 'opacity-0 scale-[1.02] z-0 pointer-events-none'
