@@ -25,6 +25,7 @@ import {
   Phone,
   MessageCircle,
   ShieldCheck,
+  Star,
   ChevronLeft
 } from 'lucide-react';
 
@@ -656,6 +657,7 @@ interface CustomerAccountModalProps {
   bookings: BookingSubmission[];
   navigate: (view: PageView) => void;
   settings: SiteSettings;
+  onRateBooking?: (booking: BookingSubmission) => void;
 }
 
 export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
@@ -663,7 +665,8 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
   onClose,
   bookings,
   navigate,
-  settings
+  settings,
+  onRateBooking
 }) => {
   const [searchKey, setSearchKey] = useState('');
   const [foundBookings, setFoundBookings] = useState<BookingSubmission[] | null>(null);
@@ -758,7 +761,7 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
           {foundBookings === null ? (
             <div className="text-center py-6 space-y-2 text-xs text-[#645249]">
               <Calendar className="w-8 h-8 text-[#C8A96E] mx-auto opacity-60" />
-              <p>ابحثي لعرض حجوزاتكِ السابقة وحالة المراجعة والتنفيذ.</p>
+              <p>ابحثي لعرض حجوزاتكِ السابقة وحالة المراجعة والتنفيذ والتقييم.</p>
             </div>
           ) : foundBookings.length === 0 ? (
             <div className="text-center py-6 space-y-2 text-xs text-rose-700 bg-rose-50 p-4 rounded-xl border border-rose-200">
@@ -810,20 +813,35 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
                     </span>
                   </div>
 
-                  <div className="pt-2 border-t border-[#E6DCD2] flex items-center justify-between">
+                  <div className="pt-2 border-t border-[#E6DCD2] flex items-center justify-between gap-2">
                     <span className="text-xs font-mono font-bold text-[#2C1E18]">
                       {formatSar(bk.estimatedTotalSar)}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onClose();
-                        navigate('booking-status');
-                      }}
-                      className="text-xs text-[#8C6D36] font-bold hover:underline"
-                    >
-                      عرض التفاصيل الكاملة ←
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {onRateBooking && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            onRateBooking(bk);
+                          }}
+                          className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-[#FAF6F0] border border-[#D8CBB8] text-[#8C6D36] hover:bg-[#F3ECE1] transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <Star className="w-3 h-3 fill-[#8C6D36]" />
+                          <span>تقييم الخدمة</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          navigate('booking-status');
+                        }}
+                        className="text-xs text-[#8C6D36] font-bold hover:underline"
+                      >
+                        التفاصيل ←
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

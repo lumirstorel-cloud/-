@@ -24,6 +24,7 @@ interface ServiceDetailProps {
   onAddToCart?: (service: ServiceItem, packageItem?: any) => void;
   navigate: (view: PageView, slug?: string) => void;
   onSelectServiceToBook: (serviceId: string, packageId?: string) => void;
+  onOpenRatingModal?: () => void;
 }
 
 /** Single, indexable landing page for one service: /services/<slug> */
@@ -35,7 +36,8 @@ export const ServiceDetailView: React.FC<ServiceDetailProps> = ({
   onToggleFavorite,
   onAddToCart,
   navigate,
-  onSelectServiceToBook
+  onSelectServiceToBook,
+  onOpenRatingModal
 }) => {
   const service = services.find((s) => s.slug === slug);
   const seo = getSeoMeta(`/services/${slug}`);
@@ -291,7 +293,7 @@ export const ServiceDetailView: React.FC<ServiceDetailProps> = ({
       )}
 
       {/* Customer Reviews & Feedback Form */}
-      <ReviewForm service={service} />
+      <ReviewForm service={service} onOpenRatingModal={onOpenRatingModal} />
 
       {/* Booking CTA */}
       <section className="rounded-2xl bg-[#231712] text-[#FAF6F0] p-8 sm:p-10 flex flex-col lg:flex-row items-center justify-between gap-6">

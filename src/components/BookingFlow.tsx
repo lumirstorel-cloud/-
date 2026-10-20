@@ -46,6 +46,7 @@ import {
   Shield,
   ShieldCheck,
   Sparkles,
+  Star,
   UserCheck
 } from 'lucide-react';
 
@@ -57,6 +58,7 @@ interface BookingFlowProps {
   preselectedPackageId?: string;
   onBookingCreated: (booking: BookingSubmission) => void;
   navigate: (view: PageView) => void;
+  onRateBooking?: (booking: BookingSubmission) => void;
 }
 
 export const BookingFlow: React.FC<BookingFlowProps> = ({
@@ -66,7 +68,8 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
   preselectedServiceId,
   preselectedPackageId,
   onBookingCreated,
-  navigate
+  navigate,
+  onRateBooking
 }) => {
   const visibleServices = services.filter((s) => s.isAvailable);
 
@@ -1498,6 +1501,29 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                 </ol>
               </div>
 
+              {/* Rate Service Invitation */}
+              <div className="p-4 rounded-2xl bg-[#F3ECE1] border border-[#D8CBB8] flex flex-col sm:flex-row items-center justify-between gap-3 text-right">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#8C6D36]">
+                    <Star className="w-4 h-4 fill-[#8C6D36]" />
+                    <span>تقييم تجربة الخدمة بعد المناسبة</span>
+                  </div>
+                  <p className="text-xs text-[#5C4940]">
+                    بعد اكتمال مناسبتكِ، يمكنكِ الرجوع للموقع وتقييم خدمتكِ برقمكِ المرجعي للحصول على شارة حجز موثق.
+                  </p>
+                </div>
+                {onRateBooking && (
+                  <button
+                    type="button"
+                    onClick={() => onRateBooking(confirmedBooking)}
+                    className="px-4 py-2 rounded-xl bg-[#2C1E18] text-[#FAF6F0] text-xs font-bold hover:bg-[#422E25] flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors"
+                  >
+                    <Star className="w-3.5 h-3.5 text-[#C8A96E] fill-[#C8A96E]" />
+                    <span>تقييم الخدمة</span>
+                  </button>
+                )}
+              </div>
+
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
                 <a
@@ -1682,7 +1708,8 @@ export const StatusTrackerView: React.FC<{
   bookings: BookingSubmission[];
   settings: SiteSettings;
   navigate: (view: PageView) => void;
-}> = ({ bookings, settings, navigate }) => {
+  onRateBooking?: (booking: BookingSubmission) => void;
+}> = ({ bookings, settings, navigate, onRateBooking }) => {
   const [searchRef, setSearchRef] = useState<string>('');
   const [searchedBooking, setSearchedBooking] = useState<BookingSubmission | null>(
     bookings[0] || null
@@ -1876,6 +1903,32 @@ export const StatusTrackerView: React.FC<{
                 من {formatArabicTime(searchedBooking.startTime)} ({searchedBooking.durationHours} ساعات)
               </div>
             </div>
+          </div>
+
+          {/* Rate this Service Card */}
+          <div className="p-5 rounded-2xl bg-[#F3ECE1] border border-[#D8CBB8] flex flex-col sm:flex-row items-center justify-between gap-4 text-right">
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#8C6D36]">
+                <Star className="w-4 h-4 fill-[#8C6D36]" />
+                <span>تقييم تجربة الخدمة</span>
+              </div>
+              <h4 className="font-display font-bold text-base text-[#2C1E18]">
+                كيف كانت تجربتكِ مع خدمة {searchedBooking.serviceName}؟
+              </h4>
+              <p className="text-xs text-[#645249]">
+                تقييمكِ يُوثَّق بشارة «حجز موثق ومؤكد» باستخدام رقمكِ المرجعي ({searchedBooking.referenceCode}).
+              </p>
+            </div>
+            {onRateBooking && (
+              <button
+                type="button"
+                onClick={() => onRateBooking(searchedBooking)}
+                className="px-5 py-2.5 rounded-xl bg-[#2C1E18] text-[#FAF6F0] text-xs font-bold hover:bg-[#422E25] flex items-center gap-2 cursor-pointer transition-colors shadow-sm shrink-0"
+              >
+                <Star className="w-4 h-4 text-[#C8A96E] fill-[#C8A96E]" />
+                <span>تقييم هذه الخدمة الآن</span>
+              </button>
+            )}
           </div>
 
           {/* Actions */}

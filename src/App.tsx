@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   BookingSubmission,
   CartItem,
+  CustomerReview,
   FavoriteItem,
   LumirCentralData,
   PageView,
@@ -32,6 +33,7 @@ import {
 import { AdminDashboard } from './components/AdminDashboard';
 import { GalleryView } from './components/GalleryView';
 import { ServiceDetailView } from './components/ServiceDetailView';
+import { ServiceRatingModal } from './components/ServiceRatingModal';
 import { NotFoundView } from './components/NotFoundView';
 import { parseRoute, pathForView } from './utils/routes';
 import { applySeoToDocument } from './utils/seoDocument';
@@ -44,6 +46,27 @@ export function App() {
   const [routeNotFound, setRouteNotFound] = useState<boolean>(Boolean(initialRoute.notFound));
   const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>(undefined);
   const [selectedPackageId, setSelectedPackageId] = useState<string | undefined>(undefined);
+
+  // Customer Service Rating Modal State
+  const [ratingModalOpen, setRatingModalOpen] = useState<boolean>(false);
+  const [ratingModalServiceId, setRatingModalServiceId] = useState<string | undefined>(undefined);
+  const [ratingModalBooking, setRatingModalBooking] = useState<BookingSubmission | null>(null);
+
+  const handleOpenRatingModal = (serviceId?: string, booking?: BookingSubmission) => {
+    setRatingModalServiceId(serviceId);
+    setRatingModalBooking(booking || null);
+    setRatingModalOpen(true);
+  };
+
+  const handleReviewSubmitted = (newReview: CustomerReview) => {
+    setData((prev) => {
+      const existing = prev.reviews || [];
+      const updated = [newReview, ...existing.filter((r) => r.id !== newReview.id)];
+      const next = { ...prev, reviews: updated };
+      saveCentralData(next);
+      return next;
+    });
+  };
 
   // Path-based routing: every view has its own crawlable URL (/products, /services/...)
   const handleNavigate = (view: PageView, slug?: string) => {
@@ -271,7 +294,8 @@ export function App() {
   }
 
   return (
-    <Layout
+    <>
+      <Layout
       currentView={currentView}
       navigate={handleNavigate}
       settings={data.settings}
@@ -285,6 +309,7 @@ export function App() {
       onRemoveFromCart={handleRemoveFromCart}
       onClearCart={handleClearCart}
       onSelectServiceToBook={handleSelectServiceToBook}
+      onOpenRatingModal={handleOpenRatingModal}
     >
       {currentView === 'not-found' && <NotFoundView navigate={handleNavigate} />}
 
@@ -298,6 +323,10 @@ export function App() {
           onAddToCart={handleAddToCart}
           navigate={handleNavigate}
           onSelectServiceToBook={handleSelectServiceToBook}
+          onOpenRatingModal={() => {
+            const srv = data.services.find((s) => s.slug === currentSlug);
+            handleOpenRatingModal(srv?.id);
+          }}
         />
       )}
 
@@ -399,6 +428,7 @@ export function App() {
           preselectedPackageId={selectedPackageId}
           onBookingCreated={handleBookingCreated}
           navigate={handleNavigate}
+          onRateBooking={(bk) => handleOpenRatingModal(bk.serviceId, bk)}
         />
       )}
 
@@ -407,6 +437,7 @@ export function App() {
           bookings={data.bookings}
           settings={data.settings}
           navigate={handleNavigate}
+          onRateBooking={(bk) => handleOpenRatingModal(bk.serviceId, bk)}
         />
       )}
 
@@ -422,6 +453,17 @@ export function App() {
 
       {currentView === 'contact' && <ContactView settings={data.settings} />}
     </Layout>
+
+    {/* Dedicated Customer Service Rating Modal */}
+    <ServiceRatingModal
+      isOpen={ratingModalOpen}
+      onClose={() => setRatingModalOpen(false)}
+      services={data.services}
+      preselectedServiceId={ratingModalServiceId}
+      preselectedBooking={ratingModalBooking}
+      onReviewSubmitted={handleReviewSubmitted}
+    />
+  </>
   );
 }
 

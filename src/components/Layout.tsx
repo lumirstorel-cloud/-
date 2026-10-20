@@ -35,7 +35,8 @@ import {
   ChevronDown,
   Home,
   Image as ImageIcon,
-  CalendarCheck
+  CalendarCheck,
+  Star
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -52,6 +53,7 @@ interface LayoutProps {
   onRemoveFromCart?: (id: string) => void;
   onClearCart?: () => void;
   onSelectServiceToBook?: (serviceId: string, packageId?: string) => void;
+  onOpenRatingModal?: (serviceId?: string, booking?: BookingSubmission) => void;
   children: React.ReactNode;
 }
 
@@ -69,6 +71,7 @@ export const Layout: React.FC<LayoutProps> = ({
   onRemoveFromCart = () => {},
   onClearCart = () => {},
   onSelectServiceToBook = () => {},
+  onOpenRatingModal,
   children
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -254,6 +257,20 @@ export const Layout: React.FC<LayoutProps> = ({
               <User className="w-5 h-5" />
             </button>
 
+            {/* Quick Service Rating Button */}
+            {onOpenRatingModal && (
+              <button
+                type="button"
+                onClick={() => onOpenRatingModal()}
+                aria-label="تقييم الخدمة"
+                className="hidden lg:inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-[#8C6D36] hover:text-[#2C1E18] bg-[#F3ECE1] hover:bg-[#EAE2D5] border border-[#D8CBB8] rounded-xl transition-colors cursor-pointer shadow-2xs"
+                title="تقييم خدمات لومير"
+              >
+                <Star className="w-3.5 h-3.5 fill-[#8C6D36]" />
+                <span>تقييم الخدمة</span>
+              </button>
+            )}
+
             {/* Primary CTA button */}
             <a href={pathForView('booking')} onClick={navClick('booking')}
               className="hidden sm:inline-flex items-center gap-1.5 px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-[#FAF6F0] bg-[#2C1E18] rounded-xl hover:bg-[#422E25] transition-all duration-200 shadow-sm hover:shadow cursor-pointer whitespace-nowrap"
@@ -342,6 +359,22 @@ export const Layout: React.FC<LayoutProps> = ({
               >
                 🔍 تتبع حالة الطلب
               </a>
+              {onOpenRatingModal && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenRatingModal();
+                  }}
+                  className="w-full text-right py-2 px-3 rounded-lg text-xs font-bold text-[#8C6D36] bg-[#F3ECE1] hover:bg-[#EAE2D5] flex items-center justify-between transition-colors cursor-pointer"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Star className="w-3.5 h-3.5 fill-[#8C6D36]" />
+                    <span>تقييم الخدمة للعميلات</span>
+                  </span>
+                  <span className="text-[10px] bg-white px-2 py-0.5 rounded-full border border-[#D8CBB8]">جديد</span>
+                </button>
+              )}
               <a href={pathForView('faq')} onClick={navClick('faq')}
                 className={`text-right py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
                   currentView === 'faq' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
@@ -489,6 +522,7 @@ export const Layout: React.FC<LayoutProps> = ({
         bookings={bookings}
         navigate={handleNav}
         settings={settings}
+        onRateBooking={(bk) => onOpenRatingModal && onOpenRatingModal(bk.serviceId, bk)}
       />
 
       {/* Footer */}
@@ -563,6 +597,18 @@ export const Layout: React.FC<LayoutProps> = ({
                     الاستعلام عن حالة الطلب
                   </a>
                 </li>
+                {onOpenRatingModal && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => onOpenRatingModal()}
+                      className="hover:text-[#FAF6F0] cursor-pointer text-right flex items-center gap-1.5 text-[#C8A96E]"
+                    >
+                      <Star className="w-3.5 h-3.5 fill-[#C8A96E]" />
+                      <span>تقييم الخدمة للعميلات</span>
+                    </button>
+                  </li>
+                )}
                 <li>
                   <a href={pathForView('about')} onClick={navClick('about')}
                     className="hover:text-[#FAF6F0] cursor-pointer"

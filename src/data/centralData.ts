@@ -1,4 +1,5 @@
 import { LumirCentralData, ServiceItem } from '../types';
+import { INITIAL_CUSTOMER_REVIEWS } from './seedReviews';
 
 export const HERO_IMAGE = '/images/lumir-hero-1440.jpg';
 export const MOBILE_PHOTO_IMAGE = '/images/lumir-mobile-photo-1440.jpg';
@@ -1064,7 +1065,8 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
       lastLoginAt: '2026-10-14T19:00:00.000Z',
       isActive: true
     }
-  ]
+  ],
+  reviews: INITIAL_CUSTOMER_REVIEWS
 };
 
 const STORAGE_KEY = 'lumir_central_db_v5';
@@ -1089,7 +1091,11 @@ export function loadCentralData(): LumirCentralData {
       banners:
         Array.isArray(parsed.banners) && parsed.banners.length > 0
           ? parsed.banners
-          : INITIAL_LUMIR_DATA.banners
+          : INITIAL_LUMIR_DATA.banners,
+      reviews:
+        Array.isArray(parsed.reviews) && parsed.reviews.length > 0
+          ? parsed.reviews
+          : INITIAL_CUSTOMER_REVIEWS
     };
   } catch {
     return INITIAL_LUMIR_DATA;

@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { INITIAL_LUMIR_DATA } from './src/data/centralData';
+import { INITIAL_CUSTOMER_REVIEWS } from './src/data/seedReviews';
 import {
   AdminRole,
   AdminUser,
@@ -13,6 +14,7 @@ import {
   BookingSubmission,
   CityCoverageSetting,
   CouponItem,
+  CustomerReview,
   FAQItem,
   LumirCentralData,
   PortfolioMediaItem,
@@ -20,6 +22,14 @@ import {
   ServiceItem,
   SiteSettings
 } from './src/types';
+import {
+  hasSupabaseServerConfig,
+  supabaseGetReviews,
+  supabaseInsertReview,
+  supabaseVerifyBookingRef,
+  supabaseCreateBooking,
+  supabaseCheckConflict
+} from './src/lib/supabaseServer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,10 +42,19 @@ const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const BACKUPS_DIR = path.join(DATA_DIR, 'backups');
 const JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'lumir_luxury_arabic_secret_2026';
 
-// Ensure directories exist
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+export const isProduction =
+  process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
+
+// Ensure directories exist in local development only; safely avoid crashing read-only serverless filesystems
+try {
+  if (!isProduction) {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+    if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+  }
+} catch (err) {
+  console.warn('Filesystem directory init skipped (read-only environment):', err);
+}
 
 // Production Security Headers
 app.use((_req, res, next) => {
@@ -53,9 +72,6 @@ let database: LumirCentralData = INITIAL_LUMIR_DATA;
 
 function loadDatabase(): void {
   try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
     if (fs.existsSync(DB_FILE)) {
       const raw = fs.readFileSync(DB_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
@@ -78,19 +94,32 @@ function loadDatabase(): void {
           banners:
             Array.isArray(parsed.banners) && parsed.banners.length > 0
               ? parsed.banners
-              : INITIAL_LUMIR_DATA.banners
+              : INITIAL_LUMIR_DATA.banners,
+          reviews:
+            Array.isArray(parsed.reviews) && parsed.reviews.length > 0
+              ? parsed.reviews
+              : INITIAL_CUSTOMER_REVIEWS
         };
         return;
       }
     }
-    // Initialize with seed data
-    fs.writeFileSync(DB_FILE, JSON.stringify(INITIAL_LUMIR_DATA, null, 2), 'utf-8');
+    // Initialize with seed data (only in development)
+    if (!isProduction) {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+      fs.writeFileSync(DB_FILE, JSON.stringify(INITIAL_LUMIR_DATA, null, 2), 'utf-8');
+    }
   } catch (err) {
     console.warn('Could not persist to disk, using in-memory database:', err);
   }
 }
 
 function saveDatabase(): void {
+  if (isProduction) {
+    // In production on Vercel/cloud, Supabase is the single source of truth; never write to local disk
+    return;
+  }
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -247,6 +276,16 @@ function checkConflictOnServer(params: {
 
 // ================= PUBLIC ROUTES (PROTECTED FROM LEAKING CUSTOMER PRIVACY) =================
 
+// Health check endpoint
+app.get('/api/health', (_req: Request, res: Response) => {
+  return res.json({
+    status: 'ok',
+    environment: isProduction ? 'production' : 'development',
+    timestamp: new Date().toISOString(),
+    supabaseConfigured: hasSupabaseServerConfig()
+  });
+});
+
 // Public Bootstrap: Anonymizes and protects customer data!
 app.get('/api/bootstrap', (_req: Request, res: Response) => {
   // Strip sensitive customer phone numbers, full names, and private notes from public feed
@@ -314,7 +353,7 @@ app.post('/api/bookings/check-conflict', (req: Request, res: Response) => {
 });
 
 // Public Create Booking (Always pending_review or draft, never confirmed, authoritative pricing)
-app.post('/api/bookings', (req: Request, res: Response) => {
+app.post('/api/bookings', async (req: Request, res: Response) => {
   const data = req.body;
 
   // 1. Validate required fields
@@ -420,6 +459,29 @@ app.post('/api/bookings', (req: Request, res: Response) => {
     estimatedTotalSar: authoritativeEstimatedTotalSar
   };
 
+  // In production, Supabase server configuration is mandatory; silent fallback is forbidden
+  if (isProduction && !hasSupabaseServerConfig()) {
+    return res.status(503).json({
+      error: 'خدمة تسجيل الحجوزات غير متاحة حالياً بسبب نقص إعدادات الاتصال السحابي (Supabase) على الخادم.'
+    });
+  }
+
+  // If Supabase server config is present, write directly to Supabase
+  if (hasSupabaseServerConfig()) {
+    const sbRes = await supabaseCreateBooking(newBooking);
+    if (!sbRes.success) {
+      console.error('Failed to create booking in Supabase:', sbRes.error);
+      return res.status(500).json({
+        error: `تعذر حفظ الحجز في قاعدة البيانات السحابية: ${sbRes.error}`
+      });
+    }
+  } else if (isProduction) {
+    return res.status(503).json({
+      error: 'تعذر إتمام الحجز: الاتصال بقاعدة البيانات السحابية غير متوفر في بيئة الإنتاج.'
+    });
+  }
+
+  // Update memory/disk backup (only in development)
   database.bookings.unshift(newBooking);
   saveDatabase();
 
@@ -514,6 +576,194 @@ app.post('/api/coupons/validate', (req: Request, res: Response) => {
       discountValue: coupon.discountValue,
       discountSar: Math.round(discountSar)
     }
+  });
+});
+
+// ================= PUBLIC CUSTOMER REVIEWS & RATINGS API =================
+
+// 1. Get Reviews (all or filtered by serviceId)
+app.get('/api/reviews', async (req: Request, res: Response) => {
+  const serviceId = req.query.serviceId as string | undefined;
+
+  // In production, Supabase is mandatory; silent local fallback is forbidden
+  if (isProduction && !hasSupabaseServerConfig()) {
+    return res.status(503).json({
+      error: 'خدمة استعراض التقييمات غير متاحة حالياً بسبب نقص إعدادات الاتصال السحابي (Supabase) على الخادم.'
+    });
+  }
+
+  // 1. Try Supabase if configured
+  if (hasSupabaseServerConfig()) {
+    try {
+      const supaResult = await supabaseGetReviews(serviceId);
+      if (supaResult.success && supaResult.reviews) {
+        return res.json({ success: true, reviews: supaResult.reviews, source: 'supabase' });
+      } else if (isProduction) {
+        return res.status(500).json({
+          error: `فشل استرجاع التقييمات من قاعدة البيانات السحابية: ${supaResult.error || 'خطأ غير متوقع'}`
+        });
+      }
+    } catch (err: any) {
+      console.error('Supabase fetch reviews error:', err);
+      if (isProduction) {
+        return res.status(500).json({
+          error: 'خطأ غير متوقع أثناء استرجاع التقييمات من قاعدة البيانات السحابية.'
+        });
+      }
+    }
+  }
+
+  // 2. Fallback to local database/seed (development only)
+  const allReviews: CustomerReview[] = database.reviews || INITIAL_CUSTOMER_REVIEWS;
+  if (serviceId) {
+    const filtered = allReviews.filter((r) => r.serviceId === serviceId);
+    return res.json({ success: true, reviews: filtered, source: 'local' });
+  }
+
+  return res.json({ success: true, reviews: allReviews, source: 'local' });
+});
+
+// 2. Submit Customer Review
+app.post('/api/reviews', async (req: Request, res: Response) => {
+  const {
+    serviceId,
+    serviceName,
+    customerName,
+    city,
+    rating,
+    comment,
+    bookingReference,
+    criteria
+  } = req.body;
+
+  if (!serviceId) {
+    return res.status(400).json({ error: 'يرجى تحديد الخدمة المراد تقييمها' });
+  }
+
+  const cleanName = String(customerName || '')
+    .replace(/<[^>]*>?/gm, '')
+    .trim()
+    .slice(0, 60);
+  const cleanComment = String(comment || '')
+    .replace(/<[^>]*>?/gm, '')
+    .trim()
+    .slice(0, 800);
+  const cleanRef = String(bookingReference || '')
+    .replace(/<[^>]*>?/gm, '')
+    .trim()
+    .toUpperCase();
+  const numRating = Number(rating);
+
+  if (!cleanName || cleanName.length < 2) {
+    return res.status(400).json({ error: 'يرجى كتابة الاسم الكريم (حرفين على الأقل)' });
+  }
+
+  if (!cleanComment || cleanComment.length < 5) {
+    return res.status(400).json({ error: 'يرجى كتابة تعليق وتجربة لا تقل عن ٥ أحرف' });
+  }
+
+  if (isNaN(numRating) || numRating < 1 || numRating > 5) {
+    return res.status(400).json({ error: 'التقييم يجب أن يكون من نجمة إلى ٥ نجوم' });
+  }
+
+  // Lookup service title
+  const srv = database.services.find((s) => s.id === serviceId);
+  const resolvedServiceName = serviceName || srv?.name || 'خدمة لومير';
+
+  // In production, Supabase is mandatory; silent local fallback is forbidden
+  if (isProduction && !hasSupabaseServerConfig()) {
+    return res.status(503).json({
+      error: 'خدمة تسجيل التقييمات غير متاحة حالياً بسبب نقص إعدادات الاتصال السحابي (Supabase) على الخادم.'
+    });
+  }
+
+  // Verify booking reference strictly on server (checks eligible confirmed/completed status)
+  let isVerified = false;
+  if (cleanRef) {
+    // Check Supabase first if configured
+    if (hasSupabaseServerConfig()) {
+      try {
+        const verifyRes = await supabaseVerifyBookingRef(cleanRef);
+        if (verifyRes.isVerified) {
+          isVerified = true;
+        }
+      } catch (err) {
+        console.warn('Supabase booking verify fallback to local:', err);
+      }
+    }
+
+    // Check local database bookings as fallback (development only)
+    if (!isVerified && !isProduction && database.bookings) {
+      const matchedBooking = database.bookings.find(
+        (b) =>
+          (b.referenceCode && b.referenceCode.toUpperCase() === cleanRef) ||
+          (b.id && b.id.toUpperCase() === cleanRef)
+      );
+      if (matchedBooking) {
+        const eligibleStatuses = ['confirmed', 'in_progress', 'completed'];
+        if (eligibleStatuses.includes(matchedBooking.status)) {
+          isVerified = true;
+        }
+      }
+    }
+  }
+
+  const newReview: CustomerReview = {
+    id: `rev-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`,
+    serviceId,
+    serviceName: resolvedServiceName,
+    customerName: cleanName,
+    city: city || 'مكة المكرمة',
+    rating: numRating,
+    comment: cleanComment,
+    createdAt: new Date().toISOString(),
+    bookingReference: cleanRef || undefined,
+    verifiedBooking: isVerified,
+    criteria: criteria || undefined
+  };
+
+  // 1. Persist to Supabase if configured
+  let savedToSupabase = false;
+  if (hasSupabaseServerConfig()) {
+    try {
+      const supaInsert = await supabaseInsertReview(newReview);
+      if (supaInsert.success) {
+        savedToSupabase = true;
+      } else if (isProduction) {
+        return res.status(500).json({
+          error: `تعذر حفظ تقييم الخدمة في قاعدة البيانات السحابية: ${supaInsert.error || 'خطأ غير متوقع'}`
+        });
+      }
+    } catch (err: any) {
+      console.error('Failed to insert review into Supabase:', err);
+      if (isProduction) {
+        return res.status(500).json({
+          error: `تعذر حفظ تقييم الخدمة في قاعدة البيانات السحابية: ${err.message || 'خطأ غير متوقع'}`
+        });
+      }
+    }
+  } else if (isProduction) {
+    return res.status(503).json({
+      error: 'خدمة التقييمات غير متاحة حالياً في بيئة الإنتاج لعدم توفر الاتصال السحابي.'
+    });
+  }
+
+  // 2. Maintain local cache in development
+  if (!Array.isArray(database.reviews)) {
+    database.reviews = [...INITIAL_CUSTOMER_REVIEWS];
+  }
+
+  database.reviews.unshift(newReview);
+  saveDatabase();
+
+  return res.status(201).json({
+    success: true,
+    review: newReview,
+    isVerified,
+    savedToSupabase,
+    message: isVerified
+      ? 'تم توثيق تقييمكِ بنجاح واعتماده كحجز موثق ومؤكد'
+      : 'تم استلام تقييمكِ بنجاح وإضافته إلى آراء عملاء لومير'
   });
 });
 

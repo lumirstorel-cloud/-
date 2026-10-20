@@ -262,7 +262,7 @@ export interface CityCoverageSetting {
 }
 
 // Admin Role and User
-export type AdminRole = 'super_admin' | 'operations_manager' | 'content_editor';
+export type AdminRole = 'super_admin' | 'admin' | 'operations_manager' | 'content_editor';
 
 export interface AdminUser {
   id: string;
@@ -287,6 +287,7 @@ export interface LumirCentralData {
   auditLogs: AuditLogEntry[];
   cityCoverage: CityCoverageSetting[];
   admins: AdminUser[];
+  reviews?: CustomerReview[];
 }
 
 export interface CartItem {
@@ -307,12 +308,19 @@ export interface CartItem {
 export interface CustomerReview {
   id: string;
   serviceId: string;
+  serviceName?: string;
   customerName: string;
-  city?: string;
+  city?: 'مكة المكرمة' | 'جدة' | string;
   rating: number; // 1-5
   comment: string;
   createdAt: string;
   verifiedBooking?: boolean;
+  bookingReference?: string;
+  criteria?: {
+    quality?: number; // 1-5
+    punctuality?: number; // 1-5
+    professionalism?: number; // 1-5
+  };
 }
 
 export interface FavoriteItem {

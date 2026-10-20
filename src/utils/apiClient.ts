@@ -5,6 +5,7 @@ import {
   BookingSubmission,
   CityCoverageSetting,
   CouponItem,
+  CustomerReview,
   FAQItem,
   LumirCentralData,
   PortfolioMediaItem,
@@ -68,37 +69,35 @@ export async function checkServerConflict(
 
 export async function submitBookingToServer(
   booking: BookingSubmission
-): Promise<{ success: boolean; booking: BookingSubmission; message?: string }> {
+): Promise<{ success: boolean; booking?: BookingSubmission; message?: string; error?: string }> {
   try {
     const res = await fetch('/api/bookings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(booking)
     });
-    if (res.ok) {
-      const data = await res.json();
+
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.success) {
       return {
         success: true,
         booking: data.booking || booking,
-        message: data.message
+        message: data.message || 'تم تسجيل طلب الحجز بنجاح وهو الآن بانتظار مراجعة الإدارة.'
       };
     }
-    const errData = await res.json().catch(() => ({}));
-    if (res.status === 409) {
-      throw new Error(errData.error || 'تعارض في المواعيد مع حجز مؤكد آخر.');
-    }
-  } catch (err: any) {
-    if (err.message && err.message.includes('تعارض')) {
-      throw err;
-    }
-    console.warn('Could not post to server API, proceeding with client storage:', err);
-  }
 
-  return {
-    success: true,
-    booking,
-    message: 'تم تسجيل الطلب مبدئياً وهو الآن بانتظار مراجعة الإدارة.'
-  };
+    if (res.status === 409) {
+      throw new Error(data.error || 'تعارض في المواعيد مع حجز مؤكد آخر في نفس الوقت.');
+    }
+
+    throw new Error(data.error || `فشل تسجيل الحجز في قاعدة البيانات (رمز الخطأ: ${res.status}).`);
+  } catch (err: any) {
+    console.error('Booking submission failed:', err);
+    throw new Error(
+      err.message || 'تعذر الاتصال بخادم الحجوزات. يرجى التحقق من اتصال الإنترنت أو التواصل مباشرة عبر واتساب.'
+    );
+  }
 }
 
 export async function validateCouponOnServer(
@@ -709,6 +708,51 @@ export async function adminSyncAllApi(
     return { success: false, error: data.error || 'تعذر مزامنة البيانات' };
   } catch (err) {
     return { success: false, error: 'خطأ في الاتصال بالخادم' };
+  }
+}
+
+// ---------------- CUSTOMER SERVICE RATINGS & REVIEWS API ----------------
+
+export async function fetchReviewsApi(
+  serviceId?: string
+): Promise<{ success: boolean; reviews: CustomerReview[]; error?: string }> {
+  try {
+    const url = serviceId
+      ? `/api/reviews?serviceId=${encodeURIComponent(serviceId)}`
+      : '/api/reviews';
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      return { success: true, reviews: data.reviews || [] };
+    }
+  } catch (err) {
+    console.warn('Reviews API fetch fallback to local:', err);
+  }
+  return { success: false, reviews: [] };
+}
+
+export async function submitReviewApi(
+  review: CustomerReview
+): Promise<{ success: boolean; review?: CustomerReview; isVerified?: boolean; error?: string }> {
+  try {
+    const res = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(review)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        success: true,
+        review: data.review || review,
+        isVerified: data.isVerified
+      };
+    }
+    const errData = await res.json().catch(() => ({}));
+    return { success: false, error: errData.error || 'فشل إرسال التقييم' };
+  } catch (err: any) {
+    console.warn('Reviews API submit fallback to local:', err);
+    return { success: true, review };
   }
 }
 
