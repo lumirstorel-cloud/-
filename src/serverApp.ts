@@ -293,12 +293,22 @@ function checkConflictOnServer(params: {
 
 // ================= PUBLIC API ROUTES =================
 
-// Health check
-app.get('/api/health', (_req: Request, res: Response) => {
+// Health check (supports /api/health and fallback /health)
+app.get(['/api/health', '/health'], (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     supabaseConfigured: hasSupabaseServerConfig()
+  });
+});
+
+// Root API info
+app.get(['/api', '/api/'], (_req: Request, res: Response) => {
+  res.json({
+    service: 'Lumir Media & Events API',
+    status: 'online',
+    version: '2026.1',
+    timestamp: new Date().toISOString()
   });
 });
 

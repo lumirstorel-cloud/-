@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "tsx tests/production-readiness.test.ts && tsx tests/production-supabase-safeguards.test.ts"
+    "test": "tsx tests/vercel-api-routing.test.ts && tsx tests/production-supabase-safeguards.test.ts && tsx tests/production-readiness.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

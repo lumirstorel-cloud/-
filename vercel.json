@@ -4,11 +4,7 @@
   "trailingSlash": false,
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.ts"
-    },
-    {
-      "source": "/((?!api/|assets/|images/|.*\\..*).*)",
+      "source": "/((?!api(?:/|$)|assets/|images/|.*\\..*).*)",
       "destination": "/index.html"
     }
   ],
