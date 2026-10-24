@@ -169,7 +169,7 @@ export async function supabaseCreateBooking(
 
   try {
     // Map to DB columns
-    const dbPayload = {
+    const dbPayload: Record<string, any> = {
       booking_number: booking.referenceCode,
       customer_name: booking.clientName,
       customer_phone: booking.clientPhone,
@@ -193,17 +193,36 @@ export async function supabaseCreateBooking(
       selected_addons: booking.selectedAddonIds || [],
       notes: booking.specialNotes || null,
       subtotal_amount: booking.subtotalSar,
-      approved_fees: booking.approvedFeesSar,
       total_amount: booking.estimatedTotalSar,
       status: 'pending_review',
       preferred_contact_method: booking.preferredContactMethod || 'whatsapp'
     };
 
-    const { data, error } = await supabase
+    if (booking.approvedFeesSar !== undefined) {
+      dbPayload.approved_fees = booking.approvedFeesSar;
+    }
+
+    let { data, error } = await supabase
       .from('bookings')
       .insert([dbPayload])
       .select()
       .single();
+
+    // Graceful backward compatibility: if Supabase schema cache lacks approved_fees column
+    if (error && error.message && error.message.includes('approved_fees')) {
+      console.warn('Supabase bookings table lacks approved_fees column in schema cache. Retrying insert without it...');
+      const fallbackPayload = { ...dbPayload };
+      delete fallbackPayload.approved_fees;
+
+      const retryRes = await supabase
+        .from('bookings')
+        .insert([fallbackPayload])
+        .select()
+        .single();
+
+      data = retryRes.data;
+      error = retryRes.error;
+    }
 
     if (error) {
       console.error('Supabase booking insert error:', error);
