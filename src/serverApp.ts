@@ -58,6 +58,17 @@ try {
   console.warn('Filesystem directory init skipped (read-only environment):', err);
 }
 
+// URL path normalization for Vercel Serverless & reverse proxy
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  const matchedPath = req.headers['x-matched-path'];
+  if (typeof matchedPath === 'string' && matchedPath.startsWith('/api')) {
+    req.url = matchedPath;
+  } else if (req.url && !req.url.startsWith('/api') && !req.url.startsWith('/uploads')) {
+    req.url = `/api${req.url.startsWith('/') ? '' : '/'}${req.url}`;
+  }
+  next();
+});
+
 // Production Security Headers
 app.use((_req: Request, res: Response, next: NextFunction) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
