@@ -1274,6 +1274,27 @@ async function supabaseVerifyToken(token) {
     return { isValid: false, error: err.message || "\u0641\u0634\u0644 \u0627\u0644\u062A\u062D\u0642\u0642 \u0645\u0646 \u0627\u0644\u062A\u0648\u0643\u0646" };
   }
 }
+var ESSENTIAL_BOOKING_COLUMNS = /* @__PURE__ */ new Set([
+  "booking_number",
+  "customer_name",
+  "customer_phone",
+  "city",
+  "service_id",
+  "service_name",
+  "category_key",
+  "package_id",
+  "package_name",
+  "event_date",
+  "event_time",
+  "duration_hours",
+  "subtotal_amount",
+  "total_amount",
+  "status"
+]);
+var EXPLICIT_OPTIONAL_FALLBACK_COLUMNS = /* @__PURE__ */ new Set([
+  "approved_fees"
+  // Auxiliary breakdown fee; total_amount already captures the authoritative final price
+]);
 async function supabaseCreateBooking(booking) {
   const supabase = getSupabaseAdmin();
   if (!supabase) {
@@ -1287,6 +1308,7 @@ async function supabaseCreateBooking(booking) {
       city: booking.city,
       district: booking.district || null,
       venue_name: booking.venueName || null,
+      event_location: [booking.city, booking.district, booking.venueName].filter(Boolean).join(" - ") || booking.city || null,
       service_id: booking.serviceId,
       service_name: booking.serviceName,
       category_key: booking.categoryKey,
@@ -1311,29 +1333,61 @@ async function supabaseCreateBooking(booking) {
     if (booking.approvedFeesSar !== void 0) {
       dbPayload.approved_fees = booking.approvedFeesSar;
     }
-    let { data, error } = await supabase.from("bookings").insert([dbPayload]).select().single();
-    if (error && error.message && error.message.includes("approved_fees")) {
-      console.warn("Supabase bookings table lacks approved_fees column in schema cache. Retrying insert without it...");
-      const fallbackPayload = { ...dbPayload };
-      delete fallbackPayload.approved_fees;
-      const retryRes = await supabase.from("bookings").insert([fallbackPayload]).select().single();
-      data = retryRes.data;
-      error = retryRes.error;
-    }
-    if (error) {
-      console.error("Supabase booking insert error:", error);
-      return { success: false, error: error.message };
-    }
-    await supabase.from("booking_events").insert([
-      {
-        booking_id: data.id,
-        booking_reference: booking.referenceCode,
-        previous_status: null,
-        new_status: "pending_review",
-        changed_by: "\u0627\u0644\u0639\u0645\u064A\u0644 (\u0637\u0644\u0628 \u0639\u0628\u0631 \u0627\u0644\u0645\u0648\u0642\u0639)",
-        notes: "\u062A\u0645 \u062A\u0633\u062C\u064A\u0644 \u0637\u0644\u0628 \u0627\u0644\u062D\u062C\u0632 \u0627\u0644\u0645\u0628\u062F\u0626\u064A \u0628\u0646\u062C\u0627\u062D \u0639\u0628\u0631 \u0627\u0644\u0628\u0648\u0627\u0628\u0629 \u0627\u0644\u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A\u0629"
+    const payload = { ...dbPayload };
+    let { data, error } = await supabase.from("bookings").insert([payload]).select().single();
+    if (error && error.message) {
+      const missingColMatch = error.message.match(
+        /Could not find the '([^']+)' column of 'bookings' in the schema cache/i
+      );
+      if (missingColMatch && missingColMatch[1]) {
+        const missingCol = missingColMatch[1];
+        if (ESSENTIAL_BOOKING_COLUMNS.has(missingCol)) {
+          const schemaError = `\u0641\u0634\u0644 \u062D\u0641\u0638 \u0627\u0644\u062D\u062C\u0632: \u0627\u0644\u0639\u0645\u0648\u062F \u0627\u0644\u0623\u0633\u0627\u0633\u064A '${missingCol}' \u063A\u064A\u0631 \u0645\u0639\u0631\u0651\u0641 \u0641\u064A \u0627\u0644\u0640 Schema Cache \u0644\u062C\u062F\u0648\u0644 bookings \u0641\u064A Supabase. \u0644\u0627 \u064A\u0645\u0643\u0646 \u0625\u062A\u0645\u0627\u0645 \u0627\u0644\u062D\u062C\u0632 \u0628\u062F\u0648\u0646 \u0647\u0630\u0627 \u0627\u0644\u062D\u0642\u0644 \u0627\u0644\u0623\u0633\u0627\u0633\u064A \u0644\u062A\u062C\u0646\u0628 \u062D\u0641\u0638 \u062D\u062C\u0632 \u0646\u0627\u0642\u0635. \u064A\u0631\u062C\u0649 \u062A\u0637\u0628\u064A\u0642 \u062A\u0631\u062D\u064A\u0644 \u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A (20261025000000_align_bookings_schema.sql) \u0648\u0625\u0639\u0627\u062F\u0629 \u062A\u062D\u0645\u064A\u0644 \u0627\u0644\u0640 schema cache.`;
+          console.error(`[Supabase Critical Schema Error] ${schemaError}`);
+          return { success: false, error: schemaError };
+        }
+        if (EXPLICIT_OPTIONAL_FALLBACK_COLUMNS.has(missingCol) && missingCol in payload) {
+          console.warn(
+            `[Supabase Warning] Auxiliary column '${missingCol}' is missing from schema cache. Attempting single explicit fallback without it (total_amount remains intact)...`
+          );
+          const fallbackPayload = { ...payload };
+          const droppedFee = fallbackPayload[missingCol];
+          delete fallbackPayload[missingCol];
+          if (typeof droppedFee === "number" && droppedFee > 0) {
+            const feeNote = `[\u0631\u0633\u0648\u0645 \u0625\u0636\u0627\u0641\u064A\u0629 \u0645\u0639\u062A\u0645\u062F\u0629 \u0645\u0634\u0645\u0648\u0644\u0629 \u0641\u064A \u0627\u0644\u0625\u062C\u0645\u0627\u0644\u064A: ${droppedFee} \u0631.\u0633]`;
+            fallbackPayload.notes = fallbackPayload.notes ? `${fallbackPayload.notes} | ${feeNote}` : feeNote;
+          }
+          const retryRes = await supabase.from("bookings").insert([fallbackPayload]).select().single();
+          data = retryRes.data;
+          error = retryRes.error;
+        } else {
+          const schemaError = `\u0641\u0634\u0644 \u062D\u0641\u0638 \u0627\u0644\u062D\u062C\u0632: \u0627\u0644\u0639\u0645\u0648\u062F '${missingCol}' \u063A\u064A\u0631 \u0645\u0639\u0631\u0651\u0641 \u0641\u064A \u0627\u0644\u0640 Schema Cache \u0644\u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A. \u064A\u0631\u062C\u0649 \u062A\u0637\u0628\u064A\u0642 \u062A\u0631\u062D\u064A\u0644 \u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0648\u062A\u062D\u062F\u064A\u062B \u0627\u0644\u0640 schema cache.`;
+          console.error(`[Supabase Schema Mismatch] ${schemaError}`);
+          return { success: false, error: schemaError };
+        }
       }
-    ]);
+    }
+    if (error || !data || !data.id) {
+      console.error("Supabase booking insert error:", error);
+      return {
+        success: false,
+        error: error?.message || "\u0641\u0634\u0644 \u062D\u0641\u0638 \u0627\u0644\u062D\u062C\u0632 \u0641\u064A \u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A (\u0644\u0645 \u064A\u062A\u0645 \u062A\u0623\u0643\u064A\u062F \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u0633\u062C\u0644 \u0641\u064A Supabase)"
+      };
+    }
+    try {
+      await supabase.from("booking_events").insert([
+        {
+          booking_id: data.id,
+          booking_reference: booking.referenceCode,
+          previous_status: null,
+          new_status: "pending_review",
+          changed_by: "\u0627\u0644\u0639\u0645\u064A\u0644 (\u0637\u0644\u0628 \u0639\u0628\u0631 \u0627\u0644\u0645\u0648\u0642\u0639)",
+          notes: "\u062A\u0645 \u062A\u0633\u062C\u064A\u0644 \u0637\u0644\u0628 \u0627\u0644\u062D\u062C\u0632 \u0627\u0644\u0645\u0628\u062F\u0626\u064A \u0628\u0646\u062C\u0627\u062D \u0639\u0628\u0631 \u0627\u0644\u0628\u0648\u0627\u0628\u0629 \u0627\u0644\u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A\u0629"
+        }
+      ]);
+    } catch (eventErr) {
+      console.warn("Could not insert booking_event log (non-fatal):", eventErr);
+    }
     return { success: true, data };
   } catch (err) {
     console.error("Supabase create booking exception:", err);
@@ -1353,7 +1407,22 @@ async function supabaseCheckConflict(params) {
     if (params.excludeId) {
       query = query.neq("id", params.excludeId);
     }
-    const { data: bookings, error } = await query;
+    let bookings = null;
+    let queryRes = await query;
+    bookings = queryRes.data;
+    let error = queryRes.error;
+    if (error && error.message && error.message.includes("category_key")) {
+      let fallbackQuery = supabase.from("bookings").select("id, booking_number, event_date, event_time, duration_hours, city, status").eq("event_date", params.eventDate).in("status", ["confirmed", "in_progress"]);
+      if (params.city) {
+        fallbackQuery = fallbackQuery.eq("city", params.city);
+      }
+      if (params.excludeId) {
+        fallbackQuery = fallbackQuery.neq("id", params.excludeId);
+      }
+      const fbRes = await fallbackQuery;
+      bookings = fbRes.data;
+      error = fbRes.error;
+    }
     if (error || !bookings || bookings.length === 0) {
       return { hasConflict: false, message: "\u0627\u0644\u0645\u0648\u0639\u062F \u0645\u062A\u0627\u062D \u0648\u0645\u0646\u0627\u0633\u0628 \u0644\u0644\u062D\u062C\u0632" };
     }
@@ -1365,7 +1434,7 @@ async function supabaseCheckConflict(params) {
     const newEnd = newStart + (params.durationHours || 4) * 60;
     const buffer = 90;
     for (const b of bookings) {
-      if (b.category_key === params.categoryKey) {
+      if (!b.category_key || b.category_key === params.categoryKey) {
         const existStart = parseTime(b.event_time);
         const existEnd = existStart + (b.duration_hours || 4) * 60;
         const overlaps = Math.max(newStart, existStart) < Math.min(newEnd + buffer, existEnd + buffer);
@@ -1459,7 +1528,7 @@ async function supabaseVerifyBookingRef(cleanRef) {
     return { isVerified: false };
   }
   try {
-    const { data, error } = await supabase.from("bookings").select("id, booking_number, client_name, service_name, status").or(`booking_number.ilike.${cleanRef},id.eq.${cleanRef}`).limit(1);
+    const { data, error } = await supabase.from("bookings").select("id, booking_number, customer_name, service_name, status").or(`booking_number.ilike.${cleanRef},id.eq.${cleanRef}`).limit(1);
     if (error || !data || data.length === 0) {
       return { isVerified: false };
     }

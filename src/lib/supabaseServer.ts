@@ -157,6 +157,38 @@ export async function supabaseVerifyToken(token: string): Promise<{
 }
 
 /**
+ * Essential columns representing the core contract, scheduling, identity, and financials of a booking.
+ * Under NO circumstances may these columns be removed or omitted.
+ * If Supabase lacks any of these columns, the insertion must fail explicitly with a descriptive schema error.
+ */
+export const ESSENTIAL_BOOKING_COLUMNS = new Set<string>([
+  'booking_number',
+  'customer_name',
+  'customer_phone',
+  'city',
+  'service_id',
+  'service_name',
+  'category_key',
+  'package_id',
+  'package_name',
+  'event_date',
+  'event_time',
+  'duration_hours',
+  'subtotal_amount',
+  'total_amount',
+  'status'
+]);
+
+/**
+ * Permissible auxiliary columns that may be omitted ONLY under explicit fallback
+ * when an older database table is awaiting migration, without compromising booking integrity.
+ * Notice: category_key, service, package, dates, and amounts are NEVER in this list.
+ */
+export const EXPLICIT_OPTIONAL_FALLBACK_COLUMNS = new Set<string>([
+  'approved_fees' // Auxiliary breakdown fee; total_amount already captures the authoritative final price
+]);
+
+/**
  * Saves a new booking into Supabase bookings table and logs first booking_event
  */
 export async function supabaseCreateBooking(
@@ -176,6 +208,7 @@ export async function supabaseCreateBooking(
       city: booking.city,
       district: booking.district || null,
       venue_name: booking.venueName || null,
+      event_location: [booking.city, booking.district, booking.venueName].filter(Boolean).join(' - ') || booking.city || null,
       service_id: booking.serviceId,
       service_name: booking.serviceName,
       category_key: booking.categoryKey,
@@ -202,44 +235,88 @@ export async function supabaseCreateBooking(
       dbPayload.approved_fees = booking.approvedFeesSar;
     }
 
+    // Attempt primary insert with full payload
+    const payload = { ...dbPayload };
     let { data, error } = await supabase
       .from('bookings')
-      .insert([dbPayload])
+      .insert([payload])
       .select()
       .single();
 
-    // Graceful backward compatibility: if Supabase schema cache lacks approved_fees column
-    if (error && error.message && error.message.includes('approved_fees')) {
-      console.warn('Supabase bookings table lacks approved_fees column in schema cache. Retrying insert without it...');
-      const fallbackPayload = { ...dbPayload };
-      delete fallbackPayload.approved_fees;
+    // If an error occurred, check if it's a missing column error from PostgREST schema cache
+    if (error && error.message) {
+      const missingColMatch = error.message.match(
+        /Could not find the '([^']+)' column of 'bookings' in the schema cache/i
+      );
 
-      const retryRes = await supabase
-        .from('bookings')
-        .insert([fallbackPayload])
-        .select()
-        .single();
+      if (missingColMatch && missingColMatch[1]) {
+        const missingCol = missingColMatch[1];
 
-      data = retryRes.data;
-      error = retryRes.error;
-    }
+        // 1. Strict Guard: If it's an essential column, REJECT IMMEDIATELY. NEVER STRIP.
+        if (ESSENTIAL_BOOKING_COLUMNS.has(missingCol)) {
+          const schemaError = `فشل حفظ الحجز: العمود الأساسي '${missingCol}' غير معرّف في الـ Schema Cache لجدول bookings في Supabase. لا يمكن إتمام الحجز بدون هذا الحقل الأساسي لتجنب حفظ حجز ناقص. يرجى تطبيق ترحيل قاعدة البيانات (20261025000000_align_bookings_schema.sql) وإعادة تحميل الـ schema cache.`;
+          console.error(`[Supabase Critical Schema Error] ${schemaError}`);
+          return { success: false, error: schemaError };
+        }
 
-    if (error) {
-      console.error('Supabase booking insert error:', error);
-      return { success: false, error: error.message };
-    }
+        // 2. Only if it is explicitly approved in EXPLICIT_OPTIONAL_FALLBACK_COLUMNS
+        if (EXPLICIT_OPTIONAL_FALLBACK_COLUMNS.has(missingCol) && missingCol in payload) {
+          console.warn(
+            `[Supabase Warning] Auxiliary column '${missingCol}' is missing from schema cache. Attempting single explicit fallback without it (total_amount remains intact)...`
+          );
+          const fallbackPayload = { ...payload };
+          const droppedFee = fallbackPayload[missingCol];
+          delete fallbackPayload[missingCol];
 
-    // Insert first event into booking_events
-    await supabase.from('booking_events').insert([
-      {
-        booking_id: data.id,
-        booking_reference: booking.referenceCode,
-        previous_status: null,
-        new_status: 'pending_review',
-        changed_by: 'العميل (طلب عبر الموقع)',
-        notes: 'تم تسجيل طلب الحجز المبدئي بنجاح عبر البوابة الإلكترونية'
+          // Preserve the fee amount in notes so the financial breakdown is NEVER lost
+          if (typeof droppedFee === 'number' && droppedFee > 0) {
+            const feeNote = `[رسوم إضافية معتمدة مشمولة في الإجمالي: ${droppedFee} ر.س]`;
+            fallbackPayload.notes = fallbackPayload.notes
+              ? `${fallbackPayload.notes} | ${feeNote}`
+              : feeNote;
+          }
+
+          const retryRes = await supabase
+            .from('bookings')
+            .insert([fallbackPayload])
+            .select()
+            .single();
+
+          data = retryRes.data;
+          error = retryRes.error;
+        } else {
+          // Any other column missing that is NOT in EXPLICIT_OPTIONAL_FALLBACK_COLUMNS must fail explicitly
+          const schemaError = `فشل حفظ الحجز: العمود '${missingCol}' غير معرّف في الـ Schema Cache لقاعدة البيانات. يرجى تطبيق ترحيل قاعدة البيانات وتحديث الـ schema cache.`;
+          console.error(`[Supabase Schema Mismatch] ${schemaError}`);
+          return { success: false, error: schemaError };
+        }
       }
-    ]);
+    }
+
+    // 3. Strict verification: error must be null and confirmed data with an id must exist
+    if (error || !data || !data.id) {
+      console.error('Supabase booking insert error:', error);
+      return {
+        success: false,
+        error: error?.message || 'فشل حفظ الحجز في قاعدة البيانات (لم يتم تأكيد إنشاء السجل في Supabase)'
+      };
+    }
+
+    // Insert first event into booking_events if table exists
+    try {
+      await supabase.from('booking_events').insert([
+        {
+          booking_id: data.id,
+          booking_reference: booking.referenceCode,
+          previous_status: null,
+          new_status: 'pending_review',
+          changed_by: 'العميل (طلب عبر الموقع)',
+          notes: 'تم تسجيل طلب الحجز المبدئي بنجاح عبر البوابة الإلكترونية'
+        }
+      ]);
+    } catch (eventErr) {
+      console.warn('Could not insert booking_event log (non-fatal):', eventErr);
+    }
 
     return { success: true, data };
   } catch (err: any) {
@@ -278,7 +355,29 @@ export async function supabaseCheckConflict(params: {
       query = query.neq('id', params.excludeId);
     }
 
-    const { data: bookings, error } = await query;
+    let bookings: any[] | null = null;
+    let queryRes = await query;
+    bookings = queryRes.data;
+    let error = queryRes.error;
+
+    if (error && error.message && error.message.includes('category_key')) {
+      let fallbackQuery = supabase
+        .from('bookings')
+        .select('id, booking_number, event_date, event_time, duration_hours, city, status')
+        .eq('event_date', params.eventDate)
+        .in('status', ['confirmed', 'in_progress']);
+
+      if (params.city) {
+        fallbackQuery = fallbackQuery.eq('city', params.city);
+      }
+      if (params.excludeId) {
+        fallbackQuery = fallbackQuery.neq('id', params.excludeId);
+      }
+      const fbRes = await fallbackQuery;
+      bookings = fbRes.data;
+      error = fbRes.error;
+    }
+
     if (error || !bookings || bookings.length === 0) {
       return { hasConflict: false, message: 'الموعد متاح ومناسب للحجز' };
     }
@@ -294,7 +393,7 @@ export async function supabaseCheckConflict(params: {
     const buffer = 90; // 90 min buffer for relocation & equipment setup
 
     for (const b of bookings) {
-      if (b.category_key === params.categoryKey) {
+      if (!b.category_key || b.category_key === params.categoryKey) {
         const existStart = parseTime(b.event_time);
         const existEnd = existStart + (b.duration_hours || 4) * 60;
 
@@ -430,7 +529,7 @@ export async function supabaseVerifyBookingRef(
   try {
     const { data, error } = await supabase
       .from('bookings')
-      .select('id, booking_number, client_name, service_name, status')
+      .select('id, booking_number, customer_name, service_name, status')
       .or(`booking_number.ilike.${cleanRef},id.eq.${cleanRef}`)
       .limit(1);
 
