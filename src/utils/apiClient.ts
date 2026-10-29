@@ -756,4 +756,39 @@ export async function submitReviewApi(
   }
 }
 
+/**
+ * Admin: Update service hourly pricing and duration rules
+ */
+export async function adminUpdateServicePricingApi(
+  token: string,
+  serviceId: string,
+  pricing: {
+    hourlyRateSar?: number;
+    isHourlyEnabled?: boolean;
+    minHours?: number;
+    maxHours?: number;
+    defaultHours?: number;
+    fixedFeeSar?: number;
+  }
+): Promise<{ success: boolean; service?: ServiceItem; error?: string }> {
+  try {
+    const res = await fetch(`/api/admin/services/${serviceId}/pricing`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(pricing)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return { success: false, error: data.error || 'فشل تحديث أسعار الخدمة' };
+    }
+    return { success: true, service: data.service };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'خطأ في الاتصال بالخادم' };
+  }
+}
+
+
 

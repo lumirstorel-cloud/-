@@ -1,6 +1,16 @@
 User-agent: *
 Allow: /
 Disallow: /admin
+Disallow: /account
+Disallow: /booking-status
+Disallow: /api/
+
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /booking-status
+Disallow: /api/
 
 User-agent: GPTBot
 Allow: /

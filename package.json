@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "tsx tests/isolated-booking-creation.test.ts && tsx tests/vercel-api-routing.test.ts && tsx tests/production-supabase-safeguards.test.ts && tsx tests/production-readiness.test.ts"
+    "test": "tsx tests/cart-and-hourly-pricing.test.ts && tsx tests/isolated-booking-creation.test.ts && tsx tests/vercel-api-routing.test.ts && tsx tests/production-supabase-safeguards.test.ts && tsx tests/production-readiness.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

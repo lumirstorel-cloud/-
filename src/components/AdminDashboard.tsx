@@ -62,7 +62,8 @@ import {
   adminUpdateServiceApi,
   adminUpdateSettingsApi,
   adminUpdateSliderSettingsApi,
-  adminUpdateUserApi
+  adminUpdateUserApi,
+  adminUpdateServicePricingApi
 } from '../utils/apiClient';
 import {
   AlertCircle,
@@ -157,6 +158,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     | 'orders'
     | 'calendar'
     | 'services'
+    | 'pricing_duration'
     | 'cities'
     | 'portfolio'
     | 'announcements'
@@ -171,6 +173,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(
     null
   );
+
+  // Hourly Pricing & Duration Tab State
+  const [selectedPricingServiceId, setSelectedPricingServiceId] = useState<string>(
+    data.services?.[0]?.id || ''
+  );
+  const [pricingForm, setPricingForm] = useState({
+    hourlyRateSar: 100,
+    isHourlyEnabled: false,
+    minHours: 3,
+    maxHours: 10,
+    defaultHours: 4,
+    fixedFeeSar: 0
+  });
+  const [simulatedHours, setSimulatedHours] = useState<number>(4);
+  const [isSavingPricing, setIsSavingPricing] = useState<boolean>(false);
 
   // Editable Copies
   const [services, setServices] = useState<ServiceItem[]>(data.services || []);
@@ -1658,6 +1675,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               },
               { id: 'calendar', label: 'تقويم المواعيد والتعارض', icon: CalendarIcon },
               { id: 'services', label: 'الخدمات والباقات والأسعار', icon: Layers },
+              { id: 'pricing_duration', label: 'إدارة الأسعار والمدة بالساعة', icon: Clock },
               { id: 'cities', label: 'تغطية مكة وجدة', icon: MapPin },
               { id: 'portfolio', label: 'معرض الأعمال (صور وفيديو)', icon: ImageIcon },
               { id: 'announcements', label: 'الشريط العلوي المتحرك', icon: Megaphone },
@@ -2901,6 +2919,320 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ================= 4.5 HOURLY PRICING & DURATION TAB ================= */}
+          {activeTab === 'pricing_duration' && (
+            <div className="space-y-6 max-w-[1240px] mx-auto">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E6DCD2] pb-4">
+                <div>
+                  <h2 className="font-display text-3xl font-bold text-[#2C1E18]">
+                    إدارة الأسعار والمدة بالساعة
+                  </h2>
+                  <p className="text-xs text-[#645249] mt-1">
+                    التحكم في سعر الساعة لكل خدمة، تفعيل أو تعطيل التسعير بالساعة، وضبط الحدود الزمنية (الأدنى والأقصى) مع المعاينة الفورية.
+                  </p>
+                </div>
+
+                {/* Service Selector Dropdown */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-[#8C6D36]">اختر الخدمة:</span>
+                  <select
+                    value={selectedPricingServiceId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setSelectedPricingServiceId(id);
+                      const target = services.find((s) => s.id === id);
+                      if (target) {
+                        setPricingForm({
+                          hourlyRateSar: target.hourlyRateSar ?? target.basePrice ?? 100,
+                          isHourlyEnabled: Boolean(target.isHourlyEnabled),
+                          minHours: target.minHours || 1,
+                          maxHours: target.maxHours || 12,
+                          defaultHours: target.defaultHours || 4,
+                          fixedFeeSar: target.fixedFeeSar || 0
+                        });
+                        setSimulatedHours(target.defaultHours || 4);
+                      }
+                    }}
+                    className="px-3 py-2 text-xs font-bold bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl text-[#2C1E18] focus:outline-hidden"
+                  >
+                    {services.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.isHourlyEnabled ? 'مفعل بالساعة' : 'باقات'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Service Pricing Editor Form Card */}
+              <div className="p-6 sm:p-8 rounded-3xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-8 shadow-xs">
+                {/* Header status */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E6DCD2]">
+                  <div>
+                    <span className="text-xs font-bold text-[#8C6D36]">
+                      {services.find((s) => s.id === selectedPricingServiceId)?.category}
+                    </span>
+                    <h3 className="font-display text-2xl font-bold text-[#2C1E18]">
+                      {services.find((s) => s.id === selectedPricingServiceId)?.name}
+                    </h3>
+                  </div>
+
+                  {/* Hourly Toggle Switch */}
+                  <label className="flex items-center gap-3 p-3 rounded-2xl bg-[#F3ECE1] border border-[#D8CBB8] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pricingForm.isHourlyEnabled}
+                      onChange={(e) =>
+                        setPricingForm({ ...pricingForm, isHourlyEnabled: e.target.checked })
+                      }
+                      className="w-5 h-5 rounded text-[#2C1E18] focus:ring-0 cursor-pointer"
+                    />
+                    <div>
+                      <span className="block text-xs font-bold text-[#2C1E18]">
+                        تفعيل نظام التسعير بالساعة لهذه الخدمة
+                      </span>
+                      <span className="text-[10px] text-[#645249]">
+                        {pricingForm.isHourlyEnabled
+                          ? 'العميل يستطيع اختيار عدد الساعات مباشرة مع حسبة حية'
+                          : 'الخدمة تعتمد فقط على الباقات الثابتة'}
+                      </span>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Form Controls Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-xs">
+                  {/* Hourly Rate */}
+                  <div className="space-y-1.5 p-4 rounded-2xl bg-white border border-[#D8CBB8]">
+                    <label className="block font-bold text-[#2C1E18]">
+                      سعر الساعة (ر.س) <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="1"
+                        step="5"
+                        value={pricingForm.hourlyRateSar}
+                        onChange={(e) =>
+                          setPricingForm({
+                            ...pricingForm,
+                            hourlyRateSar: Number(e.target.value) || 0
+                          })
+                        }
+                        className="w-full px-3 py-2 text-sm font-bold font-mono-num bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl text-[#2C1E18]"
+                      />
+                      <span className="absolute left-3 top-2.5 text-xs text-[#8C6D36]">ر.س / س</span>
+                    </div>
+                    <span className="text-[10px] text-[#645249] block">
+                      القيمة التي تُضرب في عدد ساعات حجز الخدمة
+                    </span>
+                  </div>
+
+                  {/* Min Hours */}
+                  <div className="space-y-1.5 p-4 rounded-2xl bg-white border border-[#D8CBB8]">
+                    <label className="block font-bold text-[#2C1E18]">الحد الأدنى للساعات</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max={pricingForm.maxHours}
+                      value={pricingForm.minHours}
+                      onChange={(e) =>
+                        setPricingForm({
+                          ...pricingForm,
+                          minHours: Math.max(1, Number(e.target.value) || 1)
+                        })
+                      }
+                      className="w-full px-3 py-2 text-sm font-bold font-mono-num bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl text-[#2C1E18]"
+                    />
+                    <span className="text-[10px] text-[#645249] block">
+                      أقل مدة يسمح النظام للعميل باختيارها
+                    </span>
+                  </div>
+
+                  {/* Max Hours */}
+                  <div className="space-y-1.5 p-4 rounded-2xl bg-white border border-[#D8CBB8]">
+                    <label className="block font-bold text-[#2C1E18]">الحد الأقصى للساعات</label>
+                    <input
+                      type="number"
+                      min={pricingForm.minHours}
+                      max="24"
+                      value={pricingForm.maxHours}
+                      onChange={(e) =>
+                        setPricingForm({
+                          ...pricingForm,
+                          maxHours: Math.max(pricingForm.minHours, Number(e.target.value) || 12)
+                        })
+                      }
+                      className="w-full px-3 py-2 text-sm font-bold font-mono-num bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl text-[#2C1E18]"
+                    />
+                    <span className="text-[10px] text-[#645249] block">
+                      أقصى تغطية يومية متواصلة لمناسبة واحدة
+                    </span>
+                  </div>
+
+                  {/* Default Hours */}
+                  <div className="space-y-1.5 p-4 rounded-2xl bg-white border border-[#D8CBB8]">
+                    <label className="block font-bold text-[#2C1E18]">الساعات الافتراضية</label>
+                    <input
+                      type="number"
+                      min={pricingForm.minHours}
+                      max={pricingForm.maxHours}
+                      value={pricingForm.defaultHours}
+                      onChange={(e) =>
+                        setPricingForm({
+                          ...pricingForm,
+                          defaultHours: Math.max(
+                            pricingForm.minHours,
+                            Math.min(pricingForm.maxHours, Number(e.target.value) || 4)
+                          )
+                        })
+                      }
+                      className="w-full px-3 py-2 text-sm font-bold font-mono-num bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl text-[#2C1E18]"
+                    />
+                    <span className="text-[10px] text-[#645249] block">
+                      القيمة التي تظهر محددة مسبقاً عند فتح صفحة الخدمة
+                    </span>
+                  </div>
+                </div>
+
+                {/* Fixed Fee Field */}
+                <div className="p-4 rounded-2xl bg-white border border-[#D8CBB8] max-w-sm text-xs space-y-1.5">
+                  <label className="block font-bold text-[#2C1E18]">
+                    رسوم إضافية ثابتة للخدمة (ر.س) - اختياري
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      step="10"
+                      value={pricingForm.fixedFeeSar}
+                      onChange={(e) =>
+                        setPricingForm({
+                          ...pricingForm,
+                          fixedFeeSar: Math.max(0, Number(e.target.value) || 0)
+                        })
+                      }
+                      className="w-full px-3 py-2 text-sm font-bold font-mono-num bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl text-[#2C1E18]"
+                    />
+                    <span className="absolute left-3 top-2.5 text-xs text-[#8C6D36]">ر.س</span>
+                  </div>
+                  <span className="text-[10px] text-[#645249] block">
+                    تُضاف تلقائياً مع الحسبة بالساعة (مثل رسوم تجهيز خاصة)
+                  </span>
+                </div>
+
+                {/* Interactive Live Simulation Box */}
+                <div className="p-6 rounded-2xl bg-[#2C1E18] text-[#FAF6F0] space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+                    <div>
+                      <span className="text-[11px] text-[#C8A96E] font-medium block">
+                        محاكاة العرض وتجربة العميل الحية
+                      </span>
+                      <h4 className="font-display text-lg font-bold">
+                        كيف ستظهر الحسبة للعميل في المتجر؟
+                      </h4>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-white/70">اختر الساعات للتجربة:</span>
+                      <div className="flex items-center gap-1.5 bg-white/10 rounded-xl px-2.5 py-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSimulatedHours((h) => Math.max(pricingForm.minHours, h - 1))
+                          }
+                          disabled={simulatedHours <= pricingForm.minHours}
+                          className="w-6 h-6 rounded bg-white/20 hover:bg-white/30 text-white font-bold flex items-center justify-center disabled:opacity-30 cursor-pointer"
+                        >
+                          -
+                        </button>
+                        <span className="font-mono-num font-bold text-sm px-2 text-[#C8A96E]">
+                          {formatArabicNumber(simulatedHours)} س
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSimulatedHours((h) => Math.min(pricingForm.maxHours, h + 1))
+                          }
+                          disabled={simulatedHours >= pricingForm.maxHours}
+                          className="w-6 h-6 rounded bg-white/20 hover:bg-white/30 text-white font-bold flex items-center justify-center disabled:opacity-30 cursor-pointer"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-1 text-xs">
+                      <div className="text-white/80 flex items-center gap-2 flex-wrap">
+                        <span>سعر الساعة ({pricingForm.hourlyRateSar} ر.س)</span>
+                        <span>×</span>
+                        <span>{formatArabicNumber(simulatedHours)} ساعات</span>
+                        {pricingForm.fixedFeeSar > 0 && (
+                          <>
+                            <span>+</span>
+                            <span>رسوم ثابتة ({pricingForm.fixedFeeSar} ر.س)</span>
+                          </>
+                        )}
+                        <span>=</span>
+                      </div>
+                      <div className="font-display text-3xl font-bold text-[#C8A96E] font-mono-num">
+                        {formatSar(
+                          pricingForm.hourlyRateSar * simulatedHours + pricingForm.fixedFeeSar
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] text-white/60 sm:text-left leading-relaxed max-w-xs">
+                      {pricingForm.isHourlyEnabled
+                        ? '✅ التسعير بالساعة مفعّل — سيظهر عداد الساعات في صفحة الخدمة والسلة.'
+                        : '⚠️ التسعير بالساعة معطل حالياً — سيتم اعتماد أسعار الباقات الثابتة فقط.'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#E6DCD2]">
+                  <button
+                    type="button"
+                    disabled={isSavingPricing}
+                    onClick={async () => {
+                      if (!token) return;
+                      if (!hasRole(['super_admin', 'operations_manager', 'admin'])) {
+                        showToast('تعديل الأسعار متاح فقط للمدير العام ومدير العمليات', 'error');
+                        return;
+                      }
+
+                      setIsSavingPricing(true);
+                      const res = await adminUpdateServicePricingApi(
+                        token,
+                        selectedPricingServiceId,
+                        pricingForm
+                      );
+                      setIsSavingPricing(false);
+
+                      if (res.success && res.service) {
+                        setServices((prev) =>
+                          prev.map((s) => (s.id === selectedPricingServiceId ? res.service! : s))
+                        );
+                        showToast(
+                          `تم حفظ وتطبيق إعدادات التسعير والمدة لخدمة «${res.service.name}» بنجاح!`
+                        );
+                      } else {
+                        showToast(res.error || 'تعذر حفظ إعدادات التسعير', 'error');
+                      }
+                    }}
+                    className="px-8 py-3 rounded-xl bg-[#2C1E18] hover:bg-[#422E25] text-[#FAF6F0] text-xs font-bold transition-colors flex items-center gap-2 shadow-xs cursor-pointer disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4 text-[#C8A96E]" />
+                    <span>{isSavingPricing ? 'جاري الحفظ...' : 'حفظ إعدادات التسعير والمدة'}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

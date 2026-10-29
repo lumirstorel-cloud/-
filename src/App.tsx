@@ -35,6 +35,11 @@ import { GalleryView } from './components/GalleryView';
 import { ServiceDetailView } from './components/ServiceDetailView';
 import { ServiceRatingModal } from './components/ServiceRatingModal';
 import { NotFoundView } from './components/NotFoundView';
+import { CartView } from './components/CartView';
+import { CustomerAccountView } from './components/CustomerAccountView';
+import { CustomerAuthModal } from './components/CustomerAuthModal';
+import { CartProvider } from './context/CartContext';
+import { CustomerAuthProvider } from './context/CustomerAuthContext';
 import { parseRoute, pathForView } from './utils/routes';
 import { applySeoToDocument } from './utils/seoDocument';
 
@@ -294,27 +299,39 @@ export function App() {
   }
 
   return (
-    <>
-      <Layout
-      currentView={currentView}
-      navigate={handleNavigate}
-      settings={data.settings}
-      announcements={data.announcements}
-      services={data.services}
-      bookings={data.bookings}
-      favorites={favorites}
-      onRemoveFavorite={handleRemoveFavorite}
-      onClearFavorites={handleClearFavorites}
-      cartItems={cartItems}
-      onRemoveFromCart={handleRemoveFromCart}
-      onClearCart={handleClearCart}
-      onSelectServiceToBook={handleSelectServiceToBook}
-      onOpenRatingModal={handleOpenRatingModal}
-    >
-      {currentView === 'not-found' && <NotFoundView navigate={handleNavigate} />}
+    <CustomerAuthProvider>
+      <CartProvider>
+        <Layout
+          currentView={currentView}
+          navigate={handleNavigate}
+          settings={data.settings}
+          announcements={data.announcements}
+          services={data.services}
+          bookings={data.bookings}
+          favorites={favorites}
+          onRemoveFavorite={handleRemoveFavorite}
+          onClearFavorites={handleClearFavorites}
+          cartItems={cartItems}
+          onRemoveFromCart={handleRemoveFromCart}
+          onClearCart={handleClearCart}
+          onSelectServiceToBook={handleSelectServiceToBook}
+          onOpenRatingModal={handleOpenRatingModal}
+        >
+          {currentView === 'not-found' && <NotFoundView navigate={handleNavigate} />}
 
-      {currentView === 'service-detail' && currentSlug && (
-        <ServiceDetailView
+          {currentView === 'cart' && (
+            <CartView
+              navigate={handleNavigate}
+              onProceedToBooking={() => handleNavigate('booking')}
+            />
+          )}
+
+          {(currentView === 'customer-account' || currentView === 'customer-auth') && (
+            <CustomerAccountView navigate={handleNavigate} />
+          )}
+
+          {currentView === 'service-detail' && currentSlug && (
+            <ServiceDetailView
           slug={currentSlug}
           services={data.services}
           settings={data.settings}
@@ -454,16 +471,20 @@ export function App() {
       {currentView === 'contact' && <ContactView settings={data.settings} />}
     </Layout>
 
-    {/* Dedicated Customer Service Rating Modal */}
-    <ServiceRatingModal
-      isOpen={ratingModalOpen}
-      onClose={() => setRatingModalOpen(false)}
-      services={data.services}
-      preselectedServiceId={ratingModalServiceId}
-      preselectedBooking={ratingModalBooking}
-      onReviewSubmitted={handleReviewSubmitted}
-    />
-  </>
+        {/* Dedicated Customer Service Rating Modal */}
+        <ServiceRatingModal
+          isOpen={ratingModalOpen}
+          onClose={() => setRatingModalOpen(false)}
+          services={data.services}
+          preselectedServiceId={ratingModalServiceId}
+          preselectedBooking={ratingModalBooking}
+          onReviewSubmitted={handleReviewSubmitted}
+        />
+
+        {/* Dedicated Customer Authentication Modal */}
+        <CustomerAuthModal />
+      </CartProvider>
+    </CustomerAuthProvider>
   );
 }
 

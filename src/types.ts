@@ -7,6 +7,8 @@ export type ServiceCategoryKey =
 export type PricingModel =
   | 'fixed'
   | 'per_hour'
+  | 'hourly'
+  | 'package'
   | 'per_staff'
   | 'per_child'
   | 'custom_quote';
@@ -38,8 +40,13 @@ export interface ServiceItem {
   description: string;
   pricingModel: PricingModel;
   basePrice: number;
+  hourlyRateSar?: number; // سعر الساعة المعتمد
+  isHourlyEnabled?: boolean; // تفعيل التسعير بالساعة
+  minHours?: number; // الحد الأدنى للساعات
+  maxHours?: number; // الحد الأعلى للساعات
+  defaultHours?: number; // عدد الساعات الافتراضي
+  fixedFeeSar?: number; // رسوم إضافية ثابتة
   priceNotice?: string;
-  minHours?: number;
   deliveryTimeframeHours?: number; // e.g. 48 hours
   imageUrl: string;
   /** Precise, unique alt text describing the service image. */
@@ -107,6 +114,10 @@ export interface BookingSubmission {
   agreedPhotoPrivacy?: boolean;
   adminNotes?: string;
   isReadByAdmin?: boolean;
+  customerUserId?: string; // معرف العميل الموثوق في Supabase Auth
+  customerEmail?: string; // بريد العميل الإلكتروني
+  orderItems?: CartItem[]; // تفاصيل بنود سلة الطلب المتعددة
+  hourlyRateSar?: number; // سعر الساعة المعتمد وقت الطلب
 }
 
 export interface SiteSettings {
@@ -290,6 +301,14 @@ export interface LumirCentralData {
   reviews?: CustomerReview[];
 }
 
+export interface CustomerUser {
+  id: string; // Supabase Auth User ID
+  email: string;
+  name?: string;
+  phone?: string;
+  createdAt?: string;
+}
+
 export interface CartItem {
   id: string; // unique item id in cart
   serviceId: string;
@@ -297,9 +316,14 @@ export interface CartItem {
   categoryKey: ServiceCategoryKey;
   packageId?: string;
   packageName?: string;
-  priceSar: number;
+  pricingModel?: PricingModel;
+  hourlyRateSar?: number; // سعر الساعة وقت الإضافة
+  unitPriceSar?: number; // السعر الأساسي للوحدة أو الساعة
+  durationHours?: number; // عدد الساعات المختارة
+  quantity?: number; // عدد الوحدات أو الطلبات المستقلة
+  priceSar: number; // إجمالي هذا البند = (سعر الساعة × عدد الساعات أو سعر الباقة) × الكمية + الإضافات
+  subtotalSar?: number;
   deliveryTimeframe?: string;
-  durationHours?: number;
   imageUrl?: string;
   selectedAddonIds?: string[];
   addedAt: string;
@@ -345,6 +369,9 @@ export type PageView =
   | 'childcare'
   | 'wedding-support'
   | 'service-detail'
+  | 'cart'
+  | 'customer-auth'
+  | 'customer-account'
   | 'booking'
   | 'booking-status'
   | 'about'

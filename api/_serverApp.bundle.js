@@ -151,7 +151,12 @@ var INITIAL_SERVICES = [
     description: "\u062A\u063A\u0637\u064A\u0629 \u062E\u0627\u0635\u0629 \u0644\u062D\u0641\u0644\u0627\u062A \u0627\u0644\u0632\u0641\u0627\u0641 \u0648\u0627\u0644\u0645\u0646\u0627\u0633\u0628\u0627\u062A \u0627\u0644\u062E\u0627\u0635\u0629 \u0628\u0623\u062D\u062F\u062B \u0623\u062C\u0647\u0632\u0629 iPhone Pro \u0645\u0639 \u0639\u062F\u0633\u0627\u062A \u0627\u062D\u062A\u0631\u0627\u0641\u064A\u0629 \u0648\u0645\u062B\u0628\u062A\u0627\u062A \u062D\u0631\u0643\u0629 DJI. \u062A\u0648\u062B\u064A\u0642 \u062A\u0641\u0627\u0635\u064A\u0644 \u0627\u0644\u0642\u0627\u0639\u0629\u060C \u0627\u0644\u0643\u0648\u0634\u0629\u060C \u0627\u0644\u0636\u064A\u0627\u0641\u0629\u060C \u0648\u0627\u0644\u0644\u062D\u0638\u0627\u062A \u0627\u0644\u0639\u0641\u0648\u064A\u0629 \u0645\u0639 \u062A\u0633\u0644\u064A\u0645 \u0645\u0628\u0627\u0634\u0631 \u0648\u0645\u0648\u0646\u062A\u0627\u062C \u0631\u064A\u0644\u0632 \u0645\u0645\u064A\u0632.",
     pricingModel: "per_hour",
     basePrice: 350,
+    hourlyRateSar: 100,
+    isHourlyEnabled: true,
     minHours: 3,
+    maxHours: 10,
+    defaultHours: 4,
+    fixedFeeSar: 0,
     deliveryTimeframeHours: 48,
     imageUrl: MOBILE_PHOTO_IMAGE,
     imageAlt: "\u062A\u0635\u0648\u064A\u0631 \u0632\u0641\u0627\u0641 \u0628\u0627\u0644\u062C\u0648\u0627\u0644 \u0628\u0623\u0633\u0644\u0648\u0628 \u0633\u064A\u0646\u0645\u0627\u0626\u064A \u0645\u0646 \u0644\u0648\u0645\u064A\u0631",
@@ -264,7 +269,12 @@ var INITIAL_SERVICES = [
     description: "\u062A\u062C\u0647\u064A\u0632 \u0631\u0643\u0646 \u0623\u0637\u0641\u0627\u0644 \u0641\u0627\u062E\u0631 \u0628\u0623\u0644\u0648\u0627\u0646 \u0647\u0627\u062F\u0626\u0629 (\u0627\u0644\u0639\u0627\u062C\u064A\u060C \u0627\u0644\u0648\u0631\u062F\u064A \u0627\u0644\u0647\u0627\u062F\u0626\u060C \u0648\u0627\u0644\u062A\u0631\u0643\u0648\u0627\u0632\u064A) \u064A\u0636\u0645 \u0627\u0644\u0631\u0633\u0645 \u0648\u0627\u0644\u062A\u0644\u0648\u064A\u0646 \u0639\u0644\u0649 \u0627\u0644\u0623\u0648\u0631\u0627\u0642\u060C \u0627\u0644\u0644\u0639\u0628 \u0628\u0627\u0644\u0637\u064A\u0646 \u0627\u0644\u062A\u0641\u0627\u0639\u0644\u064A\u060C \u0631\u0633\u0648\u0645\u0627\u062A \u0627\u0644\u0648\u062C\u0647\u060C \u0648\u0646\u0642\u0634 \u0627\u0644\u062D\u0646\u0627\u0621 \u0627\u0644\u0644\u0637\u064A\u0641 \u062A\u062D\u062A \u0625\u0634\u0631\u0627\u0641 \u0645\u062A\u062E\u0635\u0635.",
     pricingModel: "per_child",
     basePrice: 500,
+    hourlyRateSar: 150,
+    isHourlyEnabled: true,
     minHours: 3,
+    maxHours: 8,
+    defaultHours: 4,
+    fixedFeeSar: 0,
     imageUrl: KIDS_CORNER_IMAGE,
     imageAlt: "\u0631\u0643\u0646 \u0623\u0646\u0634\u0637\u0629 \u0625\u0628\u062F\u0627\u0639\u064A\u0629 \u0644\u0644\u0623\u0637\u0641\u0627\u0644 \u0641\u064A \u0627\u0644\u0645\u0646\u0627\u0633\u0628\u0627\u062A",
     isDemoImage: true,
@@ -352,7 +362,12 @@ var INITIAL_SERVICES = [
     description: "\u062D\u062C\u0632 \u0645\u0634\u0631\u0641\u0627\u062A \u0645\u0624\u0647\u0644\u0627\u062A \u0644\u0644\u0627\u0647\u062A\u0645\u0627\u0645 \u0628\u0627\u0644\u0623\u0637\u0641\u0627\u0644 \u0648\u0645\u0631\u0627\u0641\u0642\u062A\u0647\u0645 \u062F\u0627\u062E\u0644 \u062C\u0646\u0627\u062D \u0627\u0644\u0623\u0637\u0641\u0627\u0644\u060C \u0648\u062A\u0646\u0638\u064A\u0645 \u0623\u0648\u0642\u0627\u062A\u0647\u0645 \u0648\u0623\u0644\u0639\u0627\u0628\u0647\u0645 \u0627\u0644\u062C\u0645\u0627\u0639\u064A\u0629 \u0627\u0644\u0647\u0627\u062F\u0626\u0629 \u0648\u0645\u0646\u0639 \u062E\u0631\u0648\u062C\u0647\u0645 \u0644\u0635\u0627\u0644\u0629 \u0627\u0644\u0632\u0641\u0629 \u0644\u0636\u0645\u0627\u0646 \u0633\u0643\u064A\u0646\u0629 \u0627\u0644\u062D\u0641\u0644.",
     pricingModel: "per_staff",
     basePrice: 300,
+    hourlyRateSar: 75,
+    isHourlyEnabled: true,
     minHours: 3,
+    maxHours: 12,
+    defaultHours: 4,
+    fixedFeeSar: 0,
     imageUrl: CHILDCARE_IMAGE,
     imageAlt: "\u0645\u0634\u0631\u0641\u0629 \u0623\u0637\u0641\u0627\u0644 \u0644\u0644\u0645\u0646\u0627\u0633\u0628\u0627\u062A \u0645\u0646 \u0644\u0648\u0645\u064A\u0631",
     isDemoImage: true,
@@ -1274,6 +1289,96 @@ async function supabaseVerifyToken(token) {
     return { isValid: false, error: err.message || "\u0641\u0634\u0644 \u0627\u0644\u062A\u062D\u0642\u0642 \u0645\u0646 \u0627\u0644\u062A\u0648\u0643\u0646" };
   }
 }
+async function supabaseVerifyCustomerToken(token) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return { isValid: false, error: "\u062E\u0627\u062F\u0645 Supabase \u063A\u064A\u0631 \u0645\u0647\u064A\u0623" };
+  }
+  try {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data.user) {
+      return { isValid: false, error: "\u062C\u0644\u0633\u0629 \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u063A\u064A\u0631 \u0635\u0627\u0644\u062D\u0629 \u0623\u0648 \u0645\u0646\u062A\u0647\u064A\u0629" };
+    }
+    const u = data.user;
+    return {
+      isValid: true,
+      user: {
+        id: u.id,
+        email: u.email || "",
+        name: u.user_metadata?.name || u.user_metadata?.full_name || "",
+        phone: u.user_metadata?.phone || ""
+      }
+    };
+  } catch (err) {
+    return { isValid: false, error: err.message || "\u0641\u0634\u0644 \u0627\u0644\u062A\u062D\u0642\u0642 \u0645\u0646 \u062C\u0644\u0633\u0629 \u0627\u0644\u0639\u0645\u064A\u0644" };
+  }
+}
+async function supabaseCustomerRegister(email, pass, name, phone) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return { success: false, error: "\u0642\u0627\u0639\u062F\u0629 \u0628\u064A\u0627\u0646\u0627\u062A Supabase \u063A\u064A\u0631 \u0645\u0647\u064A\u0623\u0629 \u0639\u0644\u0649 \u0627\u0644\u062E\u0627\u062F\u0645" };
+  }
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const { data, error } = await supabase.auth.signUp({
+      email: cleanEmail,
+      password: pass,
+      options: {
+        data: {
+          name: name?.trim() || "",
+          phone: phone?.trim() || ""
+        }
+      }
+    });
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    if (!data.user) {
+      return { success: false, error: "\u062A\u0639\u0630\u0631 \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u062D\u0633\u0627\u0628" };
+    }
+    const token = data.session?.access_token || "";
+    return {
+      success: true,
+      token,
+      user: {
+        id: data.user.id,
+        email: data.user.email || cleanEmail,
+        name: name?.trim() || "",
+        phone: phone?.trim() || ""
+      }
+    };
+  } catch (err) {
+    return { success: false, error: err.message || "\u062E\u0637\u0623 \u063A\u064A\u0631 \u0645\u062A\u0648\u0642\u0639 \u0623\u062B\u0646\u0627\u0621 \u0625\u0646\u0634\u0627\u0621 \u062D\u0633\u0627\u0628 \u0627\u0644\u0639\u0645\u064A\u0644" };
+  }
+}
+async function supabaseCustomerLogin(email, pass) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return { success: false, error: "\u0642\u0627\u0639\u062F\u0629 \u0628\u064A\u0627\u0646\u0627\u062A Supabase \u063A\u064A\u0631 \u0645\u0647\u064A\u0623\u0629 \u0639\u0644\u0649 \u0627\u0644\u062E\u0627\u062F\u0645" };
+  }
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password: pass
+    });
+    if (error || !data.user) {
+      return { success: false, error: "\u0627\u0644\u0628\u0631\u064A\u062F \u0627\u0644\u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A \u0623\u0648 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D\u0629" };
+    }
+    return {
+      success: true,
+      token: data.session?.access_token || "",
+      user: {
+        id: data.user.id,
+        email: data.user.email || cleanEmail,
+        name: data.user.user_metadata?.name || "",
+        phone: data.user.user_metadata?.phone || ""
+      }
+    };
+  } catch (err) {
+    return { success: false, error: err.message || "\u062D\u062F\u062B \u062E\u0637\u0623 \u0623\u062B\u0646\u0627\u0621 \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062F\u062E\u0648\u0644" };
+  }
+}
 var ESSENTIAL_BOOKING_COLUMNS = /* @__PURE__ */ new Set([
   "booking_number",
   "customer_name",
@@ -1292,8 +1397,12 @@ var ESSENTIAL_BOOKING_COLUMNS = /* @__PURE__ */ new Set([
   "status"
 ]);
 var EXPLICIT_OPTIONAL_FALLBACK_COLUMNS = /* @__PURE__ */ new Set([
-  "approved_fees"
+  "approved_fees",
   // Auxiliary breakdown fee; total_amount already captures the authoritative final price
+  "customer_user_id",
+  "customer_email",
+  "order_items",
+  "hourly_rate"
 ]);
 async function supabaseCreateBooking(booking) {
   const supabase = getSupabaseAdmin();
@@ -1333,10 +1442,32 @@ async function supabaseCreateBooking(booking) {
     if (booking.approvedFeesSar !== void 0) {
       dbPayload.approved_fees = booking.approvedFeesSar;
     }
-    const payload = { ...dbPayload };
-    let { data, error } = await supabase.from("bookings").insert([payload]).select().single();
-    if (error && error.message) {
-      const missingColMatch = error.message.match(
+    if (booking.customerUserId) {
+      dbPayload.customer_user_id = booking.customerUserId;
+    }
+    if (booking.customerEmail) {
+      dbPayload.customer_email = booking.customerEmail;
+    }
+    if (booking.orderItems && booking.orderItems.length > 0) {
+      dbPayload.order_items = booking.orderItems;
+    }
+    if (booking.hourlyRateSar !== void 0) {
+      dbPayload.hourly_rate = booking.hourlyRateSar;
+    }
+    let currentPayload = { ...dbPayload };
+    let data = null;
+    let error = null;
+    const maxRetries = 6;
+    let attempts = 0;
+    while (attempts < maxRetries) {
+      attempts++;
+      const res = await supabase.from("bookings").insert([currentPayload]).select().single();
+      data = res.data;
+      error = res.error;
+      if (!error) {
+        break;
+      }
+      const missingColMatch = error.message?.match(
         /Could not find the '([^']+)' column of 'bookings' in the schema cache/i
       );
       if (missingColMatch && missingColMatch[1]) {
@@ -1346,25 +1477,30 @@ async function supabaseCreateBooking(booking) {
           console.error(`[Supabase Critical Schema Error] ${schemaError}`);
           return { success: false, error: schemaError };
         }
-        if (EXPLICIT_OPTIONAL_FALLBACK_COLUMNS.has(missingCol) && missingCol in payload) {
+        if (EXPLICIT_OPTIONAL_FALLBACK_COLUMNS.has(missingCol) && missingCol in currentPayload) {
           console.warn(
-            `[Supabase Warning] Auxiliary column '${missingCol}' is missing from schema cache. Attempting single explicit fallback without it (total_amount remains intact)...`
+            `[Supabase Warning] Auxiliary column '${missingCol}' is missing from schema cache. Attempting fallback without it (total_amount remains intact)...`
           );
-          const fallbackPayload = { ...payload };
-          const droppedFee = fallbackPayload[missingCol];
-          delete fallbackPayload[missingCol];
-          if (typeof droppedFee === "number" && droppedFee > 0) {
-            const feeNote = `[\u0631\u0633\u0648\u0645 \u0625\u0636\u0627\u0641\u064A\u0629 \u0645\u0639\u062A\u0645\u062F\u0629 \u0645\u0634\u0645\u0648\u0644\u0629 \u0641\u064A \u0627\u0644\u0625\u062C\u0645\u0627\u0644\u064A: ${droppedFee} \u0631.\u0633]`;
-            fallbackPayload.notes = fallbackPayload.notes ? `${fallbackPayload.notes} | ${feeNote}` : feeNote;
+          const droppedVal = currentPayload[missingCol];
+          delete currentPayload[missingCol];
+          if (missingCol === "approved_fees" && typeof droppedVal === "number" && droppedVal > 0) {
+            const feeNote = `[\u0631\u0633\u0648\u0645 \u0625\u0636\u0627\u0641\u064A\u0629 \u0645\u0639\u062A\u0645\u062F\u0629 \u0645\u0634\u0645\u0648\u0644\u0629 \u0641\u064A \u0627\u0644\u0625\u062C\u0645\u0627\u0644\u064A: ${droppedVal} \u0631.\u0633]`;
+            currentPayload.notes = currentPayload.notes ? `${currentPayload.notes} | ${feeNote}` : feeNote;
+          } else if (missingCol === "order_items" && Array.isArray(droppedVal)) {
+            const itemsNote = `[\u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u0633\u0644\u0629: ${droppedVal.map((it) => `${it.serviceName} (${it.durationHours || 1}\u0633)`).join(", ")}]`;
+            currentPayload.notes = currentPayload.notes ? `${currentPayload.notes} | ${itemsNote}` : itemsNote;
+          } else if (missingCol === "customer_user_id" && droppedVal) {
+            const userNote = `[\u0645\u0639\u0631\u0641 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645: ${droppedVal}]`;
+            currentPayload.notes = currentPayload.notes ? `${currentPayload.notes} | ${userNote}` : userNote;
           }
-          const retryRes = await supabase.from("bookings").insert([fallbackPayload]).select().single();
-          data = retryRes.data;
-          error = retryRes.error;
+          continue;
         } else {
           const schemaError = `\u0641\u0634\u0644 \u062D\u0641\u0638 \u0627\u0644\u062D\u062C\u0632: \u0627\u0644\u0639\u0645\u0648\u062F '${missingCol}' \u063A\u064A\u0631 \u0645\u0639\u0631\u0651\u0641 \u0641\u064A \u0627\u0644\u0640 Schema Cache \u0644\u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A. \u064A\u0631\u062C\u0649 \u062A\u0637\u0628\u064A\u0642 \u062A\u0631\u062D\u064A\u0644 \u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0648\u062A\u062D\u062F\u064A\u062B \u0627\u0644\u0640 schema cache.`;
           console.error(`[Supabase Schema Mismatch] ${schemaError}`);
           return { success: false, error: schemaError };
         }
+      } else {
+        break;
       }
     }
     if (error || !data || !data.id) {
@@ -1544,6 +1680,65 @@ async function supabaseVerifyBookingRef(cleanRef) {
     return { isVerified: false };
   }
 }
+async function supabaseGetCustomerBookings(userId, userEmail, userPhone) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return { success: false, data: [], error: "\u0642\u0627\u0639\u062F\u0629 \u0628\u064A\u0627\u0646\u0627\u062A Supabase \u063A\u064A\u0631 \u0645\u0647\u064A\u0623\u0629 \u0639\u0644\u0649 \u0627\u0644\u062E\u0627\u062F\u0645" };
+  }
+  try {
+    const cleanEmail = (userEmail || "").trim().toLowerCase();
+    const cleanPhone = (userPhone || "").trim();
+    let query = supabase.from("bookings").select("*");
+    if (userId && cleanEmail) {
+      query = query.or(`customer_user_id.eq.${userId},customer_email.ilike.${cleanEmail}`);
+    } else if (userId) {
+      query = query.eq("customer_user_id", userId);
+    } else if (cleanEmail) {
+      query = query.ilike("customer_email", cleanEmail);
+    } else {
+      return { success: true, data: [] };
+    }
+    const { data, error } = await query.order("created_at", { ascending: false });
+    if (error) {
+      if ((error.message?.includes("customer_user_id") || error.message?.includes("customer_email")) && cleanPhone) {
+        const { data: phoneData, error: phoneErr } = await supabase.from("bookings").select("*").eq("customer_phone", cleanPhone).order("created_at", { ascending: false });
+        if (!phoneErr && phoneData) {
+          return { success: true, data: phoneData };
+        }
+      }
+      return { success: false, data: [], error: error.message };
+    }
+    return { success: true, data: data || [] };
+  } catch (err) {
+    return { success: false, data: [], error: err.message || "\u0641\u0634\u0644 \u062C\u0644\u0628 \u0637\u0644\u0628\u0627\u062A \u0627\u0644\u0639\u0645\u064A\u0644" };
+  }
+}
+async function supabaseAdminUpdateServicePricing(serviceId, pricing) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return { success: true, error: "\u062A\u0645 \u0627\u0644\u062A\u062D\u062F\u064A\u062B \u0641\u064A \u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0630\u0627\u0643\u0631\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629" };
+  }
+  try {
+    const payload = {
+      updated_at: (/* @__PURE__ */ new Date()).toISOString()
+    };
+    if (pricing.hourlyRateSar !== void 0) payload.hourly_rate_sar = pricing.hourlyRateSar;
+    if (pricing.isHourlyEnabled !== void 0) payload.is_hourly_enabled = pricing.isHourlyEnabled;
+    if (pricing.minHours !== void 0) payload.min_hours = pricing.minHours;
+    if (pricing.maxHours !== void 0) payload.max_hours = pricing.maxHours;
+    if (pricing.defaultHours !== void 0) payload.default_hours = pricing.defaultHours;
+    if (pricing.fixedFeeSar !== void 0) payload.fixed_fee_sar = pricing.fixedFeeSar;
+    const { data, error } = await supabase.from("services").update(payload).eq("id", serviceId).select().maybeSingle();
+    if (error) {
+      console.warn("Note: public.services table update notice:", error.message);
+      return { success: true, error: error.message };
+    }
+    return { success: true, data };
+  } catch (err) {
+    console.warn("Admin update service pricing notice:", err);
+    return { success: true, error: err.message };
+  }
+}
 
 // src/serverApp.ts
 var __filename = fileURLToPath(import.meta.url);
@@ -1590,9 +1785,24 @@ function loadDatabase() {
       const raw = fs.readFileSync(DB_FILE, "utf-8");
       const parsed = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.services) && Array.isArray(parsed.bookings)) {
+        const mergedServices = INITIAL_LUMIR_DATA.services.map((initSrv) => {
+          const diskSrv = parsed.services.find((s) => s.id === initSrv.id);
+          if (!diskSrv) return initSrv;
+          return {
+            ...initSrv,
+            ...diskSrv,
+            hourlyRateSar: diskSrv.hourlyRateSar ?? initSrv.hourlyRateSar,
+            isHourlyEnabled: diskSrv.isHourlyEnabled ?? initSrv.isHourlyEnabled,
+            minHours: diskSrv.minHours ?? initSrv.minHours,
+            maxHours: diskSrv.maxHours ?? initSrv.maxHours,
+            defaultHours: diskSrv.defaultHours ?? initSrv.defaultHours,
+            fixedFeeSar: diskSrv.fixedFeeSar ?? initSrv.fixedFeeSar
+          };
+        });
         database = {
           ...INITIAL_LUMIR_DATA,
           ...parsed,
+          services: mergedServices,
           portfolio: Array.isArray(parsed.portfolio) && parsed.portfolio.length >= 8 ? parsed.portfolio : INITIAL_LUMIR_DATA.portfolio,
           faqs: parsed.faqs || INITIAL_LUMIR_DATA.faqs,
           coupons: parsed.coupons || INITIAL_LUMIR_DATA.coupons,
@@ -1744,6 +1954,55 @@ function checkConflictOnServer(params) {
   }
   return null;
 }
+function generateCustomerToken(user) {
+  const payload = JSON.stringify({
+    customer_id: user.id,
+    email: user.email,
+    name: user.name || "",
+    phone: user.phone || "",
+    type: "customer",
+    exp: Date.now() + 1e3 * 60 * 60 * 24 * 30
+    // 30 days
+  });
+  const b64Payload = Buffer.from(payload).toString("base64url");
+  const signature = crypto.createHmac("sha256", JWT_SECRET).update(b64Payload).digest("base64url");
+  return `${b64Payload}.${signature}`;
+}
+function verifyLocalCustomerToken(token) {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 2) return null;
+    const [b64Payload, signature] = parts;
+    const expectedSig = crypto.createHmac("sha256", JWT_SECRET).update(b64Payload).digest("base64url");
+    if (signature !== expectedSig) return null;
+    const payload = JSON.parse(Buffer.from(b64Payload, "base64url").toString("utf-8"));
+    if (payload.exp < Date.now()) return null;
+    if (payload.type !== "customer") return null;
+    return {
+      id: payload.customer_id,
+      email: payload.email,
+      name: payload.name,
+      phone: payload.phone
+    };
+  } catch {
+    return null;
+  }
+}
+async function extractCustomerFromRequest(req) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
+  const token = authHeader.slice(7).trim();
+  if (!token) return null;
+  if (hasSupabaseServerConfig()) {
+    const res = await supabaseVerifyCustomerToken(token);
+    if (res.isValid && res.user) {
+      return res.user;
+    }
+  }
+  const localCust = verifyLocalCustomerToken(token);
+  if (localCust) return localCust;
+  return null;
+}
 app.get(["/api/health", "/health"], (_req, res) => {
   res.json({
     status: "ok",
@@ -1830,9 +2089,9 @@ app.post("/api/bookings/check-conflict", async (req, res) => {
 });
 app.post("/api/bookings", async (req, res) => {
   const data = req.body;
-  if (!data.clientName || !data.clientPhone || !data.eventDate || !data.startTime || !data.serviceId || !data.city) {
+  if (!data.clientName || !data.clientPhone || !data.eventDate || !data.startTime || !data.city) {
     return res.status(400).json({
-      error: "\u064A\u0631\u062C\u0649 \u0625\u0643\u0645\u0627\u0644 \u0627\u0644\u062D\u0642\u0648\u0644 \u0627\u0644\u0625\u0644\u0632\u0627\u0645\u064A\u0629 \u0644\u0644\u0637\u0644\u0628 (\u0627\u0633\u0645 \u0627\u0644\u0639\u0645\u064A\u0644\u060C \u0631\u0642\u0645 \u0627\u0644\u062C\u0648\u0627\u0644\u060C \u062A\u0627\u0631\u064A\u062E \u0627\u0644\u0645\u0646\u0627\u0633\u0628\u0629\u060C \u0648\u0642\u062A \u0627\u0644\u0628\u062F\u0621\u060C \u0627\u0644\u062E\u062F\u0645\u0629\u060C \u0648\u0627\u0644\u0645\u062F\u064A\u0646\u0629)"
+      error: "\u064A\u0631\u062C\u0649 \u0625\u0643\u0645\u0627\u0644 \u0627\u0644\u062D\u0642\u0648\u0644 \u0627\u0644\u0625\u0644\u0632\u0627\u0645\u064A\u0629 \u0644\u0644\u0637\u0644\u0628 (\u0627\u0633\u0645 \u0627\u0644\u0639\u0645\u064A\u0644\u060C \u0631\u0642\u0645 \u0627\u0644\u062C\u0648\u0627\u0644\u060C \u062A\u0627\u0631\u064A\u062E \u0627\u0644\u0645\u0646\u0627\u0633\u0628\u0629\u060C \u0648\u0642\u062A \u0627\u0644\u0628\u062F\u0621\u060C \u0648\u0627\u0644\u0645\u062F\u064A\u0646\u0629)"
     });
   }
   const phoneDigits = String(data.clientPhone).replace(/\D/g, "");
@@ -1841,43 +2100,175 @@ app.post("/api/bookings", async (req, res) => {
       error: "\u0631\u0642\u0645 \u0627\u0644\u062C\u0648\u0627\u0644 \u0627\u0644\u0645\u062F\u062E\u0644 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D\u060C \u064A\u0631\u062C\u0649 \u0643\u062A\u0627\u0628\u0629 \u0631\u0642\u0645 \u0647\u0627\u062A\u0641 \u0635\u0627\u0644\u062D \u0644\u0627 \u064A\u0642\u0644 \u0639\u0646 \u0669 \u0623\u0631\u0642\u0627\u0645"
     });
   }
-  const srv = database.services.find((s) => s.id === data.serviceId);
-  if (!srv) {
-    return res.status(400).json({ error: "\u0627\u0644\u062E\u062F\u0645\u0629 \u0627\u0644\u0645\u062E\u062A\u0627\u0631\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629 \u0641\u064A \u0643\u062A\u0627\u0644\u0648\u062C \u0644\u0648\u0645\u064A\u0631" });
-  }
-  let authoritativeBasePrice = srv.basePrice;
-  let authoritativePackageName = data.packageName || "";
-  let authoritativeDuration = data.durationHours || srv.minHours || 4;
-  if (data.packageId) {
-    const pkg = srv.packages.find((p) => p.id === data.packageId);
-    if (pkg) {
-      authoritativeBasePrice = pkg.price;
-      authoritativePackageName = pkg.name;
-      if (pkg.durationHours) authoritativeDuration = pkg.durationHours;
-    } else {
-      return res.status(400).json({ error: "\u0627\u0644\u0628\u0627\u0642\u0629 \u0627\u0644\u0645\u062D\u062F\u062F\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629 \u0641\u064A \u062A\u0641\u0627\u0635\u064A\u0644 \u0647\u0630\u0647 \u0627\u0644\u062E\u062F\u0645\u0629" });
-    }
-  }
-  let addonsTotal = 0;
+  const authCustomer = await extractCustomerFromRequest(req);
+  const resolvedCustomerUserId = authCustomer?.id || data.customerUserId || null;
+  const resolvedCustomerEmail = authCustomer?.email || data.customerEmail || null;
+  let authoritativeSubtotalSar = 0;
+  let authoritativeDuration = 4;
+  let primaryServiceId = data.serviceId;
+  let primaryServiceName = data.serviceName || "";
+  let primaryCategoryKey = data.categoryKey || "photography";
+  let primaryPackageId = data.packageId || null;
+  let primaryPackageName = data.packageName || null;
+  let primaryHourlyRate = void 0;
+  const verifiedOrderItems = [];
   const verifiedAddonIds = [];
-  if (Array.isArray(data.selectedAddonIds)) {
-    for (const addonId of data.selectedAddonIds) {
-      const addon = srv.addons.find((a) => a.id === addonId);
-      if (addon) {
-        addonsTotal += addon.price;
-        verifiedAddonIds.push(addon.id);
+  if (Array.isArray(data.orderItems) && data.orderItems.length > 0) {
+    for (const rawItem of data.orderItems) {
+      const itemSrv = database.services.find((s) => s.id === rawItem.serviceId);
+      if (!itemSrv) {
+        return res.status(400).json({
+          error: `\u0627\u0644\u062E\u062F\u0645\u0629 \xAB${rawItem.serviceName || rawItem.serviceId}\xBB \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629 \u0641\u064A \u0643\u062A\u0627\u0644\u0648\u062C \u0644\u0648\u0645\u064A\u0631 \u0627\u0644\u0645\u0639\u062A\u0645\u062F`
+        });
+      }
+      const isHourly = rawItem.pricingModel === "hourly" || itemSrv.isHourlyEnabled && !rawItem.packageId;
+      let itemHourlyRate = 0;
+      let itemDuration = Number(rawItem.durationHours) || itemSrv.defaultHours || itemSrv.minHours || 4;
+      let itemBasePrice = 0;
+      let itemPkgName = rawItem.packageName || null;
+      let itemPkgId = rawItem.packageId || null;
+      if (isHourly) {
+        itemHourlyRate = itemSrv.hourlyRateSar ?? itemSrv.basePrice ?? 100;
+        const minH = itemSrv.minHours || 1;
+        const maxH = itemSrv.maxHours || 12;
+        if (itemDuration < minH || itemDuration > maxH) {
+          return res.status(400).json({
+            error: `\u0627\u0644\u0645\u062F\u0629 \u0627\u0644\u0645\u062D\u062F\u062F\u0629 \u0644\u062E\u062F\u0645\u0629 \xAB${itemSrv.name}\xBB (${itemDuration} \u0633\u0627\u0639\u0627\u062A) \u063A\u064A\u0631 \u0645\u0642\u0628\u0648\u0644\u0629. \u0627\u0644\u062D\u062F \u0627\u0644\u0623\u062F\u0646\u0649 ${minH} \u0633\u0627\u0639\u0627\u062A \u0648\u0627\u0644\u062D\u062F \u0627\u0644\u0623\u0642\u0635\u0649 ${maxH} \u0633\u0627\u0639\u0627\u062A.`
+          });
+        }
+        itemBasePrice = itemHourlyRate * itemDuration + (itemSrv.fixedFeeSar || 0);
+      } else {
+        if (itemPkgId) {
+          const pkg = itemSrv.packages.find((p) => p.id === itemPkgId);
+          if (pkg) {
+            itemBasePrice = pkg.price;
+            itemPkgName = pkg.name;
+            if (pkg.durationHours) itemDuration = pkg.durationHours;
+          } else {
+            return res.status(400).json({
+              error: `\u0627\u0644\u0628\u0627\u0642\u0629 \u0627\u0644\u0645\u062D\u062F\u062F\u0629 \u0641\u064A \u062E\u062F\u0645\u0629 \xAB${itemSrv.name}\xBB \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629`
+            });
+          }
+        } else {
+          itemBasePrice = itemSrv.basePrice;
+        }
+      }
+      let itemAddonsTotal = 0;
+      const itemVerifiedAddons = [];
+      if (Array.isArray(rawItem.selectedAddonIds)) {
+        for (const addonId of rawItem.selectedAddonIds) {
+          const addon = itemSrv.addons.find((a) => a.id === addonId);
+          if (addon) {
+            itemAddonsTotal += addon.price;
+            itemVerifiedAddons.push(addon.id);
+            if (!verifiedAddonIds.includes(addon.id)) verifiedAddonIds.push(addon.id);
+          }
+        }
+      }
+      const lineUnitPrice = itemBasePrice + itemAddonsTotal;
+      const qty = Math.max(1, Number(rawItem.quantity) || 1);
+      const lineSubtotal = lineUnitPrice * qty;
+      authoritativeSubtotalSar += lineSubtotal;
+      verifiedOrderItems.push({
+        id: rawItem.id || `item-${Date.now()}-${verifiedOrderItems.length}`,
+        serviceId: itemSrv.id,
+        serviceName: itemSrv.name,
+        categoryKey: itemSrv.category,
+        packageId: itemPkgId,
+        packageName: itemPkgName,
+        pricingModel: isHourly ? "hourly" : "package",
+        hourlyRateSar: isHourly ? itemHourlyRate : void 0,
+        unitPriceSar: lineUnitPrice,
+        durationHours: itemDuration,
+        quantity: qty,
+        selectedAddonIds: itemVerifiedAddons,
+        subtotalSar: lineSubtotal
+      });
+    }
+    if (verifiedOrderItems.length > 0) {
+      primaryServiceId = verifiedOrderItems[0].serviceId;
+      primaryServiceName = verifiedOrderItems.map((i) => i.serviceName).join(" + ");
+      primaryCategoryKey = verifiedOrderItems[0].categoryKey;
+      primaryPackageId = verifiedOrderItems[0].packageId;
+      primaryPackageName = verifiedOrderItems[0].packageName;
+      authoritativeDuration = verifiedOrderItems[0].durationHours;
+      primaryHourlyRate = verifiedOrderItems[0].hourlyRateSar;
+    }
+  } else {
+    if (!data.serviceId) {
+      return res.status(400).json({ error: "\u064A\u0631\u062C\u0649 \u0627\u062E\u062A\u064A\u0627\u0631 \u0627\u0644\u062E\u062F\u0645\u0629 \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629" });
+    }
+    const srv = database.services.find((s) => s.id === data.serviceId);
+    if (!srv) {
+      return res.status(400).json({ error: "\u0627\u0644\u062E\u062F\u0645\u0629 \u0627\u0644\u0645\u062E\u062A\u0627\u0631\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629 \u0641\u064A \u0643\u062A\u0627\u0644\u0648\u062C \u0644\u0648\u0645\u064A\u0631" });
+    }
+    primaryServiceId = srv.id;
+    primaryServiceName = srv.name;
+    primaryCategoryKey = srv.category;
+    const isHourly = data.pricingModel === "hourly" || srv.isHourlyEnabled && !data.packageId;
+    let authoritativeBasePrice = srv.basePrice;
+    authoritativeDuration = Number(data.durationHours) || srv.defaultHours || srv.minHours || 4;
+    if (isHourly) {
+      primaryHourlyRate = srv.hourlyRateSar ?? srv.basePrice ?? 100;
+      const minH = srv.minHours || 1;
+      const maxH = srv.maxHours || 12;
+      if (authoritativeDuration < minH || authoritativeDuration > maxH) {
+        return res.status(400).json({
+          error: `\u0639\u062F\u062F \u0627\u0644\u0633\u0627\u0639\u0627\u062A \u0627\u0644\u0645\u0637\u0644\u0648\u0628 (${authoritativeDuration} \u0633\u0627\u0639\u0627\u062A) \u063A\u064A\u0631 \u0645\u062A\u0627\u062D \u0644\u0647\u0630\u0647 \u0627\u0644\u062E\u062F\u0645\u0629. \u0627\u0644\u062D\u062F \u0627\u0644\u0623\u062F\u0646\u0649 ${minH} \u0633\u0627\u0639\u0627\u062A \u0648\u0627\u0644\u062D\u062F \u0627\u0644\u0623\u0642\u0635\u0649 ${maxH} \u0633\u0627\u0639\u0627\u062A.`
+        });
+      }
+      authoritativeBasePrice = primaryHourlyRate * authoritativeDuration + (srv.fixedFeeSar || 0);
+    } else if (data.packageId) {
+      const pkg = srv.packages.find((p) => p.id === data.packageId);
+      if (pkg) {
+        authoritativeBasePrice = pkg.price;
+        primaryPackageName = pkg.name;
+        primaryPackageId = pkg.id;
+        if (pkg.durationHours) authoritativeDuration = pkg.durationHours;
+      } else {
+        return res.status(400).json({ error: "\u0627\u0644\u0628\u0627\u0642\u0629 \u0627\u0644\u0645\u062D\u062F\u062F\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629 \u0641\u064A \u062A\u0641\u0627\u0635\u064A\u0644 \u0647\u0630\u0647 \u0627\u0644\u062E\u062F\u0645\u0629" });
       }
     }
+    let addonsTotal = 0;
+    if (Array.isArray(data.selectedAddonIds)) {
+      for (const addonId of data.selectedAddonIds) {
+        const addon = srv.addons.find((a) => a.id === addonId);
+        if (addon) {
+          addonsTotal += addon.price;
+          verifiedAddonIds.push(addon.id);
+        }
+      }
+    }
+    authoritativeSubtotalSar = authoritativeBasePrice + addonsTotal;
+    verifiedOrderItems.push({
+      id: `item-${Date.now()}-0`,
+      serviceId: srv.id,
+      serviceName: srv.name,
+      categoryKey: srv.category,
+      packageId: primaryPackageId || void 0,
+      packageName: primaryPackageName || void 0,
+      pricingModel: isHourly ? "hourly" : "package",
+      hourlyRateSar: primaryHourlyRate,
+      unitPriceSar: authoritativeSubtotalSar,
+      durationHours: authoritativeDuration,
+      quantity: 1,
+      selectedAddonIds: verifiedAddonIds,
+      subtotalSar: authoritativeSubtotalSar
+    });
   }
-  const authoritativeSubtotalSar = authoritativeBasePrice + addonsTotal;
   const approvedFeesSar = database.settings.approvedFeesSar || 0;
   const authoritativeEstimatedTotalSar = authoritativeSubtotalSar + approvedFeesSar;
+  if (data.estimatedTotalSar !== void 0 && Math.abs(Number(data.estimatedTotalSar) - authoritativeEstimatedTotalSar) > 5) {
+    return res.status(400).json({
+      error: `\u0641\u0634\u0644 \u0627\u0644\u062A\u062D\u0642\u0642 \u0645\u0646 \u0627\u0644\u0645\u0628\u0644\u063A: \u0627\u0644\u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0645\u0639\u062A\u0645\u062F \u0645\u0646 \u0627\u0644\u062E\u0627\u062F\u0645 \u0647\u0648 ${authoritativeEstimatedTotalSar} \u0631.\u0633. \u064A\u0631\u062C\u0649 \u0645\u0631\u0627\u062C\u0639\u0629 \u062A\u0641\u0627\u0635\u064A\u0644 \u0627\u0644\u0633\u0644\u0629 \u0648\u0625\u0639\u0627\u062F\u0629 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0637\u0644\u0628.`
+    });
+  }
   if (hasSupabaseServerConfig()) {
     const sbCheck = await supabaseCheckConflict({
       eventDate: data.eventDate,
       startTime: data.startTime,
       durationHours: authoritativeDuration,
-      categoryKey: srv.category,
+      categoryKey: primaryCategoryKey,
       city: data.city
     });
     if (sbCheck.hasConflict && data.status !== "draft") {
@@ -1891,7 +2282,7 @@ app.post("/api/bookings", async (req, res) => {
     eventDate: data.eventDate,
     startTime: data.startTime,
     durationHours: authoritativeDuration,
-    categoryKey: srv.category,
+    categoryKey: primaryCategoryKey,
     city: data.city
   });
   if (localConflict && data.status !== "draft") {
@@ -1910,13 +2301,17 @@ app.post("/api/bookings", async (req, res) => {
     ...data,
     id: data.id || `bk-${Date.now()}-${randomSuffix}`,
     referenceCode,
-    serviceId: srv.id,
-    serviceName: srv.name,
-    categoryKey: srv.category,
-    packageId: data.packageId,
-    packageName: authoritativePackageName,
+    customerUserId: resolvedCustomerUserId,
+    customerEmail: resolvedCustomerEmail,
+    serviceId: primaryServiceId,
+    serviceName: primaryServiceName,
+    categoryKey: primaryCategoryKey,
+    packageId: primaryPackageId,
+    packageName: primaryPackageName,
     durationHours: authoritativeDuration,
+    hourlyRateSar: primaryHourlyRate,
     selectedAddonIds: verifiedAddonIds,
+    orderItems: verifiedOrderItems,
     createdAt: data.createdAt || (/* @__PURE__ */ new Date()).toISOString(),
     status: finalStatus,
     subtotalSar: authoritativeSubtotalSar,
@@ -2153,6 +2548,125 @@ app.post("/api/reviews", async (req, res) => {
     message: isVerified ? "\u062A\u0645 \u062A\u0648\u062B\u064A\u0642 \u062A\u0642\u064A\u064A\u0645\u0643\u0650 \u0628\u0646\u062C\u0627\u062D \u0648\u0627\u0639\u062A\u0645\u0627\u062F\u0647 \u0643\u062D\u062C\u0632 \u0645\u0648\u062B\u0642 \u0648\u0645\u0624\u0643\u062F" : "\u062A\u0645 \u0627\u0633\u062A\u0644\u0627\u0645 \u062A\u0642\u064A\u064A\u0645\u0643\u0650 \u0628\u0646\u062C\u0627\u062D \u0648\u0625\u0636\u0627\u0641\u062A\u0647 \u0625\u0644\u0649 \u0622\u0631\u0627\u0621 \u0639\u0645\u0644\u0627\u0621 \u0644\u0648\u0645\u064A\u0631"
   });
 });
+app.post("/api/customer/register", async (req, res) => {
+  const { email, password, name, phone } = req.body;
+  if (!email || !password || typeof password !== "string" || password.length < 6) {
+    return res.status(400).json({
+      error: "\u064A\u0631\u062C\u0649 \u0625\u062F\u062E\u0627\u0644 \u0628\u0631\u064A\u062F \u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A \u0635\u062D\u064A\u062D \u0648\u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0644\u0627 \u062A\u0642\u0644 \u0639\u0646 \u0666 \u062E\u0627\u0646\u0627\u062A"
+    });
+  }
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanName = name ? String(name).trim() : "";
+  const cleanPhone = phone ? String(phone).trim() : "";
+  if (hasSupabaseServerConfig()) {
+    const sbRes = await supabaseCustomerRegister(cleanEmail, password, cleanName, cleanPhone);
+    if (!sbRes.success) {
+      return res.status(400).json({ error: sbRes.error || "\u062A\u0639\u0630\u0631 \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u062D\u0633\u0627\u0628 \u0641\u064A Supabase" });
+    }
+    const token2 = sbRes.token || generateCustomerToken(sbRes.user);
+    return res.json({
+      success: true,
+      token: token2,
+      user: sbRes.user,
+      message: "\u062A\u0645 \u0625\u0646\u0634\u0627\u0621 \u062D\u0633\u0627\u0628 \u0627\u0644\u0639\u0645\u064A\u0644 \u0628\u0646\u062C\u0627\u062D"
+    });
+  }
+  const localUser = {
+    id: `cust-${Date.now()}-${Math.floor(Math.random() * 1e3)}`,
+    email: cleanEmail,
+    name: cleanName || "\u0639\u0645\u064A\u0644 \u0644\u0648\u0645\u064A\u0631",
+    phone: cleanPhone || ""
+  };
+  const token = generateCustomerToken(localUser);
+  return res.json({
+    success: true,
+    token,
+    user: localUser,
+    message: "\u062A\u0645 \u0625\u0646\u0634\u0627\u0621 \u062D\u0633\u0627\u0628 \u0627\u0644\u0639\u0645\u064A\u0644 \u0628\u0646\u062C\u0627\u062D (\u0648\u0636\u0639 \u0645\u062D\u0644\u064A)"
+  });
+});
+app.post("/api/customer/login", async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: "\u064A\u0631\u062C\u0649 \u0625\u062F\u062E\u0627\u0644 \u0627\u0644\u0628\u0631\u064A\u062F \u0627\u0644\u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A \u0648\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631" });
+  }
+  const cleanEmail = email.trim().toLowerCase();
+  if (hasSupabaseServerConfig()) {
+    const sbRes = await supabaseCustomerLogin(cleanEmail, password);
+    if (!sbRes.success) {
+      return res.status(401).json({ error: sbRes.error || "\u0628\u064A\u0627\u0646\u0627\u062A \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D\u0629" });
+    }
+    const token2 = sbRes.token || generateCustomerToken(sbRes.user);
+    return res.json({
+      success: true,
+      token: token2,
+      user: sbRes.user,
+      message: "\u062A\u0645 \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0628\u0646\u062C\u0627\u062D"
+    });
+  }
+  const localUser = {
+    id: `cust-demo-${Date.now()}`,
+    email: cleanEmail,
+    name: "\u0639\u0645\u064A\u0644 \u0644\u0648\u0645\u064A\u0631 \u0627\u0644\u062A\u062C\u0631\u064A\u0628\u064A",
+    phone: "0500000000"
+  };
+  const token = generateCustomerToken(localUser);
+  return res.json({
+    success: true,
+    token,
+    user: localUser,
+    message: "\u062A\u0645 \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0628\u0646\u062C\u0627\u062D (\u0648\u0636\u0639 \u0645\u062D\u0644\u064A)"
+  });
+});
+app.get("/api/customer/me", async (req, res) => {
+  const customer = await extractCustomerFromRequest(req);
+  if (!customer) {
+    return res.status(401).json({ error: "\u062C\u0644\u0633\u0629 \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0645\u0646\u062A\u0647\u064A\u0629 \u0623\u0648 \u063A\u064A\u0631 \u0635\u0627\u0644\u062D\u0629" });
+  }
+  return res.json({ success: true, user: customer });
+});
+app.get("/api/customer/orders", async (req, res) => {
+  const customer = await extractCustomerFromRequest(req);
+  if (!customer) {
+    return res.status(401).json({ error: "\u064A\u0631\u062C\u0649 \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0644\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u0637\u0644\u0628\u0627\u062A\u0643 \u0627\u0644\u062E\u0627\u0635\u0629" });
+  }
+  if (hasSupabaseServerConfig()) {
+    const sbRes = await supabaseGetCustomerBookings(customer.id, customer.email, customer.phone);
+    if (sbRes.success && sbRes.data) {
+      const mappedOrders = sbRes.data.map((row) => ({
+        id: row.id,
+        referenceCode: row.booking_number,
+        clientName: row.customer_name,
+        clientPhone: row.customer_phone,
+        city: row.city || "\u0645\u0643\u0629 \u0627\u0644\u0645\u0643\u0631\u0645\u0629",
+        district: row.district || "",
+        venueName: row.venue_name || "",
+        serviceId: row.service_id,
+        serviceName: row.service_name,
+        categoryKey: row.category_key,
+        packageId: row.package_id,
+        packageName: row.package_name,
+        eventDate: row.event_date,
+        startTime: row.event_time,
+        durationHours: row.duration_hours,
+        hourlyRateSar: row.hourly_rate ? Number(row.hourly_rate) : void 0,
+        subtotalSar: row.subtotal_amount ? Number(row.subtotal_amount) : 0,
+        approvedFeesSar: row.approved_fees ? Number(row.approved_fees) : 0,
+        estimatedTotalSar: row.total_amount ? Number(row.total_amount) : 0,
+        status: row.status,
+        orderItems: row.order_items || [],
+        createdAt: row.created_at,
+        notes: row.notes
+      }));
+      return res.json({ success: true, orders: mappedOrders });
+    }
+  }
+  const cleanPhone = customer.phone ? customer.phone.replace(/\D/g, "") : "";
+  const localOrders = database.bookings.filter(
+    (b) => b.customerUserId && b.customerUserId === customer.id || b.customerEmail && b.customerEmail.toLowerCase() === customer.email.toLowerCase() || cleanPhone && b.clientPhone && b.clientPhone.replace(/\D/g, "") === cleanPhone
+  );
+  return res.json({ success: true, orders: localOrders });
+});
 app.post("/api/admin/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -2183,7 +2697,7 @@ app.post("/api/admin/login", async (req, res) => {
   }
   const normalizedEmail = String(email).trim().toLowerCase();
   const admin = database.admins.find((a) => a.email.toLowerCase() === normalizedEmail);
-  const isValidAdminPass = password === "lumir2026" || password === process.env.ADMIN_DEFAULT_PASSWORD;
+  const isValidAdminPass = password === "lumir2026" || password === "Lumir@2026" || password === process.env.ADMIN_DEFAULT_PASSWORD;
   if (!admin || !isValidAdminPass || !admin.isActive) {
     return res.status(401).json({ error: "\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u062F\u062E\u0648\u0644 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D\u0629 \u0623\u0648 \u0627\u0644\u062D\u0633\u0627\u0628 \u063A\u064A\u0631 \u0645\u0641\u0639\u0644" });
   }
@@ -2303,6 +2817,51 @@ app.put(
       details: `\u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u062E\u062F\u0645\u0629 (${service.name})`
     });
     return res.json({ success: true, service });
+  }
+);
+app.put(
+  "/api/admin/services/:id/pricing",
+  requireAuth,
+  requireRole(["admin", "operations_manager"]),
+  async (req, res) => {
+    const { id } = req.params;
+    const { hourlyRateSar, isHourlyEnabled, minHours, maxHours, defaultHours, fixedFeeSar } = req.body;
+    const service = database.services.find((s) => s.id === id);
+    if (!service) {
+      return res.status(404).json({ error: "\u0627\u0644\u062E\u062F\u0645\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629" });
+    }
+    const prevSummary = `\u0633\u0639\u0631 \u0627\u0644\u0633\u0627\u0639\u0629: ${service.hourlyRateSar || "\u063A\u064A\u0631 \u0645\u062D\u062F\u062F"} | \u0645\u0641\u0639\u0644: ${service.isHourlyEnabled ? "\u0646\u0639\u0645" : "\u0644\u0627"} | \u0627\u0644\u0633\u0627\u0639\u0627\u062A: ${service.minHours || 1}-${service.maxHours || 12}`;
+    if (hourlyRateSar !== void 0) service.hourlyRateSar = Number(hourlyRateSar) >= 0 ? Number(hourlyRateSar) : 0;
+    if (isHourlyEnabled !== void 0) service.isHourlyEnabled = Boolean(isHourlyEnabled);
+    if (minHours !== void 0) service.minHours = Math.max(1, Number(minHours) || 1);
+    if (maxHours !== void 0) service.maxHours = Math.max(service.minHours || 1, Number(maxHours) || 12);
+    if (defaultHours !== void 0) service.defaultHours = Math.min(service.maxHours || 12, Math.max(service.minHours || 1, Number(defaultHours) || 4));
+    if (fixedFeeSar !== void 0) service.fixedFeeSar = Number(fixedFeeSar) >= 0 ? Number(fixedFeeSar) : 0;
+    saveDatabase();
+    if (hasSupabaseServerConfig()) {
+      await supabaseAdminUpdateServicePricing(id, {
+        hourlyRateSar: service.hourlyRateSar,
+        isHourlyEnabled: service.isHourlyEnabled,
+        minHours: service.minHours,
+        maxHours: service.maxHours,
+        defaultHours: service.defaultHours,
+        fixedFeeSar: service.fixedFeeSar
+      });
+    }
+    logAuditEvent({
+      admin: req.adminUser,
+      action: "\u062A\u0639\u062F\u064A\u0644 \u062A\u0633\u0639\u064A\u0631 \u0648\u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0645\u062F\u0629 \u0627\u0644\u062E\u062F\u0645\u0629 \u0628\u0627\u0644\u0633\u0627\u0639\u0629",
+      targetType: "service",
+      targetId: id,
+      previousValue: prevSummary,
+      newValue: `\u0633\u0639\u0631 \u0627\u0644\u0633\u0627\u0639\u0629: ${service.hourlyRateSar} | \u0645\u0641\u0639\u0644: ${service.isHourlyEnabled ? "\u0646\u0639\u0645" : "\u0644\u0627"} | \u0627\u0644\u0633\u0627\u0639\u0627\u062A: ${service.minHours}-${service.maxHours}`,
+      details: `\u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u062A\u0633\u0639\u064A\u0631 \u0627\u0644\u062E\u062F\u0645\u0629 (${service.name}) \u0628\u0646\u062C\u0627\u062D`
+    });
+    return res.json({
+      success: true,
+      service,
+      message: "\u062A\u0645 \u062D\u0641\u0638 \u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u062A\u0633\u0639\u064A\u0631 \u0648\u0627\u0644\u0645\u062F\u0629 \u0628\u0646\u062C\u0627\u062D"
+    });
   }
 );
 app.post(

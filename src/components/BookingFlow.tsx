@@ -24,6 +24,8 @@ import {
   checkServerConflict,
   submitBookingToServer
 } from '../utils/apiClient';
+import { useCustomerAuth } from '../context/CustomerAuthContext';
+import { useCart } from '../context/CartContext';
 import {
   AlertCircle,
   Calendar,
@@ -31,8 +33,10 @@ import {
   CheckCircle2,
   Clock,
   Copy,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   FileText,
   HeartHandshake,
   HelpCircle,
@@ -76,6 +80,9 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
   const initialService =
     visibleServices.find((s) => s.id === preselectedServiceId) || visibleServices[0];
 
+  const { user } = useCustomerAuth();
+  const { items: cartItems, clearCart } = useCart();
+
   // Current wizard step: 1 to 7
   const [currentStep, setCurrentStep] = useState<number>(1);
 
@@ -83,6 +90,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
   // Step 1: Service & Package
   const [serviceId, setServiceId] = useState<string>(initialService?.id || '');
   const [packageId, setPackageId] = useState<string>(preselectedPackageId || '');
+  const [isPackagesExpanded, setIsPackagesExpanded] = useState<boolean>(false);
 
   // Step 2: City
   const [city, setCity] = useState<'مكة المكرمة' | 'جدة'>('مكة المكرمة');
@@ -107,14 +115,21 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
   const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
 
   // Step 5: Client Info & Consents
-  const [clientName, setClientName] = useState<string>('');
-  const [clientPhone, setClientPhone] = useState<string>('');
+  const [clientName, setClientName] = useState<string>(user?.name || '');
+  const [clientPhone, setClientPhone] = useState<string>(user?.phone || '');
   const [preferredContactMethod, setPreferredContactMethod] =
     useState<PreferredContactMethod>('whatsapp');
   const [specialNotes, setSpecialNotes] = useState<string>('');
   const [agreedTermsAndPrivacy, setAgreedTermsAndPrivacy] = useState<boolean>(false);
   const [agreedNonMedicalDisclaimer, setAgreedNonMedicalDisclaimer] = useState<boolean>(false);
   const [agreedPhotoPrivacy, setAgreedPhotoPrivacy] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (user) {
+      if (!clientName && user.name) setClientName(user.name);
+      if (!clientPhone && user.phone) setClientPhone(user.phone);
+    }
+  }, [user]);
 
   // Validation & Conflict checking states
   const [stepError, setStepError] = useState<string | null>(null);
@@ -209,12 +224,17 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
       };
     }
 
-    let base = selectedPackage ? selectedPackage.price : selectedService.basePrice;
-
-    // Extra hours surcharge beyond package
-    if (selectedPackage && selectedPackage.durationHours && durationHours > selectedPackage.durationHours) {
-      const extra = durationHours - selectedPackage.durationHours;
-      base += extra * 100;
+    let base = 0;
+    if (selectedService.isHourlyEnabled && !selectedPackage) {
+      const rate = selectedService.hourlyRateSar ?? selectedService.basePrice ?? 100;
+      base = rate * durationHours + (selectedService.fixedFeeSar || 0);
+    } else {
+      base = selectedPackage ? selectedPackage.price : selectedService.basePrice;
+      // Extra hours surcharge beyond package
+      if (selectedPackage && selectedPackage.durationHours && durationHours > selectedPackage.durationHours) {
+        const extra = durationHours - selectedPackage.durationHours;
+        base += extra * (selectedService.hourlyRateSar || 100);
+      }
     }
 
     // Addons calculation
@@ -401,6 +421,12 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
         isCustomQuoteRequired: priceBreakdown.isCustomQuoteRequired,
         clientName: clientName.trim(),
         clientPhone: clientPhone.trim(),
+        customerUserId: user?.id || undefined,
+        customerEmail: user?.email || undefined,
+        hourlyRateSar: selectedService.isHourlyEnabled
+          ? selectedService.hourlyRateSar ?? selectedService.basePrice
+          : undefined,
+        orderItems: cartItems.length > 0 ? cartItems : undefined,
         preferredContactMethod,
         specialNotes: specialNotes.trim() || undefined,
         agreedTermsAndPrivacy,
@@ -411,6 +437,9 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
       // Real server submission + client persistence
       const result = await submitBookingToServer(newBooking);
       const savedBooking = result.booking || newBooking;
+
+      // Clear shopping cart ONLY upon confirmed booking creation
+      clearCart();
 
       setConfirmedBooking(savedBooking);
       onBookingCreated(savedBooking);
@@ -570,6 +599,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                         onClick={() => {
                           setServiceId(srv.id);
                           setPackageId('');
+                          setIsPackagesExpanded(false);
                         }}
                         className={`p-4 rounded-xl border text-right transition-all cursor-pointer flex flex-col justify-between gap-3 ${
                           isSelected
@@ -616,63 +646,152 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {selectedService.packages.map((pkg) => {
-                      const isSelected = pkg.id === packageId;
-                      return (
-                        <button
-                          key={pkg.id}
-                          type="button"
-                          onClick={() => setPackageId(pkg.id)}
-                          className={`p-4 rounded-xl border text-right transition-all cursor-pointer flex flex-col justify-between gap-3 ${
-                            isSelected
-                              ? 'bg-[#2C1E18] text-[#FAF6F0] border-[#2C1E18] shadow-md'
-                              : 'bg-[#FAF6F0] text-[#2C1E18] border-[#D8CBB8] hover:bg-[#F3ECE1]'
-                          }`}
-                        >
-                          <div>
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-bold text-sm">{pkg.name}</span>
-                              {pkg.popular && (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#C8A96E] text-[#2C1E18] font-bold">
+                  {/* If user selected a package and has not expanded the rest */}
+                  {selectedPackage && !isPackagesExpanded ? (
+                    <div className="space-y-3">
+                      <div className="p-4 sm:p-5 rounded-xl border bg-[#2C1E18] text-[#FAF6F0] border-[#2C1E18] shadow-md flex flex-col justify-between gap-3 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-[#C8A96E]/10 rounded-full blur-2xl pointer-events-none" />
+                        <div>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-base">{selectedPackage.name}</span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#C8A96E] text-[#2C1E18] font-bold">
+                                الباقة المختارة
+                              </span>
+                              {selectedPackage.popular && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#FAF6F0]/20 text-[#FAF6F0] font-medium">
                                   الأكثر طلباً
                                 </span>
                               )}
                             </div>
-                            <div
-                              className={`text-xs mt-1 ${
-                                isSelected ? 'text-[#C8A96E]' : 'text-[#8C6D36]'
+                            <CheckCircle2 className="w-5 h-5 text-[#C8A96E]" />
+                          </div>
+                          <div className="text-xs mt-1 text-[#C8A96E]">
+                            {selectedPackage.durationHours ? `${formatArabicNumber(selectedPackage.durationHours)} ساعات تغطية · ` : ''}
+                            تسليم خلال {selectedPackage.deliveryTimeframe || '٤٨ ساعة'}
+                          </div>
+
+                          <ul className="mt-3 space-y-1.5">
+                            {selectedPackage.features.map((feat, fIdx) => (
+                              <li
+                                key={fIdx}
+                                className="text-xs flex items-center gap-1.5 text-[#FAF6F0]/85"
+                              >
+                                <span className="text-[#C8A96E]">•</span>
+                                <span>{feat}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className="pt-3 border-t border-[#FAF6F0]/15 flex items-center justify-between">
+                          <span className="text-xs text-[#FAF6F0]/80">السعر المعتمد:</span>
+                          <span className="font-mono-num font-bold text-base text-[#C8A96E]">
+                            {formatSar(selectedPackage.price)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {selectedService.packages.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setIsPackagesExpanded(true)}
+                          className="w-full py-3 px-4 rounded-xl border border-dashed border-[#C8A96E] bg-[#FAF6F0] hover:bg-[#F3ECE1] text-[#2C1E18] text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm hover:shadow"
+                        >
+                          <ChevronDown className="w-4 h-4 text-[#8C6D36]" />
+                          <span>عرض المزيد من الباقات ({formatArabicNumber(selectedService.packages.length - 1)} باقات أخرى متاحة)</span>
+                          <Sparkles className="w-3.5 h-3.5 text-[#C8A96E]" />
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {selectedService.packages.map((pkg) => {
+                          const isSelected = pkg.id === packageId;
+                          return (
+                            <button
+                              key={pkg.id}
+                              type="button"
+                              onClick={() => {
+                                setPackageId(pkg.id);
+                                setIsPackagesExpanded(false);
+                                if (pkg.durationHours) {
+                                  setDurationHours(pkg.durationHours);
+                                }
+                              }}
+                              className={`p-4 rounded-xl border text-right transition-all cursor-pointer flex flex-col justify-between gap-3 ${
+                                isSelected
+                                  ? 'bg-[#2C1E18] text-[#FAF6F0] border-[#2C1E18] shadow-md ring-2 ring-[#C8A96E]'
+                                  : 'bg-[#FAF6F0] text-[#2C1E18] border-[#D8CBB8] hover:bg-[#F3ECE1]'
                               }`}
                             >
-                              {pkg.durationHours ? `${formatArabicNumber(pkg.durationHours)} ساعات تغطية · ` : ''}
-                              تسليم خلال {pkg.deliveryTimeframe || '٤٨ ساعة'}
-                            </div>
-
-                            <ul className="mt-2.5 space-y-1">
-                              {pkg.features.slice(0, 3).map((feat, fIdx) => (
-                                <li
-                                  key={fIdx}
-                                  className={`text-[11px] flex items-center gap-1.5 ${
-                                    isSelected ? 'text-[#FAF6F0]/85' : 'text-[#645249]'
+                              <div>
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-bold text-sm">{pkg.name}</span>
+                                    {isSelected && (
+                                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#C8A96E] text-[#2C1E18] font-bold">
+                                        المختارة
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    {pkg.popular && (
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#C8A96E] text-[#2C1E18] font-bold">
+                                        الأكثر طلباً
+                                      </span>
+                                    )}
+                                    {isSelected && <CheckCircle2 className="w-4 h-4 text-[#C8A96E]" />}
+                                  </div>
+                                </div>
+                                <div
+                                  className={`text-xs mt-1 ${
+                                    isSelected ? 'text-[#C8A96E]' : 'text-[#8C6D36]'
                                   }`}
                                 >
-                                  <span className="text-[#C8A96E]">•</span>
-                                  <span>{feat}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
+                                  {pkg.durationHours ? `${formatArabicNumber(pkg.durationHours)} ساعات تغطية · ` : ''}
+                                  تسليم خلال {pkg.deliveryTimeframe || '٤٨ ساعة'}
+                                </div>
 
-                          <div className="pt-2 border-t border-current/15 flex items-center justify-between">
-                            <span className="text-xs">السعر:</span>
-                            <span className="font-mono-num font-bold text-sm text-[#C8A96E]">
-                              {formatSar(pkg.price)}
-                            </span>
-                          </div>
+                                <ul className="mt-2.5 space-y-1">
+                                  {pkg.features.slice(0, 3).map((feat, fIdx) => (
+                                    <li
+                                      key={fIdx}
+                                      className={`text-[11px] flex items-center gap-1.5 ${
+                                        isSelected ? 'text-[#FAF6F0]/85' : 'text-[#645249]'
+                                      }`}
+                                    >
+                                      <span className="text-[#C8A96E]">•</span>
+                                      <span>{feat}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+
+                              <div className="pt-2 border-t border-current/15 flex items-center justify-between">
+                                <span className="text-xs">السعر:</span>
+                                <span className="font-mono-num font-bold text-sm text-[#C8A96E]">
+                                  {formatSar(pkg.price)}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {selectedPackage && selectedService.packages.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setIsPackagesExpanded(false)}
+                          className="w-full py-2.5 px-4 rounded-xl border border-[#E6DCD2] bg-[#FAF6F0]/90 hover:bg-[#F3ECE1] text-[#645249] text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+                        >
+                          <ChevronUp className="w-4 h-4 text-[#8C6D36]" />
+                          <span>طي الباقات الإضافية (إبقاء {selectedPackage.name})</span>
                         </button>
-                      );
-                    })}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

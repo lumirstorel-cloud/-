@@ -157,6 +157,139 @@ export async function supabaseVerifyToken(token: string): Promise<{
 }
 
 /**
+ * Validates any customer Supabase Auth token (without requiring admin_profiles role)
+ */
+export async function supabaseVerifyCustomerToken(token: string): Promise<{
+  isValid: boolean;
+  user?: { id: string; email: string; name?: string; phone?: string };
+  error?: string;
+}> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return { isValid: false, error: 'خادم Supabase غير مهيأ' };
+  }
+
+  try {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data.user) {
+      return { isValid: false, error: 'جلسة تسجيل الدخول غير صالحة أو منتهية' };
+    }
+
+    const u = data.user;
+    return {
+      isValid: true,
+      user: {
+        id: u.id,
+        email: u.email || '',
+        name: u.user_metadata?.name || u.user_metadata?.full_name || '',
+        phone: u.user_metadata?.phone || ''
+      }
+    };
+  } catch (err: any) {
+    return { isValid: false, error: err.message || 'فشل التحقق من جلسة العميل' };
+  }
+}
+
+/**
+ * Registers a new customer in Supabase Auth
+ */
+export async function supabaseCustomerRegister(
+  email: string,
+  pass: string,
+  name?: string,
+  phone?: string
+): Promise<{
+  success: boolean;
+  token?: string;
+  user?: { id: string; email: string; name?: string; phone?: string };
+  error?: string;
+}> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return { success: false, error: 'قاعدة بيانات Supabase غير مهيأة على الخادم' };
+  }
+
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const { data, error } = await supabase.auth.signUp({
+      email: cleanEmail,
+      password: pass,
+      options: {
+        data: {
+          name: name?.trim() || '',
+          phone: phone?.trim() || ''
+        }
+      }
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    if (!data.user) {
+      return { success: false, error: 'تعذر إنشاء الحساب' };
+    }
+
+    const token = data.session?.access_token || '';
+    return {
+      success: true,
+      token,
+      user: {
+        id: data.user.id,
+        email: data.user.email || cleanEmail,
+        name: name?.trim() || '',
+        phone: phone?.trim() || ''
+      }
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'خطأ غير متوقع أثناء إنشاء حساب العميل' };
+  }
+}
+
+/**
+ * Authenticates a customer using Supabase Auth
+ */
+export async function supabaseCustomerLogin(
+  email: string,
+  pass: string
+): Promise<{
+  success: boolean;
+  token?: string;
+  user?: { id: string; email: string; name?: string; phone?: string };
+  error?: string;
+}> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return { success: false, error: 'قاعدة بيانات Supabase غير مهيأة على الخادم' };
+  }
+
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password: pass
+    });
+
+    if (error || !data.user) {
+      return { success: false, error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' };
+    }
+
+    return {
+      success: true,
+      token: data.session?.access_token || '',
+      user: {
+        id: data.user.id,
+        email: data.user.email || cleanEmail,
+        name: data.user.user_metadata?.name || '',
+        phone: data.user.user_metadata?.phone || ''
+      }
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'حدث خطأ أثناء تسجيل الدخول' };
+  }
+}
+
+/**
  * Essential columns representing the core contract, scheduling, identity, and financials of a booking.
  * Under NO circumstances may these columns be removed or omitted.
  * If Supabase lacks any of these columns, the insertion must fail explicitly with a descriptive schema error.
@@ -185,7 +318,11 @@ export const ESSENTIAL_BOOKING_COLUMNS = new Set<string>([
  * Notice: category_key, service, package, dates, and amounts are NEVER in this list.
  */
 export const EXPLICIT_OPTIONAL_FALLBACK_COLUMNS = new Set<string>([
-  'approved_fees' // Auxiliary breakdown fee; total_amount already captures the authoritative final price
+  'approved_fees', // Auxiliary breakdown fee; total_amount already captures the authoritative final price
+  'customer_user_id',
+  'customer_email',
+  'order_items',
+  'hourly_rate'
 ]);
 
 /**
@@ -234,18 +371,42 @@ export async function supabaseCreateBooking(
     if (booking.approvedFeesSar !== undefined) {
       dbPayload.approved_fees = booking.approvedFeesSar;
     }
+    if (booking.customerUserId) {
+      dbPayload.customer_user_id = booking.customerUserId;
+    }
+    if (booking.customerEmail) {
+      dbPayload.customer_email = booking.customerEmail;
+    }
+    if (booking.orderItems && booking.orderItems.length > 0) {
+      dbPayload.order_items = booking.orderItems;
+    }
+    if (booking.hourlyRateSar !== undefined) {
+      dbPayload.hourly_rate = booking.hourlyRateSar;
+    }
 
-    // Attempt primary insert with full payload
-    const payload = { ...dbPayload };
-    let { data, error } = await supabase
-      .from('bookings')
-      .insert([payload])
-      .select()
-      .single();
+    // Attempt insert with fallback loop for permissible optional columns only
+    let currentPayload = { ...dbPayload };
+    let data: any = null;
+    let error: any = null;
+    const maxRetries = 6;
+    let attempts = 0;
 
-    // If an error occurred, check if it's a missing column error from PostgREST schema cache
-    if (error && error.message) {
-      const missingColMatch = error.message.match(
+    while (attempts < maxRetries) {
+      attempts++;
+      const res = await supabase
+        .from('bookings')
+        .insert([currentPayload])
+        .select()
+        .single();
+
+      data = res.data;
+      error = res.error;
+
+      if (!error) {
+        break; // Successfully inserted!
+      }
+
+      const missingColMatch = error.message?.match(
         /Could not find the '([^']+)' column of 'bookings' in the schema cache/i
       );
 
@@ -260,36 +421,34 @@ export async function supabaseCreateBooking(
         }
 
         // 2. Only if it is explicitly approved in EXPLICIT_OPTIONAL_FALLBACK_COLUMNS
-        if (EXPLICIT_OPTIONAL_FALLBACK_COLUMNS.has(missingCol) && missingCol in payload) {
+        if (EXPLICIT_OPTIONAL_FALLBACK_COLUMNS.has(missingCol) && missingCol in currentPayload) {
           console.warn(
-            `[Supabase Warning] Auxiliary column '${missingCol}' is missing from schema cache. Attempting single explicit fallback without it (total_amount remains intact)...`
+            `[Supabase Warning] Auxiliary column '${missingCol}' is missing from schema cache. Attempting fallback without it (total_amount remains intact)...`
           );
-          const fallbackPayload = { ...payload };
-          const droppedFee = fallbackPayload[missingCol];
-          delete fallbackPayload[missingCol];
+          const droppedVal = currentPayload[missingCol];
+          delete currentPayload[missingCol];
 
-          // Preserve the fee amount in notes so the financial breakdown is NEVER lost
-          if (typeof droppedFee === 'number' && droppedFee > 0) {
-            const feeNote = `[رسوم إضافية معتمدة مشمولة في الإجمالي: ${droppedFee} ر.س]`;
-            fallbackPayload.notes = fallbackPayload.notes
-              ? `${fallbackPayload.notes} | ${feeNote}`
-              : feeNote;
+          // Preserve the auxiliary info in notes so data is NEVER lost
+          if (missingCol === 'approved_fees' && typeof droppedVal === 'number' && droppedVal > 0) {
+            const feeNote = `[رسوم إضافية معتمدة مشمولة في الإجمالي: ${droppedVal} ر.س]`;
+            currentPayload.notes = currentPayload.notes ? `${currentPayload.notes} | ${feeNote}` : feeNote;
+          } else if (missingCol === 'order_items' && Array.isArray(droppedVal)) {
+            const itemsNote = `[عناصر السلة: ${droppedVal.map((it: any) => `${it.serviceName} (${it.durationHours || 1}س)`).join(', ')}]`;
+            currentPayload.notes = currentPayload.notes ? `${currentPayload.notes} | ${itemsNote}` : itemsNote;
+          } else if (missingCol === 'customer_user_id' && droppedVal) {
+            const userNote = `[معرف المستخدم: ${droppedVal}]`;
+            currentPayload.notes = currentPayload.notes ? `${currentPayload.notes} | ${userNote}` : userNote;
           }
-
-          const retryRes = await supabase
-            .from('bookings')
-            .insert([fallbackPayload])
-            .select()
-            .single();
-
-          data = retryRes.data;
-          error = retryRes.error;
+          continue; // Retry loop with stripped optional column
         } else {
           // Any other column missing that is NOT in EXPLICIT_OPTIONAL_FALLBACK_COLUMNS must fail explicitly
           const schemaError = `فشل حفظ الحجز: العمود '${missingCol}' غير معرّف في الـ Schema Cache لقاعدة البيانات. يرجى تطبيق ترحيل قاعدة البيانات وتحديث الـ schema cache.`;
           console.error(`[Supabase Schema Mismatch] ${schemaError}`);
           return { success: false, error: schemaError };
         }
+      } else {
+        // Other non-schema-cache error (e.g. permission or network), stop retrying
+        break;
       }
     }
 
@@ -549,6 +708,111 @@ export async function supabaseVerifyBookingRef(
   } catch (err) {
     console.warn('Supabase verify booking exception:', err);
     return { isVerified: false };
+  }
+}
+
+/**
+ * Retrieves bookings strictly belonging to the authenticated customer.
+ * Strictly isolates customer data: only records matching userId or userEmail are retrieved.
+ */
+export async function supabaseGetCustomerBookings(
+  userId: string,
+  userEmail: string,
+  userPhone?: string
+): Promise<{ success: boolean; data: any[]; error?: string }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return { success: false, data: [], error: 'قاعدة بيانات Supabase غير مهيأة على الخادم' };
+  }
+
+  try {
+    const cleanEmail = (userEmail || '').trim().toLowerCase();
+    const cleanPhone = (userPhone || '').trim();
+
+    let query = supabase.from('bookings').select('*');
+
+    if (userId && cleanEmail) {
+      query = query.or(`customer_user_id.eq.${userId},customer_email.ilike.${cleanEmail}`);
+    } else if (userId) {
+      query = query.eq('customer_user_id', userId);
+    } else if (cleanEmail) {
+      query = query.ilike('customer_email', cleanEmail);
+    } else {
+      return { success: true, data: [] };
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+
+    if (error) {
+      // If customer_user_id column doesn't exist in schema yet, fallback query by customer_phone
+      if (
+        (error.message?.includes('customer_user_id') || error.message?.includes('customer_email')) &&
+        cleanPhone
+      ) {
+        const { data: phoneData, error: phoneErr } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('customer_phone', cleanPhone)
+          .order('created_at', { ascending: false });
+        if (!phoneErr && phoneData) {
+          return { success: true, data: phoneData };
+        }
+      }
+      return { success: false, data: [], error: error.message };
+    }
+
+    return { success: true, data: data || [] };
+  } catch (err: any) {
+    return { success: false, data: [], error: err.message || 'فشل جلب طلبات العميل' };
+  }
+}
+
+/**
+ * Updates service pricing and duration settings in public.services (if table exists)
+ */
+export async function supabaseAdminUpdateServicePricing(
+  serviceId: string,
+  pricing: {
+    hourlyRateSar?: number;
+    isHourlyEnabled?: boolean;
+    minHours?: number;
+    maxHours?: number;
+    defaultHours?: number;
+    fixedFeeSar?: number;
+  }
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return { success: true, error: 'تم التحديث في قاعدة الذاكرة المحلية' };
+  }
+
+  try {
+    const payload: Record<string, any> = {
+      updated_at: new Date().toISOString()
+    };
+    if (pricing.hourlyRateSar !== undefined) payload.hourly_rate_sar = pricing.hourlyRateSar;
+    if (pricing.isHourlyEnabled !== undefined) payload.is_hourly_enabled = pricing.isHourlyEnabled;
+    if (pricing.minHours !== undefined) payload.min_hours = pricing.minHours;
+    if (pricing.maxHours !== undefined) payload.max_hours = pricing.maxHours;
+    if (pricing.defaultHours !== undefined) payload.default_hours = pricing.defaultHours;
+    if (pricing.fixedFeeSar !== undefined) payload.fixed_fee_sar = pricing.fixedFeeSar;
+
+    const { data, error } = await supabase
+      .from('services')
+      .update(payload)
+      .eq('id', serviceId)
+      .select()
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Note: public.services table update notice:', error.message);
+      return { success: true, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch (err: any) {
+    console.warn('Admin update service pricing notice:', err);
+    return { success: true, error: err.message };
   }
 }
 

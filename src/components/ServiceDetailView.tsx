@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FavoriteItem, PageView, ServiceItem, SiteSettings } from '../types';
 import { formatArabicNumber, formatSar, getPricingModelLabel } from '../utils/formatters';
 import { pathForView } from '../utils/routes';
 import { getSeoMeta } from '../data/seo';
 import { ResilientImage } from './ResilientImage';
 import { ReviewForm } from './ReviewForm';
+import { useCart } from '../context/CartContext';
 import {
   ArrowLeft,
   Check,
@@ -12,7 +13,9 @@ import {
   Heart,
   MapPin,
   MessageCircle,
-  ShoppingBag
+  ShoppingBag,
+  Plus,
+  Minus
 } from 'lucide-react';
 
 interface ServiceDetailProps {
@@ -34,13 +37,18 @@ export const ServiceDetailView: React.FC<ServiceDetailProps> = ({
   settings,
   favorites = [],
   onToggleFavorite,
-  onAddToCart,
+  onAddToCart: propOnAddToCart,
   navigate,
   onSelectServiceToBook,
   onOpenRatingModal
 }) => {
+  const { addToCart } = useCart();
   const service = services.find((s) => s.slug === slug);
   const seo = getSeoMeta(`/services/${slug}`);
+
+  const [selectedHours, setSelectedHours] = useState<number>(() => {
+    return service?.defaultHours || service?.minHours || 4;
+  });
 
   const go =
     (view: PageView, targetSlug?: string) =>
@@ -69,6 +77,48 @@ export const ServiceDetailView: React.FC<ServiceDetailProps> = ({
       </div>
     );
   }
+
+  const isHourly = Boolean(service.isHourlyEnabled || service.hourlyRateSar);
+  const hourlyRate = service.hourlyRateSar ?? service.basePrice;
+  const minH = service.minHours || 1;
+  const maxH = service.maxHours || 12;
+  const currentHourlySubtotal = hourlyRate * selectedHours + (service.fixedFeeSar || 0);
+
+  const handleAddToCartHourly = () => {
+    addToCart({
+      serviceId: service.id,
+      serviceName: service.name,
+      categoryKey: service.category,
+      pricingModel: 'hourly',
+      hourlyRateSar: hourlyRate,
+      durationHours: selectedHours,
+      unitPriceSar: currentHourlySubtotal,
+      quantity: 1,
+      imageUrl: service.imageUrl,
+      deliveryTimeframe: service.deliveryTimeframeHours
+        ? `${formatArabicNumber(service.deliveryTimeframeHours)} ساعة`
+        : undefined
+    });
+  };
+
+  const handleAddToCartPackage = (pkg: any) => {
+    if (propOnAddToCart) {
+      propOnAddToCart(service, pkg);
+    } else {
+      addToCart({
+        serviceId: service.id,
+        serviceName: service.name,
+        categoryKey: service.category,
+        packageId: pkg.id,
+        packageName: pkg.name,
+        pricingModel: 'package',
+        durationHours: pkg.durationHours || selectedHours,
+        unitPriceSar: pkg.price,
+        quantity: 1,
+        imageUrl: service.imageUrl
+      });
+    }
+  };
 
   const related = services.filter((s) => s.isAvailable && s.id !== service.id).slice(0, 4);
   const imageAlt = service.imageAlt || `${service.name} — خدمات لومير في مكة وجدة`;
@@ -111,12 +161,29 @@ export const ServiceDetailView: React.FC<ServiceDetailProps> = ({
                 ? `تسليم خلال ${formatArabicNumber(service.deliveryTimeframeHours)} ساعة`
                 : 'مدة الخدمة تُحدد حسب المناسبة'}
             </span>
-            <span className="font-mono-num font-bold text-[#2C1E18]">
-              تبدأ من {formatSar(service.basePrice)}
-            </span>
+            {isHourly ? (
+              <span className="font-mono-num font-bold text-[#2C1E18] bg-white/70 px-2.5 py-1 rounded-lg border border-[#D8CBB8]">
+                {formatSar(hourlyRate)} / ساعة
+              </span>
+            ) : (
+              <span className="font-mono-num font-bold text-[#2C1E18]">
+                تبدأ من {formatSar(service.basePrice)}
+              </span>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-3 pt-2">
+            {isHourly ? (
+              <button
+                type="button"
+                onClick={handleAddToCartHourly}
+                className="px-6 py-3 text-xs font-bold bg-[#8C6D36] text-white rounded-xl hover:bg-[#72572B] inline-flex items-center gap-2 cursor-pointer shadow-xs"
+              >
+                <ShoppingBag className="w-4 h-4" />
+                <span>إضافة إلى السلة ({formatSar(currentHourlySubtotal)})</span>
+              </button>
+            ) : null}
+
             <button
               type="button"
               onClick={() => onSelectServiceToBook(service.id)}
@@ -124,6 +191,7 @@ export const ServiceDetailView: React.FC<ServiceDetailProps> = ({
             >
               احجزي هذه الخدمة
             </button>
+
             <a
               href={pathForView('contact')}
               onClick={go('contact')}
@@ -143,6 +211,111 @@ export const ServiceDetailView: React.FC<ServiceDetailProps> = ({
           />
         </div>
       </section>
+
+      {/* Hourly Pricing & Duration Selector Section */}
+      {isHourly && (
+        <section className="p-6 sm:p-8 rounded-2xl bg-[#F3ECE1] border border-[#D8CBB8] space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D8CBB8] pb-4">
+            <div>
+              <div className="text-xs text-[#8C6D36] font-medium">نظام التسعير بالساعة وإدارة المدة</div>
+              <h2 className="font-display text-2xl font-bold text-[#2C1E18]">
+                مدة الخدمة وحساب التكلفة التقديرية
+              </h2>
+              <p className="text-xs text-[#645249] mt-1">
+                سعر الساعة: <strong className="text-[#2C1E18]">{formatSar(hourlyRate)}</strong> (الحد الأدنى: {minH} ساعات — الحد الأقصى: {maxH} ساعات)
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold text-[#645249]">عدد الساعات:</span>
+              <div className="flex items-center gap-2 bg-white border border-[#D8CBB8] rounded-xl px-3 py-1.5 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setSelectedHours((h) => Math.max(minH, h - 1))}
+                  disabled={selectedHours <= minH}
+                  className="w-8 h-8 rounded-lg bg-[#FAF6F0] text-[#2C1E18] flex items-center justify-center hover:bg-[#F3ECE1] disabled:opacity-40 cursor-pointer font-bold"
+                  title="إنقاص ساعة"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="font-mono-num font-bold text-base px-2 text-[#2C1E18]">
+                  {formatArabicNumber(selectedHours)} س
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedHours((h) => Math.min(maxH, h + 1))}
+                  disabled={selectedHours >= maxH}
+                  className="w-8 h-8 rounded-lg bg-[#FAF6F0] text-[#2C1E18] flex items-center justify-center hover:bg-[#F3ECE1] disabled:opacity-40 cursor-pointer font-bold"
+                  title="زيادة ساعة"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Preset hour buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-[#645249] ml-2">خيارات سريعة للمدة:</span>
+            {[3, 4, 5, 6, 8, 10]
+              .filter((h) => h >= minH && h <= maxH)
+              .map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  onClick={() => setSelectedHours(h)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                    selectedHours === h
+                      ? 'bg-[#2C1E18] text-[#FAF6F0]'
+                      : 'bg-white border border-[#D8CBB8] text-[#645249] hover:text-[#2C1E18]'
+                  }`}
+                >
+                  {formatArabicNumber(h)} ساعات
+                </button>
+              ))}
+          </div>
+
+          {/* Live Calculation Box */}
+          <div className="p-5 rounded-xl bg-white border border-[#D8CBB8] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="text-xs text-[#8C6D36] font-medium">الحسبة التقديرية الحية:</div>
+              <div className="text-sm text-[#2C1E18] flex items-center gap-2 flex-wrap">
+                <span>{formatSar(hourlyRate)} / ساعة</span>
+                <span>×</span>
+                <span>{formatArabicNumber(selectedHours)} ساعات</span>
+                {service.fixedFeeSar ? (
+                  <>
+                    <span>+</span>
+                    <span>رسوم ثابتة {formatSar(service.fixedFeeSar)}</span>
+                  </>
+                ) : null}
+                <span>=</span>
+                <strong className="text-xl font-display text-[#8C6D36] font-mono-num">
+                  {formatSar(currentHourlySubtotal)}
+                </strong>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleAddToCartHourly}
+                className="px-6 py-3 text-xs font-bold bg-[#8C6D36] text-white rounded-xl hover:bg-[#72572B] transition-colors inline-flex items-center gap-2 cursor-pointer shadow-xs"
+              >
+                <ShoppingBag className="w-4 h-4" />
+                <span>إضافة إلى السلة ({formatSar(currentHourlySubtotal)})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectServiceToBook(service.id)}
+                className="px-6 py-3 text-xs font-bold bg-[#2C1E18] text-[#FAF6F0] rounded-xl hover:bg-[#422E25] transition-colors cursor-pointer"
+              >
+                حجز هذه المدة
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Highlights */}
       {service.includedHighlights.length > 0 && (
@@ -208,16 +381,14 @@ export const ServiceDetailView: React.FC<ServiceDetailProps> = ({
                   >
                     حجز هذه الباقة
                   </button>
-                  {onAddToCart && (
-                    <button
-                      type="button"
-                      onClick={() => onAddToCart(service, pkg)}
-                      className="p-2.5 rounded-lg border border-[#D8CBB8] hover:bg-[#F3ECE1] text-[#2C1E18] cursor-pointer"
-                      title="إضافة لسلة الباقات"
-                    >
-                      <ShoppingBag className="w-4 h-4" />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleAddToCartPackage(pkg)}
+                    className="p-2.5 rounded-lg border border-[#D8CBB8] hover:bg-[#F3ECE1] text-[#2C1E18] cursor-pointer"
+                    title="إضافة هذه الباقة إلى السلة"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                  </button>
                   {onToggleFavorite && (
                     <button
                       type="button"
