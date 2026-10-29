@@ -39,11 +39,12 @@ import { CartView } from './components/CartView';
 import { CustomerAccountView } from './components/CustomerAccountView';
 import { CustomerAuthModal } from './components/CustomerAuthModal';
 import { CartProvider } from './context/CartContext';
-import { CustomerAuthProvider } from './context/CustomerAuthContext';
+import { CustomerAuthProvider, useCustomerAuth } from './context/CustomerAuthContext';
 import { parseRoute, pathForView } from './utils/routes';
 import { applySeoToDocument } from './utils/seoDocument';
 
-export function App() {
+function AppInner() {
+  const { user, openAuthModal } = useCustomerAuth();
   const [data, setData] = useState<LumirCentralData>(() => loadCentralData());
   const initialRoute = parseRoute(window.location.pathname, window.location.hash);
   const [currentView, setCurrentView] = useState<PageView>(initialRoute.view);
@@ -260,8 +261,11 @@ export function App() {
   const handleSelectServiceToBook = (serviceId: string, packageId?: string) => {
     setSelectedServiceId(serviceId);
     setSelectedPackageId(packageId);
-    setCurrentView('booking');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (!user) {
+      openAuthModal('booking');
+      return;
+    }
+    handleNavigate('booking');
   };
 
   const handleBookingCreated = (submission: BookingSubmission) => {
@@ -299,9 +303,8 @@ export function App() {
   }
 
   return (
-    <CustomerAuthProvider>
-      <CartProvider>
-        <Layout
+    <>
+      <Layout
           currentView={currentView}
           navigate={handleNavigate}
           settings={data.settings}
@@ -482,7 +485,16 @@ export function App() {
         />
 
         {/* Dedicated Customer Authentication Modal */}
-        <CustomerAuthModal />
+        <CustomerAuthModal navigate={handleNavigate} />
+    </>
+  );
+}
+
+export function App() {
+  return (
+    <CustomerAuthProvider>
+      <CartProvider>
+        <AppInner />
       </CartProvider>
     </CustomerAuthProvider>
   );

@@ -137,6 +137,13 @@ export interface SiteSettings {
   approvedFeesSar: number; // الرسوم المعتمدة والمحددة في الإعدادات
   bookingNotice: string; // تنبيه مراجعة الإدارة قبل تأكيد الموعد
   allowPublicCoupons: boolean;
+  // حسابات ومنصات التواصل الاجتماعي المدارة من لوحة التحكم
+  instagramUrl?: string;
+  tiktokUrl?: string;
+  snapchatUrl?: string;
+  twitterUrl?: string;
+  youtubeUrl?: string;
+  telegramUrl?: string;
 }
 
 // Announcement Bar Messages & Settings

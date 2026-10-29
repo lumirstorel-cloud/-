@@ -17,6 +17,8 @@ import {
   FavoritesDrawer,
   SearchModal
 } from './HeaderModals';
+import { SocialLinksBar } from './SocialIcons';
+import { useCustomerAuth } from '../context/CustomerAuthContext';
 import {
   Menu,
   X,
@@ -80,10 +82,17 @@ export const Layout: React.FC<LayoutProps> = ({
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
 
+  const { user, openAuthModal } = useCustomerAuth();
+
   // Crawlable internal links: real <a href> that still navigates in-app
   const navClick = (v: PageView) => (e: React.MouseEvent) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
     e.preventDefault();
+    if (v === 'booking' && !user) {
+      openAuthModal('booking');
+      setMobileMenuOpen(false);
+      return;
+    }
     handleNav(v);
   };
 
@@ -406,6 +415,10 @@ export const Layout: React.FC<LayoutProps> = ({
                 <span>واتساب</span>
               </a>
             </div>
+
+            <div className="pt-2">
+              <SocialLinksBar settings={settings} />
+            </div>
           </div>
         )}
       </header>
@@ -669,6 +682,14 @@ export const Layout: React.FC<LayoutProps> = ({
                   <MessageCircle className="w-3.5 h-3.5" />
                   <span>محادثة واتساب فورية</span>
                 </a>
+              </div>
+
+              {/* حسابات التواصل الاجتماعي المدارة من لوحة التحكم */}
+              <div className="pt-3 border-t border-[#3B2921]">
+                <span className="text-[11px] text-[#9E8C7C] block mb-2 font-medium">
+                  تابعينا على منصات التواصل:
+                </span>
+                <SocialLinksBar settings={settings} />
               </div>
             </div>
           </div>

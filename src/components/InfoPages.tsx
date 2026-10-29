@@ -11,6 +11,7 @@ import {
   Shield,
   Sparkles
 } from 'lucide-react';
+import { SocialLinksBar } from './SocialIcons';
 
 export const AboutView: React.FC<{
   settings: SiteSettings;
@@ -276,6 +277,11 @@ export const ContactView: React.FC<{ settings: SiteSettings }> = ({ settings }) 
             <div className="p-4 rounded-xl bg-[#FAF6F0] border border-[#E6DCD2]">
               <div className="text-[#645249]">ساعات العمل:</div>
               <div className="font-bold text-sm text-[#2C1E18] mt-0.5">{settings.workingHours}</div>
+            </div>
+            {/* حسابات التواصل الاجتماعي */}
+            <div className="p-4 rounded-xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-2.5">
+              <div className="text-[#645249] font-bold">منصات التواصل الاجتماعي الرسمية:</div>
+              <SocialLinksBar settings={settings} showLabels={true} />
             </div>
           </div>
           <a

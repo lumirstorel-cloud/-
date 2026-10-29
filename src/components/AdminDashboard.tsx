@@ -35,6 +35,14 @@ import {
   getStatusLabel
 } from '../utils/formatters';
 import {
+  InstagramIcon,
+  TikTokIcon,
+  SnapchatIcon,
+  XTwitterIcon,
+  YouTubeIcon,
+  TelegramIcon
+} from './SocialIcons';
+import {
   adminAddBannerApi,
   adminAddCouponApi,
   adminAddFAQApi,
@@ -4960,12 +4968,134 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 </div>
 
+                {/* قسم حسابات ومنصات التواصل الاجتماعي */}
+                <div className="pt-6 border-t border-[#E6DCD2] space-y-4">
+                  <div>
+                    <h3 className="font-display text-lg font-bold text-[#2C1E18]">
+                      حسابات ومنصات التواصل الاجتماعي (Social Media Accounts)
+                    </h3>
+                    <p className="text-xs text-[#645249] mt-0.5">
+                      أدخلي روابط حسابات متجر لومير الرسمية؛ ستظهر الأيقونات مباشرة في أسفل الموقع وصفحة التواصل.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* إنستغرام */}
+                    <div className="space-y-1.5 p-3.5 rounded-2xl bg-[#F3ECE1]/60 border border-[#E6DCD2]">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-[#E4405F]/10 text-[#E4405F]">
+                          <InstagramIcon className="w-4 h-4" />
+                        </div>
+                        <label className="font-bold text-[#2C1E18]">رابط حساب إنستغرام (Instagram):</label>
+                      </div>
+                      <input
+                        type="url"
+                        dir="ltr"
+                        placeholder="https://instagram.com/lumir.store"
+                        value={settings.instagramUrl || ''}
+                        onChange={(e) => setSettings({ ...settings, instagramUrl: e.target.value })}
+                        className="w-full px-3.5 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono text-xs"
+                      />
+                    </div>
+
+                    {/* تيك توك */}
+                    <div className="space-y-1.5 p-3.5 rounded-2xl bg-[#F3ECE1]/60 border border-[#E6DCD2]">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-black/10 text-black">
+                          <TikTokIcon className="w-4 h-4" />
+                        </div>
+                        <label className="font-bold text-[#2C1E18]">رابط حساب تيك توك (TikTok):</label>
+                      </div>
+                      <input
+                        type="url"
+                        dir="ltr"
+                        placeholder="https://tiktok.com/@lumir.store"
+                        value={settings.tiktokUrl || ''}
+                        onChange={(e) => setSettings({ ...settings, tiktokUrl: e.target.value })}
+                        className="w-full px-3.5 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono text-xs"
+                      />
+                    </div>
+
+                    {/* سناب شات */}
+                    <div className="space-y-1.5 p-3.5 rounded-2xl bg-[#F3ECE1]/60 border border-[#E6DCD2]">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-amber-400/20 text-[#2C1E18]">
+                          <SnapchatIcon className="w-4 h-4" />
+                        </div>
+                        <label className="font-bold text-[#2C1E18]">رابط حساب سناب شات (Snapchat):</label>
+                      </div>
+                      <input
+                        type="url"
+                        dir="ltr"
+                        placeholder="https://snapchat.com/add/lumir.store"
+                        value={settings.snapchatUrl || ''}
+                        onChange={(e) => setSettings({ ...settings, snapchatUrl: e.target.value })}
+                        className="w-full px-3.5 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono text-xs"
+                      />
+                    </div>
+
+                    {/* منصة X / تويتر */}
+                    <div className="space-y-1.5 p-3.5 rounded-2xl bg-[#F3ECE1]/60 border border-[#E6DCD2]">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-blue-500/10 text-[#2C1E18]">
+                          <XTwitterIcon className="w-4 h-4" />
+                        </div>
+                        <label className="font-bold text-[#2C1E18]">رابط منصة إكس / تويتر (X):</label>
+                      </div>
+                      <input
+                        type="url"
+                        dir="ltr"
+                        placeholder="https://x.com/lumir_store"
+                        value={settings.twitterUrl || ''}
+                        onChange={(e) => setSettings({ ...settings, twitterUrl: e.target.value })}
+                        className="w-full px-3.5 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono text-xs"
+                      />
+                    </div>
+
+                    {/* يوتيوب */}
+                    <div className="space-y-1.5 p-3.5 rounded-2xl bg-[#F3ECE1]/60 border border-[#E6DCD2]">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-red-600/10 text-red-600">
+                          <YouTubeIcon className="w-4 h-4" />
+                        </div>
+                        <label className="font-bold text-[#2C1E18]">رابط قناة يوتيوب (YouTube):</label>
+                      </div>
+                      <input
+                        type="url"
+                        dir="ltr"
+                        placeholder="https://youtube.com/@lumir_store"
+                        value={settings.youtubeUrl || ''}
+                        onChange={(e) => setSettings({ ...settings, youtubeUrl: e.target.value })}
+                        className="w-full px-3.5 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono text-xs"
+                      />
+                    </div>
+
+                    {/* تليجرام */}
+                    <div className="space-y-1.5 p-3.5 rounded-2xl bg-[#F3ECE1]/60 border border-[#E6DCD2]">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-600">
+                          <TelegramIcon className="w-4 h-4" />
+                        </div>
+                        <label className="font-bold text-[#2C1E18]">رابط قناة تليجرام (Telegram):</label>
+                      </div>
+                      <input
+                        type="url"
+                        dir="ltr"
+                        placeholder="https://t.me/lumir_store"
+                        value={settings.telegramUrl || ''}
+                        onChange={(e) => setSettings({ ...settings, telegramUrl: e.target.value })}
+                        className="w-full px-3.5 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl font-mono text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="pt-3 border-t border-[#E6DCD2] flex justify-end">
                   <button
                     type="submit"
                     className="px-6 py-2.5 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold text-xs hover:bg-[#422E25] cursor-pointer shadow-sm"
                   >
-                    حفظ إعدادات التواصل
+                    حفظ إعدادات التواصل والحسابات
                   </button>
                 </div>
               </form>

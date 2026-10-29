@@ -108,7 +108,6 @@ export const CustomerAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
       setUser(data.user);
       localStorage.setItem(TOKEN_KEY, data.token);
       localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-      setIsAuthModalOpen(false);
       setIsLoading(false);
       return { success: true };
     } catch (err: any) {
@@ -141,7 +140,6 @@ export const CustomerAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
       setUser(data.user);
       localStorage.setItem(TOKEN_KEY, data.token);
       localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-      setIsAuthModalOpen(false);
       setIsLoading(false);
       return { success: true };
     } catch (err: any) {

@@ -41,6 +41,7 @@ import {
   HeartHandshake,
   HelpCircle,
   Info,
+  Lock,
   MapPin,
   MessageCircle,
   Phone,
@@ -51,6 +52,7 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
+  User,
   UserCheck
 } from 'lucide-react';
 
@@ -80,7 +82,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
   const initialService =
     visibleServices.find((s) => s.id === preselectedServiceId) || visibleServices[0];
 
-  const { user } = useCustomerAuth();
+  const { user, openAuthModal } = useCustomerAuth();
   const { items: cartItems, clearCart } = useCart();
 
   // Current wizard step: 1 to 7
@@ -282,6 +284,11 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
     if (stepNumber === 1) {
       if (!serviceId) {
         setStepError('يرجى اختيار الخدمة المطلوبة للمتابعة.');
+        return false;
+      }
+      if (!user) {
+        setStepError('تسجيل الدخول أو إنشاء حساب جديد مطلوب لمتابعة الحجز واختيار الباقة.');
+        openAuthModal('booking');
         return false;
       }
       return true;
@@ -584,6 +591,33 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                 </p>
               </div>
 
+              {/* Login required banner for unauthenticated customers */}
+              {!user && (
+                <div className="p-4 sm:p-5 rounded-2xl bg-[#F3ECE1] border border-[#C8A96E] flex flex-col sm:flex-row items-center justify-between gap-4 text-right shadow-xs">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-[#2C1E18] text-[#C8A96E] flex items-center justify-center shrink-0 shadow-xs">
+                      <Lock className="w-5 h-5 text-[#C8A96E]" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-[#2C1E18]">
+                        تسجيل الدخول مطلوب لإتمام الحجز واختيار الباقة
+                      </h4>
+                      <p className="text-[11px] text-[#645249] mt-0.5">
+                        سجّلي دخولك أو أنشئي حسابكِ لحفظ تفاصيل حجزك ومتابعة حالته في مكة وجدة بكل أمان وخصوصية.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openAuthModal('booking')}
+                    className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold bg-[#2C1E18] text-[#FAF6F0] rounded-xl hover:bg-[#422E25] shrink-0 cursor-pointer transition-all shadow-xs flex items-center justify-center gap-2"
+                  >
+                    <User className="w-3.5 h-3.5 text-[#C8A96E]" />
+                    <span>تسجيل الدخول / حساب جديد</span>
+                  </button>
+                </div>
+              )}
+
               {/* Service Select */}
               <div className="space-y-3">
                 <label className="block text-xs font-bold text-[#2C1E18]">
@@ -690,6 +724,19 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                             {formatSar(selectedPackage.price)}
                           </span>
                         </div>
+
+                        {!user && (
+                          <div className="pt-2">
+                            <button
+                              type="button"
+                              onClick={() => openAuthModal('booking')}
+                              className="w-full py-2.5 px-3 rounded-lg bg-[#C8A96E] text-[#2C1E18] text-xs font-bold flex items-center justify-center gap-2 hover:bg-[#b89656] transition-colors cursor-pointer"
+                            >
+                              <Lock className="w-3.5 h-3.5 text-[#2C1E18]" />
+                              <span>تسجيل الدخول لتأكيد باقة {selectedPackage.name} والمتابعة</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {selectedService.packages.length > 1 && (
@@ -718,6 +765,9 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                                 setIsPackagesExpanded(false);
                                 if (pkg.durationHours) {
                                   setDurationHours(pkg.durationHours);
+                                }
+                                if (!user) {
+                                  openAuthModal('booking');
                                 }
                               }}
                               className={`p-4 rounded-xl border text-right transition-all cursor-pointer flex flex-col justify-between gap-3 ${

@@ -608,7 +608,13 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
     approvedFeesSar: 0,
     bookingNotice:
       'تنبيه إداري: يعتبر هذا الطلب مبدئياً ولا يتم تأكيد الموعد نهائياً إلا بعد مراجعة فريق الإدارة والتحقق من التوفر وجدولة الموعد رسمياً.',
-    allowPublicCoupons: true
+    allowPublicCoupons: true,
+    instagramUrl: '',
+    tiktokUrl: '',
+    snapchatUrl: '',
+    twitterUrl: '',
+    youtubeUrl: '',
+    telegramUrl: ''
   },
   announcements: {
     isEnabled: true,

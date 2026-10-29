@@ -114,6 +114,10 @@ function loadDatabase(): void {
         database = {
           ...INITIAL_LUMIR_DATA,
           ...parsed,
+          settings: {
+            ...INITIAL_LUMIR_DATA.settings,
+            ...(parsed.settings || {})
+          },
           services: mergedServices,
           portfolio:
             Array.isArray(parsed.portfolio) && parsed.portfolio.length >= 8

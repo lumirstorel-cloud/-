@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
 import { useCustomerAuth } from '../context/CustomerAuthContext';
+import { PageView } from '../types';
 import { X, Lock, Mail, User, Phone, CheckCircle2, ArrowRight } from 'lucide-react';
 
 interface CustomerAuthModalProps {
   isOpen?: boolean;
   onClose?: () => void;
   onSuccess?: () => void;
+  navigate?: (view: PageView, slug?: string) => void;
 }
 
 export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
   isOpen: propIsOpen,
   onClose: propOnClose,
-  onSuccess
+  onSuccess,
+  navigate
 }) => {
-  const { isAuthModalOpen, closeAuthModal, login, register, isLoading } = useCustomerAuth();
+  const { isAuthModalOpen, closeAuthModal, login, register, isLoading, authRedirectView } = useCustomerAuth();
   const isOpen = propIsOpen !== undefined ? propIsOpen : isAuthModalOpen;
   const handleClose = propOnClose || closeAuthModal;
 
@@ -39,6 +42,9 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
         setTimeout(() => {
           handleClose();
           if (onSuccess) onSuccess();
+          if (authRedirectView && navigate) {
+            navigate(authRedirectView as PageView);
+          }
         }, 600);
       } else {
         setErrorMsg(res.error || 'فشل تسجيل الدخول، يرجى التأكد من البيانات');
@@ -54,6 +60,9 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
         setTimeout(() => {
           handleClose();
           if (onSuccess) onSuccess();
+          if (authRedirectView && navigate) {
+            navigate(authRedirectView as PageView);
+          }
         }, 800);
       } else {
         setErrorMsg(res.error || 'تعذر إنشاء الحساب');
