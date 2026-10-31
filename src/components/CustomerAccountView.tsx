@@ -41,11 +41,26 @@ export const CustomerAccountView: React.FC<CustomerAccountViewProps> = ({ naviga
             Authorization: `Bearer ${token}`
           }
         });
-        const data = await res.json();
-        if (res.ok && data.success) {
+        const contentType = res.headers.get('content-type') || '';
+        let data: any = null;
+        if (contentType.includes('application/json')) {
+          data = await res.json().catch(() => null);
+        } else {
+          const text = await res.text().catch(() => '');
+          try { data = JSON.parse(text); } catch { data = null; }
+        }
+
+        if (res.ok && data?.success) {
           setOrders(data.orders || []);
         } else {
-          setErrorMsg(data.error || 'تعذر تحميل قائمة الطلبات');
+          setErrorMsg(
+            data?.error ||
+            (res.status === 404
+              ? 'مسار طلبات العميل غير متوفر في الخادم (404 Not Found)'
+              : res.status >= 500
+              ? 'خدمة الطلبات غير متاحة حالياً، يرجى المحاولة لاحقاً'
+              : `تعذر تحميل قائمة الطلبات (رمز ${res.status})`)
+          );
         }
       } catch (err: any) {
         setErrorMsg(err.message || 'خطأ في الاتصال بالخادم');

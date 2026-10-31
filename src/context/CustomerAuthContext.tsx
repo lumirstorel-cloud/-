@@ -58,8 +58,15 @@ export const CustomerAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
           }
         });
         if (res.ok) {
-          const data = await res.json();
-          if (data.user) {
+          const contentType = res.headers.get('content-type') || '';
+          let data: any = null;
+          if (contentType.includes('application/json')) {
+            data = await res.json().catch(() => null);
+          } else {
+            const text = await res.text().catch(() => '');
+            try { data = JSON.parse(text); } catch { data = null; }
+          }
+          if (data?.user) {
             setUser(data.user);
             setToken(storedToken);
             localStorage.setItem(USER_KEY, JSON.stringify(data.user));
@@ -97,11 +104,26 @@ export const CustomerAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password: pass })
       });
-      const data = await res.json();
 
-      if (!res.ok || !data.success) {
+      const contentType = res.headers.get('content-type') || '';
+      let data: any = null;
+      if (contentType.includes('application/json')) {
+        data = await res.json().catch(() => null);
+      } else {
+        const text = await res.text().catch(() => '');
+        try { data = JSON.parse(text); } catch { data = null; }
+      }
+
+      if (!res.ok || !data?.success) {
         setIsLoading(false);
-        return { success: false, error: data.error || 'فشل تسجيل الدخول' };
+        const errorMsg =
+          data?.error ||
+          (res.status === 404
+            ? 'مسار تسجيل الدخول غير متوفر في الخادم (404 Not Found)'
+            : res.status >= 500
+            ? 'خطأ مؤقت في خدمة الخادم (5xx)'
+            : `فشل تسجيل الدخول من الخادم (رمز ${res.status})`);
+        return { success: false, error: errorMsg };
       }
 
       setToken(data.token);
@@ -129,11 +151,26 @@ export const CustomerAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password: pass, name, phone })
       });
-      const data = await res.json();
 
-      if (!res.ok || !data.success) {
+      const contentType = res.headers.get('content-type') || '';
+      let data: any = null;
+      if (contentType.includes('application/json')) {
+        data = await res.json().catch(() => null);
+      } else {
+        const text = await res.text().catch(() => '');
+        try { data = JSON.parse(text); } catch { data = null; }
+      }
+
+      if (!res.ok || !data?.success) {
         setIsLoading(false);
-        return { success: false, error: data.error || 'فشل إنشاء الحساب' };
+        const errorMsg =
+          data?.error ||
+          (res.status === 404
+            ? 'مسار إنشاء الحساب غير متوفر في الخادم (404 Not Found)'
+            : res.status >= 500
+            ? 'خطأ مؤقت في خدمة الخادم (5xx)'
+            : `فشل إنشاء الحساب من الخادم (رمز ${res.status})`);
+        return { success: false, error: errorMsg };
       }
 
       setToken(data.token);
@@ -164,8 +201,15 @@ export const CustomerAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
-        const data = await res.json();
-        if (data.user) {
+        const contentType = res.headers.get('content-type') || '';
+        let data: any = null;
+        if (contentType.includes('application/json')) {
+          data = await res.json().catch(() => null);
+        } else {
+          const text = await res.text().catch(() => '');
+          try { data = JSON.parse(text); } catch { data = null; }
+        }
+        if (data?.user) {
           setUser(data.user);
           localStorage.setItem(USER_KEY, JSON.stringify(data.user));
         }

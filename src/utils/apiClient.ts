@@ -21,6 +21,59 @@ export interface ConflictCheckResult {
   message: string;
 }
 
+/**
+ * Safely parses any fetch Response, guaranteeing that non-JSON responses
+ * (like Vercel HTML/plain text 404 "The page could not be found")
+ * never trigger "Unexpected token 'T', "The page c"... is not valid JSON".
+ */
+export async function safeParseJsonResponse<T = any>(
+  res: Response
+): Promise<{ ok: boolean; status: number; data: T; error?: string }> {
+  const contentType = res.headers.get('content-type') || '';
+  let data: any = {};
+  let parseSuccess = false;
+  const isJson = contentType.includes('application/json');
+
+  try {
+    if (isJson) {
+      data = await res.json();
+      parseSuccess = true;
+    } else {
+      const text = await res.text();
+      if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+        data = JSON.parse(text);
+        parseSuccess = true;
+      }
+    }
+  } catch {
+    parseSuccess = false;
+    data = {};
+  }
+
+  // A response is only successful if HTTP status is 2xx AND either JSON parsed or 204 No Content
+  const isOk = res.ok && (parseSuccess || res.status === 204);
+
+  const errorMsg =
+    data?.error ||
+    data?.message ||
+    (!isOk
+      ? res.status === 404
+        ? 'المسار المطلوب غير متوفر في الخادم (404 Not Found)'
+        : res.status >= 500
+        ? 'خطأ مؤقت في خدمة الخادم (5xx)'
+        : !parseSuccess
+        ? 'تعذر قراءة استجابة الخادم بصيغة صالحة'
+        : `فشل الطلب من الخادم (رمز ${res.status})`
+      : undefined);
+
+  return {
+    ok: isOk,
+    status: res.status,
+    data,
+    error: errorMsg
+  };
+}
+
 // ---------------- PUBLIC API CALLS ----------------
 
 export async function checkServerConflict(
@@ -41,12 +94,14 @@ export async function checkServerConflict(
       body: JSON.stringify(params)
     });
     if (res.ok) {
-      const data = await res.json();
-      return {
-        hasConflict: data.hasConflict,
-        conflictingBooking: data.conflictingBooking,
-        message: data.message
-      };
+      const parsed = await safeParseJsonResponse<any>(res);
+      if (parsed.ok && parsed.data) {
+        return {
+          hasConflict: parsed.data.hasConflict,
+          conflictingBooking: parsed.data.conflictingBooking,
+          message: parsed.data.message
+        };
+      }
     }
   } catch (err) {
     console.warn('API conflict check fallback to client:', err);
@@ -77,7 +132,8 @@ export async function submitBookingToServer(
       body: JSON.stringify(booking)
     });
 
-    const data = await res.json().catch(() => ({}));
+    const parsed = await safeParseJsonResponse<any>(res);
+    const data = parsed.data || {};
 
     if (res.ok && data.success) {
       return {
@@ -91,7 +147,7 @@ export async function submitBookingToServer(
       throw new Error(data.error || 'تعارض في المواعيد مع حجز مؤكد آخر في نفس الوقت.');
     }
 
-    throw new Error(data.error || `فشل تسجيل الحجز في قاعدة البيانات (رمز الخطأ: ${res.status}).`);
+    throw new Error(parsed.error || data.error || `فشل تسجيل الحجز في قاعدة البيانات (رمز الخطأ: ${res.status}).`);
   } catch (err: any) {
     console.error('Booking submission failed:', err);
     throw new Error(
@@ -110,11 +166,11 @@ export async function validateCouponOnServer(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, orderAmount })
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, discountSar: data.coupon.discountSar };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok && parsed.data?.coupon) {
+      return { success: true, discountSar: parsed.data.coupon.discountSar };
     }
-    return { success: false, error: data.error };
+    return { success: false, error: parsed.error || 'تعذر التحقق من الكوبون' };
   } catch (err) {
     return { success: false, error: 'تعذر التحقق من الكوبون' };
   }
@@ -139,11 +195,11 @@ export async function adminLoginApi(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, token: data.token, user: data.user };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok && parsed.data?.token) {
+      return { success: true, token: parsed.data.token, user: parsed.data.user };
     }
-    return { success: false, error: data.error || 'فشل تسجيل الدخول' };
+    return { success: false, error: parsed.error || 'فشل تسجيل الدخول' };
   } catch (err: any) {
     return { success: false, error: 'تعذر الاتصال بالخادم. يرجى المحاولة مرة أخرى.' };
   }
@@ -156,14 +212,13 @@ export async function adminGetFullDataApi(
     const res = await fetch('/api/admin/data', {
       headers: getAuthHeaders(token)
     });
-    if (res.ok) {
-      const data = await res.json();
-      return { success: true, data };
+    const parsed = await safeParseJsonResponse<LumirCentralData>(res);
+    if (parsed.ok) {
+      return { success: true, data: parsed.data };
     }
-    const err = await res.json().catch(() => ({}));
-    return { success: false, error: err.error || 'تعذر تحميل بيانات الإدارة' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الشبكة أثناء جلب بيانات الإدارة' };
+    return { success: false, error: parsed.error || 'تعذر تحميل بيانات الإدارة' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الشبكة أثناء جلب بيانات الإدارة' };
   }
 }
 
@@ -179,13 +234,13 @@ export async function adminUpdateBookingStatusApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify({ status, adminNotes })
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, booking: data.booking };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, booking: parsed.data?.booking };
     }
-    return { success: false, error: data.error || 'تعذر تحديث حالة الطلب' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر تحديث حالة الطلب' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -198,13 +253,13 @@ export async function adminDeleteBookingApi(
       method: 'DELETE',
       headers: getAuthHeaders(token)
     });
-    const data = await res.json();
-    if (res.ok) {
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
       return { success: true };
     }
-    return { success: false, error: data.error || 'تعذر حذف الطلب' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر حذف الطلب' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -219,13 +274,13 @@ export async function adminUpdateServiceApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(serviceData)
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, service: data.service };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, service: parsed.data?.service };
     }
-    return { success: false, error: data.error || 'تعذر تعديل الخدمة' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر تعديل الخدمة' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -241,13 +296,13 @@ export async function adminUpdatePackageApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(pkgData)
     });
-    const data = await res.json();
-    if (res.ok) {
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
       return { success: true };
     }
-    return { success: false, error: data.error || 'تعذر تعديل الباقة' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر تعديل الباقة' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -262,13 +317,13 @@ export async function adminAddPackageApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(pkgData)
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, package: data.package };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, package: parsed.data?.package };
     }
-    return { success: false, error: data.error || 'تعذر إضافة الباقة' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر إضافة الباقة' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -282,13 +337,13 @@ export async function adminDeletePackageApi(
       method: 'DELETE',
       headers: getAuthHeaders(token)
     });
-    const data = await res.json();
-    if (res.ok) {
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
       return { success: true };
     }
-    return { success: false, error: data.error || 'تعذر حذف الباقة' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر حذف الباقة' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -302,13 +357,13 @@ export async function adminAddPortfolioApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(item)
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, item: data.item };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, item: parsed.data?.item };
     }
-    return { success: false, error: data.error || 'تعذر إضافة العمل' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر إضافة العمل' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -321,13 +376,13 @@ export async function adminDeletePortfolioApi(
       method: 'DELETE',
       headers: getAuthHeaders(token)
     });
-    const data = await res.json();
-    if (res.ok) {
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
       return { success: true };
     }
-    return { success: false, error: data.error || 'تعذر حذف العمل' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر حذف العمل' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -342,13 +397,13 @@ export async function adminUpdatePortfolioApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(item)
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, item: data.item };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, item: parsed.data?.item };
     }
-    return { success: false, error: data.error || 'تعذر تعديل العمل' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر تعديل العمل' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -362,13 +417,13 @@ export async function adminAddFAQApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(faq)
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, faq: data.faq };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, faq: parsed.data?.faq };
     }
-    return { success: false, error: data.error || 'تعذر إضافة السؤال' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر إضافة السؤال' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -383,13 +438,13 @@ export async function adminUpdateFAQApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(faq)
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, faq: data.faq };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, faq: parsed.data?.faq };
     }
-    return { success: false, error: data.error || 'تعذر تعديل السؤال' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر تعديل السؤال' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -402,13 +457,13 @@ export async function adminDeleteFAQApi(
       method: 'DELETE',
       headers: getAuthHeaders(token)
     });
-    const data = await res.json();
-    if (res.ok) {
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
       return { success: true };
     }
-    return { success: false, error: data.error || 'تعذر حذف السؤال' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر حذف السؤال' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -422,13 +477,13 @@ export async function adminAddCouponApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(coupon)
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, coupon: data.coupon };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, coupon: parsed.data?.coupon };
     }
-    return { success: false, error: data.error || 'تعذر إنشاء الكوبون' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر إنشاء الكوبون' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -443,13 +498,13 @@ export async function adminUpdateCouponApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(coupon)
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, coupon: data.coupon };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, coupon: parsed.data?.coupon };
     }
-    return { success: false, error: data.error || 'تعذر تعديل الكوبون' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر تعديل الكوبون' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -462,13 +517,13 @@ export async function adminDeleteCouponApi(
       method: 'DELETE',
       headers: getAuthHeaders(token)
     });
-    const data = await res.json();
-    if (res.ok) {
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
       return { success: true };
     }
-    return { success: false, error: data.error || 'تعذر حذف الكوبون' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر حذف الكوبون' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -481,13 +536,13 @@ export async function adminGetUsersApi(
     const res = await fetch('/api/admin/users', {
       headers: getAuthHeaders(token)
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, users: data.users };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, users: parsed.data?.users };
     }
-    return { success: false, error: data.error || 'تعذر جلب قائمة المسؤولين' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر جلب قائمة المسؤولين' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -501,13 +556,13 @@ export async function adminAddUserApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(user)
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, user: data.user };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, user: parsed.data?.user };
     }
-    return { success: false, error: data.error || 'تعذر إنشاء حساب المسؤول' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر إنشاء حساب المسؤول' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -522,13 +577,13 @@ export async function adminUpdateUserApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(user)
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, user: data.user };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, user: parsed.data?.user };
     }
-    return { success: false, error: data.error || 'تعذر تحديث بيانات المسؤول' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر تحديث بيانات المسؤول' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -541,13 +596,13 @@ export async function adminDeleteUserApi(
       method: 'DELETE',
       headers: getAuthHeaders(token)
     });
-    const data = await res.json();
-    if (res.ok) {
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
       return { success: true };
     }
-    return { success: false, error: data.error || 'تعذر حذف حساب المسؤول' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر حذف حساب المسؤول' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -561,13 +616,13 @@ export async function adminUpdateSettingsApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(settings)
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, settings: data.settings };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, settings: parsed.data?.settings };
     }
-    return { success: false, error: data.error || 'تعذر حفظ الإعدادات' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر حفظ الإعدادات' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -581,13 +636,13 @@ export async function adminUpdateCityCoverageApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(coverage)
     });
-    const data = await res.json();
-    if (res.ok) {
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
       return { success: true };
     }
-    return { success: false, error: data.error || 'تعذر تحديث تغطية المدن' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر تحديث تغطية المدن' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -601,13 +656,13 @@ export async function adminUpdateAnnouncementsApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(announcements)
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, announcements: data.announcements };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, announcements: parsed.data?.announcements };
     }
-    return { success: false, error: data.error || 'تعذر تحديث الشريط الإعلاني' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر تحديث الشريط الإعلاني' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -621,13 +676,13 @@ export async function adminAddBannerApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(banner)
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, banner: data.banner };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, banner: parsed.data?.banner };
     }
-    return { success: false, error: data.error || 'تعذر إضافة البنر' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر إضافة البنر' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -642,13 +697,13 @@ export async function adminUpdateBannerApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(banner)
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, banner: data.banner };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, banner: parsed.data?.banner };
     }
-    return { success: false, error: data.error || 'تعذر تعديل البنر' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر تعديل البنر' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -661,13 +716,13 @@ export async function adminDeleteBannerApi(
       method: 'DELETE',
       headers: getAuthHeaders(token)
     });
-    const data = await res.json();
-    if (res.ok) {
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
       return { success: true };
     }
-    return { success: false, error: data.error || 'تعذر حذف البنر' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر حذف البنر' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -681,13 +736,13 @@ export async function adminUpdateSliderSettingsApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(sliderSettings)
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, sliderSettings: data.sliderSettings };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, sliderSettings: parsed.data?.sliderSettings };
     }
-    return { success: false, error: data.error || 'تعذر تحديث إعدادات السلايدر' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر تحديث إعدادات السلايدر' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -701,13 +756,13 @@ export async function adminSyncAllApi(
       headers: getAuthHeaders(token),
       body: JSON.stringify(fullData)
     });
-    const data = await res.json();
-    if (res.ok) {
-      return { success: true, data: data.data || fullData };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, data: parsed.data?.data || fullData };
     }
-    return { success: false, error: data.error || 'تعذر مزامنة البيانات' };
-  } catch (err) {
-    return { success: false, error: 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: parsed.error || 'تعذر مزامنة البيانات' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -721,14 +776,14 @@ export async function fetchReviewsApi(
       ? `/api/reviews?serviceId=${encodeURIComponent(serviceId)}`
       : '/api/reviews';
     const res = await fetch(url);
-    if (res.ok) {
-      const data = await res.json();
-      return { success: true, reviews: data.reviews || [] };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, reviews: parsed.data?.reviews || [] };
     }
-  } catch (err) {
-    console.warn('Reviews API fetch fallback to local:', err);
+    return { success: false, reviews: [], error: parsed.error };
+  } catch (err: any) {
+    return { success: false, reviews: [], error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
-  return { success: false, reviews: [] };
 }
 
 export async function submitReviewApi(
@@ -740,19 +795,17 @@ export async function submitReviewApi(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(review)
     });
-    if (res.ok) {
-      const data = await res.json();
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
       return {
         success: true,
-        review: data.review || review,
-        isVerified: data.isVerified
+        review: parsed.data?.review || review,
+        isVerified: parsed.data?.isVerified
       };
     }
-    const errData = await res.json().catch(() => ({}));
-    return { success: false, error: errData.error || 'فشل إرسال التقييم' };
+    return { success: false, error: parsed.error || 'فشل إرسال التقييم' };
   } catch (err: any) {
-    console.warn('Reviews API submit fallback to local:', err);
-    return { success: true, review };
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 
@@ -780,13 +833,13 @@ export async function adminUpdateServicePricingApi(
       },
       body: JSON.stringify(pricing)
     });
-    const data = await res.json();
-    if (!res.ok) {
-      return { success: false, error: data.error || 'فشل تحديث أسعار الخدمة' };
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok) {
+      return { success: true, service: parsed.data?.service };
     }
-    return { success: true, service: data.service };
+    return { success: false, error: parsed.error || 'فشل تحديث أسعار الخدمة' };
   } catch (err: any) {
-    return { success: false, error: err.message || 'خطأ في الاتصال بالخادم' };
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
   }
 }
 

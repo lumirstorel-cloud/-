@@ -1766,11 +1766,14 @@ try {
   console.warn("Filesystem directory init skipped (read-only environment):", err);
 }
 app.use((req, _res, next) => {
-  const matchedPath = req.headers["x-matched-path"];
+  const matchedPath = req.headers["x-matched-path"] || req.headers["x-vercel-matched-path"];
   if (typeof matchedPath === "string" && matchedPath.startsWith("/api")) {
     req.url = matchedPath;
   } else if (req.url && !req.url.startsWith("/api") && !req.url.startsWith("/uploads")) {
     req.url = `/api${req.url.startsWith("/") ? "" : "/"}${req.url}`;
+  }
+  if (req.url === "/api/index" || req.url === "/api/index/") {
+    req.url = "/api";
   }
   next();
 });
@@ -3244,6 +3247,19 @@ app.post(
     return res.json({ success: true, data: database });
   }
 );
+app.use("/api", (req, res) => {
+  return res.status(404).json({
+    success: false,
+    error: `\u0645\u0633\u0627\u0631 API \u0627\u0644\u0645\u0637\u0644\u0648\u0628 (${req.path}) \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F \u0641\u064A \u062E\u0627\u062F\u0645 \u0644\u0648\u0645\u064A\u0631 (404 Not Found)`
+  });
+});
+app.use((err, _req, res, _next) => {
+  console.error("Unhandled API error:", err);
+  return res.status(500).json({
+    success: false,
+    error: err?.message || "\u062D\u062F\u062B \u062E\u0637\u0623 \u063A\u064A\u0631 \u0645\u062A\u0648\u0642\u0639 \u0641\u064A \u062E\u0627\u062F\u0645 \u0644\u0648\u0645\u064A\u0631"
+  });
+});
 var serverApp_default = app;
 export {
   app,

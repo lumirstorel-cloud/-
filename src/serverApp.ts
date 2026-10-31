@@ -65,11 +65,14 @@ try {
 
 // URL path normalization for Vercel Serverless & reverse proxy
 app.use((req: Request, _res: Response, next: NextFunction) => {
-  const matchedPath = req.headers['x-matched-path'];
+  const matchedPath = req.headers['x-matched-path'] || req.headers['x-vercel-matched-path'];
   if (typeof matchedPath === 'string' && matchedPath.startsWith('/api')) {
     req.url = matchedPath;
   } else if (req.url && !req.url.startsWith('/api') && !req.url.startsWith('/uploads')) {
     req.url = `/api${req.url.startsWith('/') ? '' : '/'}${req.url}`;
+  }
+  if (req.url === '/api/index' || req.url === '/api/index/') {
+    req.url = '/api';
   }
   next();
 });
@@ -1912,5 +1915,22 @@ app.post(
     return res.json({ success: true, data: database });
   }
 );
+
+// 404 fallback handler for unmatched API routes - ALWAYS return valid JSON, never plain text or HTML
+app.use('/api', (req: Request, res: Response) => {
+  return res.status(404).json({
+    success: false,
+    error: `مسار API المطلوب (${req.path}) غير موجود في خادم لومير (404 Not Found)`
+  });
+});
+
+// Global error handler for API routes - ALWAYS return valid JSON
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('Unhandled API error:', err);
+  return res.status(500).json({
+    success: false,
+    error: err?.message || 'حدث خطأ غير متوقع في خادم لومير'
+  });
+});
 
 export default app;

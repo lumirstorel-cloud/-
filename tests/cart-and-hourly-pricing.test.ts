@@ -69,7 +69,8 @@ async function runTestSuite() {
     process.stdout.write('  ⏳ 4. اختبار إنشاء حجز بتسعير الساعة مع ربطه بحساب العميل... ');
     const hourlyRate = photoService.hourlyRateSar || 100;
     const testHours = 4;
-    const expectedSubtotal = hourlyRate * testHours;
+    const fixedFee = photoService.fixedFeeSar || 0;
+    const expectedSubtotal = hourlyRate * testHours + fixedFee;
     const approvedFees = bootData.settings.approvedFeesSar || 0;
     const expectedTotal = expectedSubtotal + approvedFees;
 

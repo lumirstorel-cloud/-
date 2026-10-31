@@ -227,7 +227,14 @@ function AppInner() {
   // Sync with server bootstrap data on load
   useEffect(() => {
     fetch('/api/bootstrap')
-      .then((res) => (res.ok ? res.json() : null))
+      .then(async (res) => {
+        if (!res.ok) return null;
+        const ct = res.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+          return res.json().catch(() => null);
+        }
+        return null;
+      })
       .then((serverData) => {
         if (!serverData) return;
         setData((prev) => {

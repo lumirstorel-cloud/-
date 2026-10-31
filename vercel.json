@@ -9,6 +9,14 @@
   },
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api",
+      "destination": "/api/index"
+    },
+    {
       "source": "/((?!api(?:/|$)|assets/|images/|.*\\..*).*)",
       "destination": "/index.html"
     }
