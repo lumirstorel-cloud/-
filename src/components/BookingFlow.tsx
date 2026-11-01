@@ -22,7 +22,8 @@ import {
 } from '../utils/formatters';
 import {
   checkServerConflict,
-  submitBookingToServer
+  submitBookingToServer,
+  trackGuestBookingApi
 } from '../utils/apiClient';
 import { useCustomerAuth } from '../context/CustomerAuthContext';
 import { useCart } from '../context/CartContext';
@@ -82,8 +83,10 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
   const initialService =
     visibleServices.find((s) => s.id === preselectedServiceId) || visibleServices[0];
 
-  const { user, openAuthModal } = useCustomerAuth();
+  const { user, openAuthModal, signInWithGoogle } = useCustomerAuth();
   const { items: cartItems, clearCart } = useCart();
+
+  const DRAFT_STORAGE_KEY = 'lumir_pending_booking_draft_v2';
 
   // Current wizard step: 1 to 7
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -125,6 +128,88 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
   const [agreedTermsAndPrivacy, setAgreedTermsAndPrivacy] = useState<boolean>(false);
   const [agreedNonMedicalDisclaimer, setAgreedNonMedicalDisclaimer] = useState<boolean>(false);
   const [agreedPhotoPrivacy, setAgreedPhotoPrivacy] = useState<boolean>(false);
+
+  // Restore draft upon initial load if available
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.serviceId && !preselectedServiceId) setServiceId(parsed.serviceId);
+        if (parsed.packageId && !preselectedPackageId) setPackageId(parsed.packageId);
+        if (parsed.city) setCity(parsed.city);
+        if (parsed.eventDate) setEventDate(parsed.eventDate);
+        if (parsed.startTime) setStartTime(parsed.startTime);
+        if (parsed.durationHours) setDurationHours(parsed.durationHours);
+        if (parsed.district) setDistrict(parsed.district);
+        if (parsed.venueName) setVenueName(parsed.venueName);
+        if (parsed.coverageDetails) setCoverageDetails(parsed.coverageDetails);
+        if (parsed.childrenCount) setChildrenCount(parsed.childrenCount);
+        if (parsed.childrenAges) setChildrenAges(parsed.childrenAges);
+        if (Array.isArray(parsed.selectedActivities)) setSelectedActivities(parsed.selectedActivities);
+        if (parsed.parentInstructions) setParentInstructions(parsed.parentInstructions);
+        if (parsed.staffCount) setStaffCount(parsed.staffCount);
+        if (Array.isArray(parsed.selectedAddonIds)) setSelectedAddonIds(parsed.selectedAddonIds);
+        if (parsed.clientName) setClientName(parsed.clientName);
+        if (parsed.clientPhone) setClientPhone(parsed.clientPhone);
+        if (parsed.preferredContactMethod) setPreferredContactMethod(parsed.preferredContactMethod);
+        if (parsed.specialNotes) setSpecialNotes(parsed.specialNotes);
+        if (parsed.currentStep && parsed.currentStep > 1 && parsed.currentStep < 7) {
+          setCurrentStep(parsed.currentStep);
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Sync draft to localStorage on changes to guarantee no lost state during OAuth or reload
+  useEffect(() => {
+    try {
+      const draft = {
+        serviceId,
+        packageId,
+        city,
+        eventDate,
+        startTime,
+        durationHours,
+        district,
+        venueName,
+        coverageDetails,
+        childrenCount,
+        childrenAges,
+        selectedActivities,
+        parentInstructions,
+        staffCount,
+        selectedAddonIds,
+        clientName,
+        clientPhone,
+        preferredContactMethod,
+        specialNotes,
+        currentStep
+      };
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    } catch {}
+  }, [
+    serviceId,
+    packageId,
+    city,
+    eventDate,
+    startTime,
+    durationHours,
+    district,
+    venueName,
+    coverageDetails,
+    childrenCount,
+    childrenAges,
+    selectedActivities,
+    parentInstructions,
+    staffCount,
+    selectedAddonIds,
+    clientName,
+    clientPhone,
+    preferredContactMethod,
+    specialNotes,
+    currentStep
+  ]);
 
   useEffect(() => {
     if (user) {
@@ -286,11 +371,6 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
         setStepError('يرجى اختيار الخدمة المطلوبة للمتابعة.');
         return false;
       }
-      if (!user) {
-        setStepError('تسجيل الدخول أو إنشاء حساب جديد مطلوب لمتابعة الحجز واختيار الباقة.');
-        openAuthModal('booking');
-        return false;
-      }
       return true;
     }
 
@@ -447,6 +527,9 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
 
       // Clear shopping cart ONLY upon confirmed booking creation
       clearCart();
+      try {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+      } catch {}
 
       setConfirmedBooking(savedBooking);
       onBookingCreated(savedBooking);
@@ -591,30 +674,136 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                 </p>
               </div>
 
-              {/* Login required banner for unauthenticated customers */}
-              {!user && (
-                <div className="p-4 sm:p-5 rounded-2xl bg-[#F3ECE1] border border-[#C8A96E] flex flex-col sm:flex-row items-center justify-between gap-4 text-right shadow-xs">
+              {/* Customer Choice: Guest Checkout or Google Login */}
+              {user ? (
+                <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-right shadow-2xs">
                   <div className="flex items-center gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-[#2C1E18] text-[#C8A96E] flex items-center justify-center shrink-0 shadow-xs">
-                      <Lock className="w-5 h-5 text-[#C8A96E]" />
+                    <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <UserCheck className="w-5 h-5 text-emerald-100" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-[#2C1E18]">
-                        تسجيل الدخول مطلوب لإتمام الحجز واختيار الباقة
-                      </h4>
-                      <p className="text-[11px] text-[#645249] mt-0.5">
-                        سجّلي دخولك أو أنشئي حسابكِ لحفظ تفاصيل حجزك ومتابعة حالته في مكة وجدة بكل أمان وخصوصية.
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-bold text-emerald-950">
+                          حساب لومير المعتمد: {user.name || user.email}
+                        </h4>
+                        <span className="text-[10px] bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full font-bold">
+                          مرتبط بالطلب
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-emerald-800 mt-0.5">
+                        سيتم ربط تفاصيل حجزكِ بحسابكِ تلقائياً لحفظ السجل ومتابعة التحديثات عبر صفحة «طلباتي».
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => openAuthModal('booking')}
-                    className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold bg-[#2C1E18] text-[#FAF6F0] rounded-xl hover:bg-[#422E25] shrink-0 cursor-pointer transition-all shadow-xs flex items-center justify-center gap-2"
-                  >
-                    <User className="w-3.5 h-3.5 text-[#C8A96E]" />
-                    <span>تسجيل الدخول / حساب جديد</span>
-                  </button>
+                </div>
+              ) : (
+                <div className="p-5 rounded-2xl bg-[#F3ECE1]/70 border border-[#D8CBB8] space-y-4 shadow-xs text-right">
+                  <div className="flex items-center justify-between border-b border-[#E6DCD2] pb-3">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-[#8C6D36]" />
+                      <h4 className="text-xs font-bold text-[#2C1E18]">
+                        خيارات تسجيل الطلب (تسجيل الدخول اختياري)
+                      </h4>
+                    </div>
+                    <span className="text-[10px] font-bold text-[#8C6D36] bg-[#FAF6F0] border border-[#D8CBB8] px-2.5 py-0.5 rounded-full">
+                      غير إلزامي
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {/* Option 1: Guest Checkout */}
+                    <div className="p-4 rounded-xl bg-white border-2 border-[#8C6D36] flex flex-col justify-between gap-3 shadow-xs">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-[#8C6D36] bg-[#FAF6F0] px-2 py-0.5 rounded-md border border-[#E6DCD2]">
+                            متاح ومباشر
+                          </span>
+                          <CheckCircle2 className="w-4 h-4 text-[#8C6D36]" />
+                        </div>
+                        <h5 className="text-xs font-bold text-[#2C1E18]">
+                          الدخول والمتابعة كضيف
+                        </h5>
+                        <p className="text-[11px] text-[#645249] leading-relaxed">
+                          أكملي طلبكِ مباشرة دون كلمة مرور؛ سنحتاج فقط اسمكِ الكريم ورقم الجوال للتواصل وحفظ الحجز في منظومة لومير.
+                        </p>
+                      </div>
+                      <div className="text-[10px] text-[#8C6D36] font-bold flex items-center gap-1 pt-1 border-t border-[#F3ECE1]">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>مفعّل للمتابعة فوراً</span>
+                      </div>
+                    </div>
+
+                    {/* Option 2: Google Sign In via Supabase */}
+                    <div className="p-4 rounded-xl bg-white border border-[#D8CBB8] hover:border-[#8C6D36] flex flex-col justify-between gap-3 transition-colors shadow-xs">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-md">
+                            ربط سريع
+                          </span>
+                          <svg className="w-4 h-4" viewBox="0 0 24 24">
+                            <path
+                              fill="#4285F4"
+                              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                            />
+                            <path
+                              fill="#34A853"
+                              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                            />
+                            <path
+                              fill="#FBBC05"
+                              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                            />
+                            <path
+                              fill="#EA4335"
+                              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                            />
+                          </svg>
+                        </div>
+                        <h5 className="text-xs font-bold text-[#2C1E18]">
+                          تسجيل الدخول بواسطة Google
+                        </h5>
+                        <p className="text-[11px] text-[#645249] leading-relaxed">
+                          حفظ الطلب في حسابكِ الشخصي تلقائياً وتتبعه من صفحة «طلباتي» دون فقدان أي بيانات مدخلة.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => signInWithGoogle('/booking')}
+                        className="w-full py-2 px-3 text-xs font-bold bg-[#FAF6F0] hover:bg-[#F3ECE1] text-[#2C1E18] border border-[#D8CBB8] rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
+                          <path
+                            fill="#4285F4"
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                          />
+                          <path
+                            fill="#34A853"
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                          />
+                          <path
+                            fill="#FBBC05"
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                          />
+                          <path
+                            fill="#EA4335"
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                          />
+                        </svg>
+                        <span>متابعة بواسطة Google</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between text-[11px] text-[#645249] border-t border-[#E6DCD2]">
+                    <span>تفضلين تسجيل الدخول بالبريد الإلكتروني؟</span>
+                    <button
+                      type="button"
+                      onClick={() => openAuthModal('booking')}
+                      className="font-bold text-[#8C6D36] hover:text-[#2C1E18] underline cursor-pointer"
+                    >
+                      تسجيل الدخول / حساب جديد
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -1878,37 +2067,43 @@ export const StatusTrackerView: React.FC<{
   settings: SiteSettings;
   navigate: (view: PageView) => void;
   onRateBooking?: (booking: BookingSubmission) => void;
-}> = ({ bookings, settings, navigate, onRateBooking }) => {
+}> = ({ settings, navigate, onRateBooking }) => {
   const [searchRef, setSearchRef] = useState<string>('');
-  const [searchedBooking, setSearchedBooking] = useState<BookingSubmission | null>(
-    bookings[0] || null
-  );
-  const [hasSearched, setHasSearched] = useState<boolean>(false);
+  const [searchPhone, setSearchPhone] = useState<string>('');
+  const [searchedBooking, setSearchedBooking] = useState<BookingSubmission | null>(null);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchError, setSearchError] = useState<string | null>(null);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setSearchError(null);
-    setHasSearched(true);
 
-    const clean = searchRef.trim().toUpperCase();
-    if (!clean) {
-      setSearchError('يرجى كتابة الرقم المرجعي أو رقم الجوال.');
+    const cleanRef = searchRef.trim().toUpperCase();
+    const cleanPhone = searchPhone.trim();
+
+    if (!cleanRef || !cleanPhone) {
+      setSearchError('يرجى إدخال الرقم المرجعي ورقم الجوال المسجل معاً للتحقق من هوية الطلب.');
       return;
     }
 
-    const found = bookings.find(
-      (b) =>
-        b.referenceCode.toUpperCase() === clean ||
-        b.clientPhone.replace(/\D/g, '').includes(clean.replace(/\D/g, ''))
-    );
-
-    if (found) {
-      setSearchedBooking(found);
-      setSearchError(null);
-    } else {
+    setIsSearching(true);
+    try {
+      const res = await trackGuestBookingApi(cleanRef, cleanPhone);
+      if (res.success && res.booking) {
+        setSearchedBooking(res.booking);
+        setSearchError(null);
+      } else {
+        setSearchedBooking(null);
+        setSearchError(
+          res.error ||
+            'تعذر العثور على حجز يطابق هذا الرقم المرجعي ورقم الجوال معاً. يرجى التأكد من صحة البيانات.'
+        );
+      }
+    } catch {
       setSearchedBooking(null);
-      setSearchError('لم يتم العثور على أي حجز بهذا الرقم المرجعي أو رقم الجوال.');
+      setSearchError('حدث خطأ أثناء الاستعلام، يرجى المحاولة لاحقاً.');
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -1916,8 +2111,8 @@ export const StatusTrackerView: React.FC<{
     { status: 'draft', label: 'مسودة', desc: 'تم حفظ بيانات الطلب كمسودة دون إرسال رسمي بعد.' },
     {
       status: 'pending_review',
-      label: 'بانتظار المراجعة',
-      desc: 'الطلب قيد مراجعة فريق لومير للتحقق من جاهزية الفريق ومطابقة الوقت.'
+      label: 'قيد المراجعة',
+      desc: 'الطلب قيد مراجعة فريق لومير للتحقق من جاهزية الفريق ومطابقة الوقت في مكة أو جدة.'
     },
     {
       status: 'pending_client_confirmation',
@@ -1947,35 +2142,68 @@ export const StatusTrackerView: React.FC<{
   ];
 
   return (
-    <div className="max-w-[1000px] mx-auto px-6 py-12 space-y-10">
+    <div className="max-w-[1000px] mx-auto px-6 py-12 space-y-10" dir="rtl">
       <div className="text-center space-y-3 max-w-2xl mx-auto">
         <div className="text-xs text-[#8C6D36]">منظومة تتبع الحجوزات · LUMIR</div>
         <h1 className="font-display text-4xl sm:text-5xl font-bold text-[#2C1E18]">
           تتبع حالة طلب الحجز
         </h1>
         <p className="text-sm text-[#5C4940] leading-relaxed">
-          أدخلي الرقم المرجعي لطلبكِ (مثل LMR-2610-XXXX) أو رقم الجوال لمتابعة مراحل المراجعة
-          والاعتماد والتواصل المباشر مع فريق لومير.
+          لحماية خصوصية مناسباتكم، يُشترط مطابقة <strong>الرقم المرجعي</strong> مع{' '}
+          <strong>رقم الجوال المسجل</strong> معاً لعرض تفاصيل الطلب.
         </p>
       </div>
 
-      {/* Search Input Form */}
-      <form onSubmit={handleSearch} className="max-w-xl mx-auto">
-        <div className="p-2 rounded-2xl bg-[#FAF6F0] border border-[#D8CBB8] flex items-center gap-2 shadow-sm">
-          <Search className="w-5 h-5 text-[#8C6D36] mr-2 shrink-0" />
-          <input
-            type="text"
-            dir="ltr"
-            value={searchRef}
-            onChange={(e) => setSearchRef(e.target.value)}
-            placeholder="مثال: LMR-2610-101 أو 0551234567"
-            className="flex-1 px-3 py-2 text-sm bg-transparent border-none focus:outline-none font-mono font-bold"
-          />
+      {/* Dual Input Search Form */}
+      <form onSubmit={handleSearch} className="max-w-xl mx-auto space-y-3">
+        <div className="p-4 rounded-2xl bg-[#FAF6F0] border border-[#D8CBB8] space-y-3 shadow-xs">
+          <div className="space-y-1 text-right">
+            <label className="block text-xs font-bold text-[#2C1E18]">
+              الرقم المرجعي للطلب *
+            </label>
+            <input
+              type="text"
+              dir="ltr"
+              value={searchRef}
+              onChange={(e) => setSearchRef(e.target.value)}
+              placeholder="مثال: LMR-2610-4821"
+              required
+              className="w-full px-3.5 py-2.5 text-sm bg-white rounded-xl border border-[#D8CBB8] focus:outline-none focus:border-[#8C6D36] font-mono font-bold text-[#2C1E18]"
+            />
+          </div>
+
+          <div className="space-y-1 text-right">
+            <label className="block text-xs font-bold text-[#2C1E18]">
+              رقم الجوال المسجل في الطلب *
+            </label>
+            <input
+              type="tel"
+              dir="ltr"
+              value={searchPhone}
+              onChange={(e) => setSearchPhone(e.target.value)}
+              placeholder="مثال: 05XXXXXXXX"
+              required
+              className="w-full px-3.5 py-2.5 text-sm bg-white rounded-xl border border-[#D8CBB8] focus:outline-none focus:border-[#8C6D36] font-mono text-[#2C1E18]"
+            />
+          </div>
+
           <button
             type="submit"
-            className="px-5 py-2.5 rounded-xl bg-[#2C1E18] text-[#FAF6F0] text-xs font-bold hover:bg-[#422E25] cursor-pointer transition-colors"
+            disabled={isSearching}
+            className="w-full py-3 rounded-xl bg-[#2C1E18] text-[#FAF6F0] text-xs font-bold hover:bg-[#422E25] cursor-pointer transition-colors shadow-xs flex items-center justify-center gap-2 disabled:opacity-60"
           >
-            بحث
+            <Search className="w-4 h-4 text-[#C8A96E]" />
+            <span>{isSearching ? 'جاري التحقق...' : 'استعلام وتتبع الطلب'}</span>
+          </button>
+        </div>
+
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => navigate('customer-account')}
+            className="text-xs text-[#8C6D36] hover:text-[#2C1E18] font-bold underline cursor-pointer"
+          >
+            لديكِ حساب مسجل؟ تتبعي كافة طلباتكِ تلقائياً من صفحة «طلباتي»
           </button>
         </div>
       </form>

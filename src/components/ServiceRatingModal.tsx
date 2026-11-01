@@ -342,7 +342,7 @@ export const ServiceRatingModal: React.FC<ServiceRatingModalProps> = ({
                     dir="ltr"
                     value={bookingRef}
                     onChange={(e) => setBookingRef(e.target.value.toUpperCase())}
-                    placeholder="مثال: LMR-2610-101"
+                    placeholder="مثال: LMR-2610-XXXX"
                     className="w-full px-3.5 py-2.5 text-xs bg-white border border-[#D8CBB8] rounded-xl focus:outline-none focus:border-[#8C6D36] focus:ring-1 focus:ring-[#8C6D36] text-[#2C1E18] font-mono"
                   />
                   {isVerifiedCandidate && (

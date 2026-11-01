@@ -88,11 +88,6 @@ export const Layout: React.FC<LayoutProps> = ({
   const navClick = (v: PageView) => (e: React.MouseEvent) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
     e.preventDefault();
-    if (v === 'booking' && !user) {
-      openAuthModal('booking');
-      setMobileMenuOpen(false);
-      return;
-    }
     handleNav(v);
   };
 
@@ -710,13 +705,6 @@ export const Layout: React.FC<LayoutProps> = ({
                 className="hover:text-[#FAF6F0] cursor-pointer"
               >
                 الشروط
-              </a>
-              <span aria-hidden="true">·</span>
-              <a href={pathForView('admin')} onClick={navClick('admin')}
-                className="inline-flex items-center gap-1 text-[#C8A96E] hover:text-[#FAF6F0] cursor-pointer"
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>لوحة تحكم الإدارة</span>
               </a>
             </div>
           </div>

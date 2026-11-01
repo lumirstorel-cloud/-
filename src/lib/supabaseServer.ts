@@ -712,6 +712,73 @@ export async function supabaseVerifyBookingRef(
 }
 
 /**
+ * Securely tracks a guest booking by matching BOTH booking_number (or id) AND customer_phone.
+ * Under NO circumstances is a booking returned without confirming the phone digits match.
+ */
+export async function supabaseTrackGuestBooking(
+  cleanRef: string,
+  rawPhone: string
+): Promise<{ success: boolean; booking?: any; error?: string }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase || !cleanRef || !rawPhone) {
+    return {
+      success: false,
+      error: 'يرجى تقديم الرقم المرجعي ورقم الجوال معاً للتحقق من هوية الطلب'
+    };
+  }
+
+  const phoneDigits = rawPhone.replace(/\D/g, '');
+  if (phoneDigits.length < 8) {
+    return {
+      success: false,
+      error: 'رقم الجوال المدخل غير صحيح'
+    };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .or(`booking_number.ilike.${cleanRef},id.eq.${cleanRef}`)
+      .limit(1);
+
+    if (error || !data || data.length === 0) {
+      return {
+        success: false,
+        error: 'لم يتم العثور على أي حجز مطابق للرقم المرجعي ورقم الجوال معاً'
+      };
+    }
+
+    const b = data[0];
+    const dbPhoneDigits = (b.customer_phone || '').replace(/\D/g, '');
+
+    const matchesPhone =
+      dbPhoneDigits === phoneDigits ||
+      (dbPhoneDigits.length >= 8 &&
+        phoneDigits.length >= 8 &&
+        (dbPhoneDigits.endsWith(phoneDigits.slice(-8)) || phoneDigits.endsWith(dbPhoneDigits.slice(-8))));
+
+    if (!matchesPhone) {
+      return {
+        success: false,
+        error: 'بيانات رقم الجوال غير متطابقة مع الرقم المسجل في هذا الطلب'
+      };
+    }
+
+    return {
+      success: true,
+      booking: b
+    };
+  } catch (err: any) {
+    console.warn('Supabase guest tracking error:', err);
+    return {
+      success: false,
+      error: err.message || 'فشل استرجاع بيانات الطلب'
+    };
+  }
+}
+
+/**
  * Retrieves bookings strictly belonging to the authenticated customer.
  * Strictly isolates customer data: only records matching userId or userEmail are retrieved.
  */

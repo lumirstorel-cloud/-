@@ -8,6 +8,8 @@ import {
   SiteSettings
 } from '../types';
 import { formatArabicNumber, formatSar, getCategoryLabel, buildWhatsAppLink } from '../utils/formatters';
+import { useCustomerAuth } from '../context/CustomerAuthContext';
+import { trackGuestBookingApi } from '../utils/apiClient';
 import {
   Search,
   X,
@@ -663,27 +665,50 @@ interface CustomerAccountModalProps {
 export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
   isOpen,
   onClose,
-  bookings,
   navigate,
   settings,
   onRateBooking
 }) => {
-  const [searchKey, setSearchKey] = useState('');
-  const [foundBookings, setFoundBookings] = useState<BookingSubmission[] | null>(null);
+  const { user, logout, openAuthModal, signInWithGoogle } = useCustomerAuth();
+  const [searchRef, setSearchRef] = useState('');
+  const [searchPhone, setSearchPhone] = useState('');
+  const [searchedBooking, setSearchedBooking] = useState<BookingSubmission | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleLookup = (e: React.FormEvent) => {
+  const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault();
-    const term = searchKey.trim().toLowerCase();
-    if (!term) return;
+    setSearchError(null);
 
-    const matched = bookings.filter(
-      (b) =>
-        b.referenceCode.toLowerCase().includes(term) ||
-        b.clientPhone.replace(/\D/g, '').includes(term.replace(/\D/g, ''))
-    );
-    setFoundBookings(matched);
+    const ref = searchRef.trim().toUpperCase();
+    const phone = searchPhone.trim();
+
+    if (!ref || !phone) {
+      setSearchError('يرجى إدخال الرقم المرجعي ورقم الجوال المسجل معاً للتحقق من ملكية الحجز.');
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const res = await trackGuestBookingApi(ref, phone);
+      if (res.success && res.booking) {
+        setSearchedBooking(res.booking);
+        setSearchError(null);
+      } else {
+        setSearchedBooking(null);
+        setSearchError(
+          res.error ||
+            'تعذر العثور على حجز يطابق هذا الرقم المرجعي ورقم الجوال معاً. يرجى التأكد من البيانات.'
+        );
+      }
+    } catch {
+      setSearchedBooking(null);
+      setSearchError('حدث خطأ أثناء الاستعلام، يرجى المحاولة لاحقاً.');
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const statusArabic: Record<string, { label: string; color: string }> = {
@@ -716,10 +741,10 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
             </div>
             <div>
               <h3 className="font-display font-bold text-base text-[#2C1E18]">
-                حساب العميل وتتبع الحجوزات
+                {user ? 'حساب العميل المسجل' : 'تتبع الحجوزات وحساب العميل'}
               </h3>
               <p className="text-xs text-[#8C6D36]">
-                تتبعي حالة طلبكِ برقم الجوال أو الرمز المرجعي
+                {user ? user.email : 'استعلام آمن بالرقم المرجعي ورقم الجوال معاً'}
               </p>
             </div>
           </div>
@@ -732,90 +757,180 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
           </button>
         </div>
 
-        {/* Search form */}
-        <div className="p-5 border-b border-[#E6DCD2] bg-[#FAF6F0]">
-          <form onSubmit={handleLookup} className="space-y-3">
-            <label className="block text-xs font-bold text-[#5C4940]">
-              أدخلي رقم الجوال (مثل 05XXXXXXXX) أو الرمز المرجعي (LMR-XXXX):
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={searchKey}
-                onChange={(e) => setSearchKey(e.target.value)}
-                placeholder="05XXXXXXXX أو LMR-2610-101"
-                className="flex-1 p-3 bg-white rounded-xl border border-[#E6DCD2] text-sm focus:outline-none focus:border-[#8C6D36] text-[#2C1E18]"
-              />
+        {/* User is logged in: direct dashboard link */}
+        {user ? (
+          <div className="p-6 space-y-4 bg-white text-right">
+            <div className="p-4 rounded-xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-1">
+              <div className="text-xs text-[#8C6D36] font-medium">مرحباً بكِ في لومير</div>
+              <h4 className="font-display font-bold text-lg text-[#2C1E18]">
+                {user.name || 'عميل لومير المميّز'}
+              </h4>
+              <p className="text-xs text-[#645249]">{user.email}</p>
+            </div>
+
+            <div className="flex flex-col gap-2.5">
               <button
-                type="submit"
-                className="px-5 py-3 text-xs font-bold bg-[#2C1E18] text-[#FAF6F0] rounded-xl hover:bg-[#422E25] transition-colors whitespace-nowrap cursor-pointer"
+                type="button"
+                onClick={() => {
+                  onClose();
+                  navigate('customer-account');
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-[#2C1E18] text-[#FAF6F0] text-xs font-bold hover:bg-[#422E25] transition-colors cursor-pointer flex items-center justify-center gap-2"
               >
-                بحث
+                <span>الانتقال إلى صفحة «طلباتي» وحسابي</span>
+                <ChevronLeft className="w-4 h-4 text-[#C8A96E]" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  logout();
+                  onClose();
+                }}
+                className="w-full py-2.5 px-4 rounded-xl border border-rose-200 text-rose-800 text-xs font-bold hover:bg-rose-50 transition-colors cursor-pointer"
+              >
+                تسجيل الخروج
               </button>
             </div>
-          </form>
-        </div>
-
-        {/* Results */}
-        <div className="p-5 max-h-[50vh] overflow-y-auto space-y-3">
-          {foundBookings === null ? (
-            <div className="text-center py-6 space-y-2 text-xs text-[#645249]">
-              <Calendar className="w-8 h-8 text-[#C8A96E] mx-auto opacity-60" />
-              <p>ابحثي لعرض حجوزاتكِ السابقة وحالة المراجعة والتنفيذ والتقييم.</p>
-            </div>
-          ) : foundBookings.length === 0 ? (
-            <div className="text-center py-6 space-y-2 text-xs text-rose-700 bg-rose-50 p-4 rounded-xl border border-rose-200">
-              <AlertCircle className="w-6 h-6 mx-auto text-rose-500" />
-              <p className="font-bold">لم نجد حجوزات مسجلة بهذه البيانات</p>
-              <p className="text-[11px] text-[#645249]">
-                تأكدي من رقم الجوال أو تواصلي مباشرة مع خدمة العملاء للمساعدة.
-              </p>
-            </div>
-          ) : (
-            foundBookings.map((bk) => {
-              const st = statusArabic[bk.status] || {
-                label: bk.status,
-                color: 'bg-stone-100 text-stone-700'
-              };
-              return (
-                <div
-                  key={bk.id}
-                  className="p-4 bg-white rounded-xl border border-[#E6DCD2] shadow-xs space-y-2.5 text-right"
+          </div>
+        ) : (
+          <>
+            {/* Quick login header for guests */}
+            <div className="p-4 bg-[#F3ECE1]/70 border-b border-[#E6DCD2] space-y-2.5 text-right">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#2C1E18]">
+                  لديكِ حساب مسجل في لومير؟
+                </span>
+                <span className="text-[10px] text-[#8C6D36] bg-[#FAF6F0] px-2 py-0.5 rounded-full font-bold">
+                  تتبع تلقائي
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    signInWithGoogle('/customer-account');
+                  }}
+                  className="flex-1 py-2 px-3 text-xs font-bold bg-white hover:bg-[#FAF6F0] text-[#2C1E18] border border-[#D8CBB8] rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
                 >
+                  <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                    />
+                  </svg>
+                  <span>Google</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    openAuthModal('customer-account');
+                  }}
+                  className="flex-1 py-2 px-3 text-xs font-bold bg-[#2C1E18] text-[#FAF6F0] rounded-xl hover:bg-[#422E25] transition-colors cursor-pointer text-center"
+                >
+                  البريد الإلكتروني
+                </button>
+              </div>
+            </div>
+
+            {/* Secure dual-field search form */}
+            <div className="p-5 border-b border-[#E6DCD2] bg-[#FAF6F0] text-right">
+              <form onSubmit={handleLookup} className="space-y-3">
+                <span className="block text-xs font-bold text-[#2C1E18]">
+                  أو استعلمي كضيف (يلزم مطابقة الرقم المرجعي ورقم الجوال):
+                </span>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    dir="ltr"
+                    value={searchRef}
+                    onChange={(e) => setSearchRef(e.target.value)}
+                    placeholder="الرقم المرجعي (مثال: LMR-2610-XXXX)"
+                    required
+                    className="w-full p-2.5 bg-white rounded-xl border border-[#E6DCD2] text-xs font-mono font-bold focus:outline-none focus:border-[#8C6D36] text-[#2C1E18]"
+                  />
+                  <input
+                    type="tel"
+                    dir="ltr"
+                    value={searchPhone}
+                    onChange={(e) => setSearchPhone(e.target.value)}
+                    placeholder="رقم الجوال المسجل (مثال: 05XXXXXXXX)"
+                    required
+                    className="w-full p-2.5 bg-white rounded-xl border border-[#E6DCD2] text-xs font-mono focus:outline-none focus:border-[#8C6D36] text-[#2C1E18]"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSearching}
+                  className="w-full py-2.5 text-xs font-bold bg-[#2C1E18] text-[#FAF6F0] rounded-xl hover:bg-[#422E25] transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  <Search className="w-3.5 h-3.5 text-[#C8A96E]" />
+                  <span>{isSearching ? 'جاري التحقق...' : 'استعلام وتحقق'}</span>
+                </button>
+              </form>
+            </div>
+
+            {/* Results Section */}
+            <div className="p-5 max-h-[45vh] overflow-y-auto space-y-3">
+              {searchError ? (
+                <div className="text-center py-4 space-y-1 text-xs text-rose-800 bg-rose-50 p-3 rounded-xl border border-rose-200">
+                  <AlertCircle className="w-5 h-5 mx-auto text-rose-600" />
+                  <p className="font-bold">{searchError}</p>
+                </div>
+              ) : searchedBooking ? (
+                <div className="p-4 bg-white rounded-xl border border-[#E6DCD2] shadow-xs space-y-2.5 text-right">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs font-bold text-[#8C6D36]">
-                      {bk.referenceCode}
+                      {searchedBooking.referenceCode}
                     </span>
                     <span
-                      className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${st.color}`}
+                      className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                        statusArabic[searchedBooking.status]?.color ||
+                        'bg-stone-100 text-stone-700'
+                      }`}
                     >
-                      {st.label}
+                      {statusArabic[searchedBooking.status]?.label || searchedBooking.status}
                     </span>
                   </div>
 
                   <div>
                     <h4 className="font-bold text-sm text-[#2C1E18]">
-                      {bk.serviceName}
+                      {searchedBooking.serviceName}
                     </h4>
-                    {bk.packageName && (
-                      <p className="text-xs text-[#645249]">{bk.packageName}</p>
+                    {searchedBooking.packageName && (
+                      <p className="text-xs text-[#645249]">{searchedBooking.packageName}</p>
                     )}
                   </div>
 
                   <div className="text-xs text-[#645249] flex flex-wrap gap-x-4 gap-y-1">
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3.5 h-3.5 text-[#8C6D36]" />
-                      {bk.city} — {bk.district}
+                      {searchedBooking.city} — {searchedBooking.district}
                     </span>
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5 text-[#8C6D36]" />
-                      {bk.eventDate}
+                      {searchedBooking.eventDate}
                     </span>
                   </div>
 
                   <div className="pt-2 border-t border-[#E6DCD2] flex items-center justify-between gap-2">
                     <span className="text-xs font-mono font-bold text-[#2C1E18]">
-                      {formatSar(bk.estimatedTotalSar)}
+                      {formatSar(searchedBooking.estimatedTotalSar || searchedBooking.subtotalSar)}
                     </span>
                     <div className="flex items-center gap-2">
                       {onRateBooking && (
@@ -823,7 +938,7 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
                           type="button"
                           onClick={() => {
                             onClose();
-                            onRateBooking(bk);
+                            onRateBooking(searchedBooking);
                           }}
                           className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-[#FAF6F0] border border-[#D8CBB8] text-[#8C6D36] hover:bg-[#F3ECE1] transition-colors flex items-center gap-1 cursor-pointer"
                         >
@@ -839,30 +954,20 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
                         }}
                         className="text-xs text-[#8C6D36] font-bold hover:underline"
                       >
-                        التفاصيل ←
+                        عرض المسار الكامل ←
                       </button>
                     </div>
                   </div>
                 </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* Staff portal toggle */}
-        <div className="p-4 bg-[#F3ECE1] border-t border-[#E6DCD2] flex items-center justify-between text-xs text-[#645249]">
-          <span>هل أنتِ من طاقم إدارة لومير؟</span>
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              navigate('admin');
-            }}
-            className="px-3 py-1.5 rounded-lg bg-[#2C1E18] text-[#FAF6F0] font-medium hover:bg-[#422E25] transition-colors"
-          >
-            دخول لوحة الإدارة
-          </button>
-        </div>
+              ) : (
+                <div className="text-center py-5 space-y-1 text-xs text-[#645249]">
+                  <Calendar className="w-7 h-7 text-[#C8A96E] mx-auto opacity-70" />
+                  <p>أدخلي الرقم المرجعي ورقم الجوال للتحقق وعرض تفاصيل مناسبتكِ بأمان.</p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

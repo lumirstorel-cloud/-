@@ -268,10 +268,6 @@ function AppInner() {
   const handleSelectServiceToBook = (serviceId: string, packageId?: string) => {
     setSelectedServiceId(serviceId);
     setSelectedPackageId(packageId);
-    if (!user) {
-      openAuthModal('booking');
-      return;
-    }
     handleNavigate('booking');
   };
 

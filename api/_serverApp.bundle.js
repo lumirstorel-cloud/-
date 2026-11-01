@@ -8,131 +8,7 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 
 // src/data/seedReviews.ts
-var INITIAL_CUSTOMER_REVIEWS = [
-  // 1. تصوير المناسبات بالجوال
-  {
-    id: "rev-photo-1",
-    serviceId: "srv-mobile-photo",
-    serviceName: "\u062A\u0635\u0648\u064A\u0631 \u0627\u0644\u0645\u0646\u0627\u0633\u0628\u0627\u062A \u0628\u0627\u0644\u062C\u0648\u0627\u0644",
-    customerName: "\u0633\u0627\u0631\u0629 \u0627\u0644\u0639\u062A\u064A\u0628\u064A",
-    city: "\u0645\u0643\u0629 \u0627\u0644\u0645\u0643\u0631\u0645\u0629",
-    rating: 5,
-    comment: "\u0645\u0627 \u0634\u0627\u0621 \u0627\u0644\u0644\u0647 \u062A\u0628\u0627\u0631\u0643 \u0627\u0644\u0644\u0647\u060C \u062A\u0635\u0648\u064A\u0631 \u0641\u062E\u0645 \u0648\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0644\u0648\u0627\u0646 \u0627\u062D\u062A\u0631\u0627\u0641\u064A\u0629 \u062C\u062F\u0627\u064B. \u062A\u0645 \u0627\u0633\u062A\u0644\u0627\u0645 \u0627\u0644\u0631\u064A\u0644\u0632 \u0648\u0627\u0644\u0644\u0642\u0637\u0627\u062A \u0641\u064A \u0646\u0641\u0633 \u0627\u0644\u0644\u064A\u0644\u0629 \u062E\u0644\u0627\u0644 \u0623\u0642\u0644 \u0645\u0646 \u0661\u0662 \u0633\u0627\u0639\u0629! \u062A\u0639\u0627\u0645\u0644 \u0631\u0627\u0642\u064D \u0648\u062E\u0635\u0648\u0635\u064A\u0629 \u062A\u0627\u0645\u0629 \u0641\u064A \u0642\u0627\u0639\u0629 \u0627\u0644\u0641\u0631\u062D.",
-    createdAt: "2026-03-28T21:30:00Z",
-    verifiedBooking: true,
-    bookingReference: "LMR-2610-101",
-    criteria: {
-      quality: 5,
-      punctuality: 5,
-      professionalism: 5
-    }
-  },
-  {
-    id: "rev-photo-2",
-    serviceId: "srv-mobile-photo",
-    serviceName: "\u062A\u0635\u0648\u064A\u0631 \u0627\u0644\u0645\u0646\u0627\u0633\u0628\u0627\u062A \u0628\u0627\u0644\u062C\u0648\u0627\u0644",
-    customerName: "\u0623\u0645 \u0631\u064A\u0627\u0646 \u0627\u0644\u063A\u0627\u0645\u062F\u064A",
-    city: "\u062C\u062F\u0629",
-    rating: 5,
-    comment: "\u0627\u0644\u0645\u0635\u0648\u0631\u0629 \u0643\u0627\u0646\u062A \u0641\u064A \u0642\u0645\u0629 \u0627\u0644\u0630\u0648\u0642 \u0648\u0627\u0644\u0644\u0628\u0627\u0642\u0629\u060C \u0627\u0644\u062A\u0642\u0637\u062A \u062A\u0641\u0627\u0635\u064A\u0644 \u0627\u0644\u0636\u064A\u0627\u0641\u0629 \u0648\u0627\u0644\u0643\u0648\u0634\u0629 \u0628\u062F\u0642\u0629 \u0641\u0627\u0626\u0642\u0629 \u0628\u062F\u0648\u0646 \u0623\u064A \u062A\u0637\u0641\u0644. \u0623\u0646\u0635\u062D \u0628\u0647\u0627 \u0643\u0644 \u0639\u0631\u0648\u0633 \u062A\u0628\u062D\u062B \u0639\u0646 \u062A\u0648\u062B\u064A\u0642 \u0641\u0648\u0631\u064A \u0628\u0627\u0644\u0622\u064A\u0641\u0648\u0646.",
-    createdAt: "2026-04-02T19:45:00Z",
-    verifiedBooking: true,
-    bookingReference: "LMR-2610-102",
-    criteria: {
-      quality: 5,
-      punctuality: 5,
-      professionalism: 5
-    }
-  },
-  {
-    id: "rev-photo-3",
-    serviceId: "srv-mobile-photo",
-    serviceName: "\u062A\u0635\u0648\u064A\u0631 \u0627\u0644\u0645\u0646\u0627\u0633\u0628\u0627\u062A \u0628\u0627\u0644\u062C\u0648\u0627\u0644",
-    customerName: "\u0631\u064A\u0645 \u0627\u0644\u062D\u0631\u0628\u064A",
-    city: "\u0645\u0643\u0629 \u0627\u0644\u0645\u0643\u0631\u0645\u0629",
-    rating: 5,
-    comment: "\u0644\u0642\u0637\u0627\u062A \u0627\u0644\u0631\u064A\u0644\u0632 \u062E\u064A\u0627\u0627\u0627\u0644 \u0648\u0627\u0644\u0645\u062B\u0628\u062A\u0627\u062A \u062D\u0631\u0643\u0629 \u0633\u0644\u0633\u0629 \u062C\u062F\u0627\u064B \u0643\u0623\u0646\u0647\u0627 \u0643\u0627\u0645\u064A\u0631\u0627 \u0633\u064A\u0646\u0645\u0627\u0626\u064A\u0629\u060C \u0648\u0627\u0644\u0645\u0648\u0646\u062A\u0627\u062C \u0643\u0627\u0646 \u0645\u062A\u0646\u0627\u0633\u0642 \u0645\u0639 \u0627\u0644\u0645\u0648\u0633\u064A\u0642\u0649 \u0648\u0627\u0644\u0645\u0634\u0627\u0639\u0631.",
-    createdAt: "2026-04-10T22:15:00Z",
-    verifiedBooking: true,
-    bookingReference: "LMR-2610-103",
-    criteria: {
-      quality: 5,
-      punctuality: 5,
-      professionalism: 5
-    }
-  },
-  // 2. أركان ألعاب وتلوين الأطفال
-  {
-    id: "rev-kids-1",
-    serviceId: "srv-kids-corner",
-    serviceName: "\u0623\u0631\u0643\u0627\u0646 \u0623\u0644\u0639\u0627\u0628 \u0648\u062A\u0644\u0648\u064A\u0646 \u0627\u0644\u0623\u0637\u0641\u0627\u0644",
-    customerName: "\u0645\u0646\u064A\u0631\u0629 \u0627\u0644\u0634\u0631\u064A\u0641",
-    city: "\u0645\u0643\u0629 \u0627\u0644\u0645\u0643\u0631\u0645\u0629",
-    rating: 5,
-    comment: "\u0631\u0643\u0646 \u0627\u0644\u0623\u0637\u0641\u0627\u0644 \u0643\u0627\u0646 \u0645\u0646\u0642\u0630\u0627\u064B \u0641\u064A \u062D\u0641\u0644 \u0632\u0641\u0627\u0641 \u0623\u062E\u062A\u064A! \u0627\u0644\u0623\u0645\u0647\u0627\u062A \u0627\u0631\u062A\u0627\u062D\u0648\u0627 \u0648\u0627\u0633\u062A\u0645\u062A\u0639\u0648\u0627 \u0628\u0627\u0644\u062D\u0641\u0644 \u0648\u0627\u0644\u0623\u0637\u0641\u0627\u0644 \u0643\u0627\u0646\u0648\u0627 \u0645\u0628\u0633\u0648\u0637\u064A\u0646 \u0628\u0627\u0644\u062A\u0644\u0648\u064A\u0646 \u0648\u0627\u0644\u0635\u0644\u0635\u0627\u0644 \u0627\u0644\u0622\u0645\u0646. \u062F\u064A\u0643\u0648\u0631 \u0627\u0644\u0631\u0643\u0646 \u0641\u062E\u0645 \u0648\u0645\u0631\u062A\u0628 \u0648\u0646\u0627\u0633\u0628 \u062B\u064A\u0645 \u0627\u0644\u0642\u0627\u0639\u0629.",
-    createdAt: "2026-03-15T20:15:00Z",
-    verifiedBooking: true,
-    bookingReference: "LMR-2610-104",
-    criteria: {
-      quality: 5,
-      punctuality: 5,
-      professionalism: 5
-    }
-  },
-  {
-    id: "rev-kids-2",
-    serviceId: "srv-kids-corner",
-    serviceName: "\u0623\u0631\u0643\u0627\u0646 \u0623\u0644\u0639\u0627\u0628 \u0648\u062A\u0644\u0648\u064A\u0646 \u0627\u0644\u0623\u0637\u0641\u0627\u0644",
-    customerName: "\u0647\u0646\u062F \u0628\u0627\u0648\u0632\u064A\u0631",
-    city: "\u062C\u062F\u0629",
-    rating: 5,
-    comment: "\u062A\u062C\u0647\u064A\u0632\u0627\u062A \u0646\u0638\u064A\u0641\u0629 \u0648\u0623\u0644\u0648\u0627\u0646 \u0645\u062A\u0646\u0627\u0633\u0642\u0629 \u062A\u0646\u0627\u0633\u0628 \u0627\u0644\u0642\u0627\u0639\u0629. \u0645\u0634\u0631\u0641\u0627\u062A \u0644\u0648\u0645\u064A\u0631 \u0628\u0634\u0648\u0634\u0627\u062A \u0648\u0635\u0628\u0648\u0631\u0627\u062A \u062C\u062F\u0627\u064B \u0645\u0639 \u0627\u0644\u0635\u063A\u0627\u0631\u060C \u0648\u062E\u0641\u0641\u0648\u0627 \u0627\u0644\u0625\u0632\u0639\u0627\u062C \u0641\u064A \u0627\u0644\u0635\u0627\u0644\u0629 \u0628\u0646\u0633\u0628\u0629 \u0661\u0660\u0660\u066A.",
-    createdAt: "2026-04-05T22:00:00Z",
-    verifiedBooking: true,
-    bookingReference: "LMR-2610-105",
-    criteria: {
-      quality: 5,
-      punctuality: 5,
-      professionalism: 5
-    }
-  },
-  // 3. رعاية ومرافقة الأطفال
-  {
-    id: "rev-care-1",
-    serviceId: "srv-childcare",
-    serviceName: "\u0631\u0639\u0627\u064A\u0629 \u0648\u0645\u0631\u0627\u0641\u0642\u0629 \u0627\u0644\u0623\u0637\u0641\u0627\u0644",
-    customerName: "\u0627\u0628\u062A\u0633\u0627\u0645 \u0627\u0644\u062D\u0631\u0628\u064A",
-    city: "\u062C\u062F\u0629",
-    rating: 5,
-    comment: "\u0623\u0645\u064A\u0646\u0629 \u0648\u0645\u0633\u0624\u0648\u0644\u0629 \u0648\u062D\u0631\u064A\u0635\u0629 \u0639\u0644\u0649 \u0643\u0644 \u0637\u0641\u0644. \u0646\u0638\u0627\u0645 \u062A\u0648\u062B\u064A\u0642 \u0623\u0631\u0642\u0627\u0645 \u062C\u0648\u0627\u0644 \u0627\u0644\u0623\u0645\u0647\u0627\u062A \u0639\u0646\u062F \u0627\u0644\u062F\u062E\u0648\u0644 \u0648\u0627\u0644\u062E\u0631\u0648\u062C \u064A\u0639\u0637\u064A \u0637\u0645\u0623\u0646\u064A\u0646\u0629 \u0643\u0627\u0645\u0644\u0629. \u0634\u0643\u0631\u0627\u064B \u0644\u0641\u0631\u064A\u0642 \u0644\u0648\u0645\u064A\u0631 \u0627\u0644\u0645\u0628\u062F\u0639 \u0639\u0644\u0649 \u0627\u0644\u0627\u062D\u062A\u0631\u0627\u0641\u064A\u0629.",
-    createdAt: "2026-03-20T21:00:00Z",
-    verifiedBooking: true,
-    bookingReference: "LMR-2610-106",
-    criteria: {
-      quality: 5,
-      punctuality: 5,
-      professionalism: 5
-    }
-  },
-  // 4. مشرفة جوالات وخصوصية الحفل
-  {
-    id: "rev-phones-1",
-    serviceId: "srv-wedding-support-phones",
-    serviceName: "\u0645\u0634\u0631\u0641\u0629 \u062C\u0648\u0627\u0644\u0627\u062A \u0648\u062E\u0635\u0648\u0635\u064A\u0629 \u0627\u0644\u062D\u0641\u0644",
-    customerName: "\u0639\u0628\u064A\u0631 \u0627\u0644\u0642\u062D\u0637\u0627\u0646\u064A",
-    city: "\u0645\u0643\u0629 \u0627\u0644\u0645\u0643\u0631\u0645\u0629",
-    rating: 5,
-    comment: "\u0645\u0634\u0631\u0641\u0629 \u0627\u0644\u062C\u0648\u0627\u0644\u0627\u062A \u0627\u0644\u062A\u0632\u0645\u062A \u0628\u062F\u0642\u0629 \u0648\u0633\u062C\u0644\u062A \u062C\u0645\u064A\u0639 \u0623\u062C\u0647\u0632\u0629 \u0627\u0644\u062D\u0627\u0636\u0631\u0627\u062A \u0628\u062D\u0642\u0627\u0626\u0628 \u0645\u0631\u0642\u0645\u0629 \u0648\u0645\u062D\u0643\u0645\u0629. \u0631\u0627\u062D\u0629 \u0628\u0627\u0644 \u062A\u0627\u0645\u0629 \u0644\u062E\u0635\u0648\u0635\u064A\u0629 \u0627\u0644\u0639\u0631\u0648\u0633\u064A\u0646 \u0648\u0627\u0644\u0645\u0639\u0627\u0632\u064A\u0645.",
-    createdAt: "2026-04-08T20:30:00Z",
-    verifiedBooking: true,
-    bookingReference: "LMR-2610-107",
-    criteria: {
-      quality: 5,
-      punctuality: 5,
-      professionalism: 5
-    }
-  }
-];
+var INITIAL_CUSTOMER_REVIEWS = [];
 
 // src/data/centralData.ts
 var HERO_IMAGE = "/images/lumir-hero-1440.jpg";
@@ -847,70 +723,7 @@ var INITIAL_LUMIR_DATA = {
     }
   ],
   services: INITIAL_SERVICES,
-  bookings: [
-    {
-      id: "bk-101",
-      referenceCode: "LMR-2610-101",
-      createdAt: "2026-10-12T16:00:00.000Z",
-      status: "confirmed",
-      serviceId: "srv-mobile-photo",
-      serviceName: "\u062A\u0635\u0648\u064A\u0631 \u0627\u0644\u0645\u0646\u0627\u0633\u0628\u0627\u062A \u0628\u0627\u0644\u062C\u0648\u0627\u0644",
-      categoryKey: "mobile_photography",
-      packageId: "pkg-photo-4h",
-      packageName: "\u0628\u0627\u0642\u0629 \u0664 \u0633\u0627\u0639\u0627\u062A \u062A\u063A\u0637\u064A\u0629",
-      city: "\u0645\u0643\u0629 \u0627\u0644\u0645\u0643\u0631\u0645\u0629",
-      district: "\u0627\u0644\u0639\u0648\u0627\u0644\u064A",
-      venueName: "\u0642\u0627\u0639\u0629 \u0627\u0644\u0644\u0624\u0644\u0624\u0629",
-      eventDate: "2026-10-24",
-      startTime: "19:00",
-      endTime: "23:00",
-      durationHours: 4,
-      coverageDetails: "\u0627\u0644\u062A\u0631\u0643\u064A\u0632 \u0639\u0644\u0649 \u062A\u0641\u0627\u0635\u064A\u0644 \u0627\u0644\u0643\u0648\u0634\u0629 \u0648\u0627\u0644\u0636\u064A\u0627\u0641\u0629 \u0648\u0627\u0644\u0632\u0641\u0629 \u0645\u0639 \u0645\u0642\u0637\u0639\u064A \u0631\u064A\u0644\u0632",
-      selectedAddonIds: ["add-photo-same-night"],
-      subtotalSar: 600,
-      approvedFeesSar: 0,
-      estimatedTotalSar: 600,
-      payableAmountSar: 600,
-      isCustomQuoteRequired: false,
-      clientName: "\u0646\u0648\u0631\u0629 \u0627\u0644\u0645\u0637\u064A\u0631\u064A",
-      clientPhone: "0551234567",
-      preferredContactMethod: "whatsapp",
-      agreedTermsAndPrivacy: true,
-      agreedPhotoPrivacy: true,
-      specialNotes: "\u064A\u0631\u062C\u0649 \u0627\u0644\u062D\u0636\u0648\u0631 \u0642\u0628\u0644 \u0627\u0644\u0645\u0648\u0639\u062F \u0628\u0640 \u0664\u0665 \u062F\u0642\u064A\u0642\u0629."
-    },
-    {
-      id: "bk-102",
-      referenceCode: "LMR-2610-102",
-      createdAt: "2026-10-13T18:30:00.000Z",
-      status: "pending_review",
-      serviceId: "srv-kids-corner",
-      serviceName: "\u0631\u0643\u0646 \u0627\u0644\u0623\u0637\u0641\u0627\u0644 \u0648\u0627\u0644\u0623\u0646\u0634\u0637\u0629 \u0627\u0644\u0625\u0628\u062F\u0627\u0639\u064A\u0629",
-      categoryKey: "kids_corner",
-      packageId: "pkg-kids-colors",
-      packageName: "\u0628\u0627\u0642\u0629 \u0627\u0644\u0641\u0631\u062D\u0629 \u0627\u0644\u0645\u062C\u0645\u0639\u0629 (\u0631\u0633\u0645 + \u0637\u064A\u0646 + \u0631\u0633\u0648\u0645\u0627\u062A \u0627\u0644\u0648\u062C\u0647)",
-      city: "\u062C\u062F\u0629",
-      district: "\u0627\u0644\u0634\u0627\u0637\u0626",
-      venueName: "\u0641\u0646\u062F\u0642 \u0647\u064A\u0644\u062A\u0648\u0646",
-      eventDate: "2026-10-28",
-      startTime: "20:00",
-      endTime: "00:00",
-      durationHours: 4,
-      childrenCount: 18,
-      childrenAges: "\u0645\u0646 \u0663 \u0625\u0644\u0649 \u0668 \u0633\u0646\u0648\u0627\u062A",
-      selectedActivities: ["\u0627\u0644\u0631\u0633\u0645 \u0648\u0627\u0644\u062A\u0644\u0648\u064A\u0646 \u0639\u0644\u0649 \u0627\u0644\u0623\u0648\u0631\u0627\u0642", "\u0627\u0644\u0644\u0639\u0628 \u0628\u0627\u0644\u0637\u064A\u0646", "\u0631\u0633\u0648\u0645\u0627\u062A \u0627\u0644\u0648\u062C\u0647"],
-      selectedAddonIds: [],
-      subtotalSar: 750,
-      approvedFeesSar: 0,
-      estimatedTotalSar: 750,
-      isCustomQuoteRequired: true,
-      clientName: "\u0631\u064A\u0645 \u0627\u0644\u0633\u0644\u064A\u0645\u0627\u0646",
-      clientPhone: "0509876543",
-      preferredContactMethod: "whatsapp",
-      agreedTermsAndPrivacy: true,
-      specialNotes: "\u062A\u0646\u0633\u064A\u0642 \u0623\u0644\u0648\u0627\u0646 \u0627\u0644\u0631\u0643\u0646 \u0645\u0639 \u0648\u0631\u062F \u0627\u0644\u0635\u0627\u0644\u0629 \u0627\u0644\u0639\u0627\u062C\u064A \u0648\u0627\u0644\u0648\u0631\u062F\u064A \u0627\u0644\u0647\u0627\u062F\u0626."
-    }
-  ],
+  bookings: [],
   portfolio: [
     {
       id: "port-1",
@@ -1109,10 +922,10 @@ var INITIAL_LUMIR_DATA = {
       adminEmail: "ops@lumir.sa",
       adminName: "\u0645\u0634\u0631\u0641\u0629 \u0627\u0644\u0639\u0645\u0644\u064A\u0627\u062A \u0648\u0627\u0644\u0645\u0648\u0627\u0639\u064A\u062F",
       adminRole: "operations_manager",
-      action: "\u062A\u0623\u0643\u064A\u062F \u0645\u0648\u0639\u062F \u062D\u062C\u0632",
-      targetType: "booking",
-      targetId: "bk-101",
-      details: "\u062A\u0623\u0643\u064A\u062F \u0645\u0648\u0639\u062F \u0627\u0644\u062D\u062C\u0632 LMR-2610-101 \u0644\u0645\u0646\u0627\u0633\u0628\u0629 \u0627\u0644\u0639\u0648\u0627\u0644\u064A \u0641\u064A \u0645\u0643\u0629 \u0627\u0644\u0645\u0643\u0631\u0645\u0629."
+      action: "\u062A\u062D\u062F\u064A\u062B \u0627\u0644\u062A\u063A\u0637\u064A\u0629 \u0627\u0644\u062C\u063A\u0631\u0627\u0641\u064A\u0629",
+      targetType: "settings",
+      targetId: "coverage",
+      details: "\u062A\u0623\u0643\u064A\u062F \u062A\u0641\u0639\u064A\u0644 \u0646\u0637\u0627\u0642 \u0627\u0644\u062A\u063A\u0637\u064A\u0629 \u0627\u0644\u0645\u064A\u062F\u0627\u0646\u064A\u0629 \u0641\u064A \u0623\u062D\u064A\u0627\u0621 \u0645\u0643\u0629 \u0627\u0644\u0645\u0643\u0631\u0645\u0629 \u0648\u062C\u062F\u0629."
     }
   ],
   cityCoverage: [
@@ -1686,6 +1499,50 @@ async function supabaseVerifyBookingRef(cleanRef) {
     return { isVerified: false };
   }
 }
+async function supabaseTrackGuestBooking(cleanRef, rawPhone) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase || !cleanRef || !rawPhone) {
+    return {
+      success: false,
+      error: "\u064A\u0631\u062C\u0649 \u062A\u0642\u062F\u064A\u0645 \u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0645\u0631\u062C\u0639\u064A \u0648\u0631\u0642\u0645 \u0627\u0644\u062C\u0648\u0627\u0644 \u0645\u0639\u0627\u064B \u0644\u0644\u062A\u062D\u0642\u0642 \u0645\u0646 \u0647\u0648\u064A\u0629 \u0627\u0644\u0637\u0644\u0628"
+    };
+  }
+  const phoneDigits = rawPhone.replace(/\D/g, "");
+  if (phoneDigits.length < 8) {
+    return {
+      success: false,
+      error: "\u0631\u0642\u0645 \u0627\u0644\u062C\u0648\u0627\u0644 \u0627\u0644\u0645\u062F\u062E\u0644 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"
+    };
+  }
+  try {
+    const { data, error } = await supabase.from("bookings").select("*").or(`booking_number.ilike.${cleanRef},id.eq.${cleanRef}`).limit(1);
+    if (error || !data || data.length === 0) {
+      return {
+        success: false,
+        error: "\u0644\u0645 \u064A\u062A\u0645 \u0627\u0644\u0639\u062B\u0648\u0631 \u0639\u0644\u0649 \u0623\u064A \u062D\u062C\u0632 \u0645\u0637\u0627\u0628\u0642 \u0644\u0644\u0631\u0642\u0645 \u0627\u0644\u0645\u0631\u062C\u0639\u064A \u0648\u0631\u0642\u0645 \u0627\u0644\u062C\u0648\u0627\u0644 \u0645\u0639\u0627\u064B"
+      };
+    }
+    const b = data[0];
+    const dbPhoneDigits = (b.customer_phone || "").replace(/\D/g, "");
+    const matchesPhone = dbPhoneDigits === phoneDigits || dbPhoneDigits.length >= 8 && phoneDigits.length >= 8 && (dbPhoneDigits.endsWith(phoneDigits.slice(-8)) || phoneDigits.endsWith(dbPhoneDigits.slice(-8)));
+    if (!matchesPhone) {
+      return {
+        success: false,
+        error: "\u0628\u064A\u0627\u0646\u0627\u062A \u0631\u0642\u0645 \u0627\u0644\u062C\u0648\u0627\u0644 \u063A\u064A\u0631 \u0645\u062A\u0637\u0627\u0628\u0642\u0629 \u0645\u0639 \u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0645\u0633\u062C\u0644 \u0641\u064A \u0647\u0630\u0627 \u0627\u0644\u0637\u0644\u0628"
+      };
+    }
+    return {
+      success: true,
+      booking: b
+    };
+  } catch (err) {
+    console.warn("Supabase guest tracking error:", err);
+    return {
+      success: false,
+      error: err.message || "\u0641\u0634\u0644 \u0627\u0633\u062A\u0631\u062C\u0627\u0639 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0637\u0644\u0628"
+    };
+  }
+}
 async function supabaseGetCustomerBookings(userId, userEmail, userPhone) {
   const supabase = getSupabaseAdmin();
   if (!supabase) {
@@ -1811,6 +1668,9 @@ function loadDatabase() {
         database = {
           ...INITIAL_LUMIR_DATA,
           ...parsed,
+          bookings: (parsed.bookings || []).filter(
+            (b) => b.id !== "bk-101" && b.id !== "bk-102"
+          ),
           settings: {
             ...INITIAL_LUMIR_DATA.settings,
             ...parsed.settings || {}
@@ -2357,8 +2217,47 @@ app.post("/api/bookings", async (req, res) => {
     message: "\u062A\u0645 \u062A\u0633\u062C\u064A\u0644 \u0637\u0644\u0628 \u0627\u0644\u062D\u062C\u0632 \u0628\u0646\u062C\u0627\u062D \u0648\u0647\u0648 \u0627\u0644\u0622\u0646 \u0628\u0627\u0646\u062A\u0638\u0627\u0631 \u0645\u0631\u0627\u062C\u0639\u0629 \u0627\u0644\u0625\u062F\u0627\u0631\u0629."
   });
 });
-app.get("/api/bookings/track/:ref", (req, res) => {
+app.get("/api/bookings/track/:ref", async (req, res) => {
   const ref = req.params.ref.trim().toUpperCase();
+  const phoneParam = req.query.phone ? String(req.query.phone).trim() : "";
+  if (hasSupabaseServerConfig()) {
+    try {
+      const supabase = getSupabaseAdmin();
+      if (supabase) {
+        let query = supabase.from("bookings").select("*").or(`booking_number.ilike.${ref},id.eq.${ref}`);
+        const { data, error } = await query.limit(1);
+        if (!error && data && data.length > 0) {
+          const row = data[0];
+          const rawPhone2 = row.customer_phone || "";
+          const digits2 = rawPhone2.replace(/\D/g, "");
+          const maskedPhone2 = digits2.length >= 8 ? `${digits2.slice(0, 3)}****${digits2.slice(-3)}` : "******";
+          return res.json({
+            id: row.id,
+            referenceCode: row.booking_number,
+            clientName: row.customer_name,
+            clientPhoneMasked: maskedPhone2,
+            city: row.city || "\u0645\u0643\u0629 \u0627\u0644\u0645\u0643\u0631\u0645\u0629",
+            district: row.district,
+            venueName: row.venue_name,
+            eventDate: row.event_date,
+            startTime: row.event_time,
+            durationHours: row.duration_hours,
+            categoryKey: row.category_key,
+            serviceName: row.service_name,
+            packageName: row.package_name,
+            subtotalSar: row.subtotal_amount,
+            approvedFeesSar: row.approved_fees || 0,
+            estimatedTotalSar: row.total_amount,
+            status: row.status,
+            specialNotes: row.notes,
+            createdAt: row.created_at
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("Supabase tracking lookup notice:", err);
+    }
+  }
   const booking = database.bookings.find(
     (b) => b.referenceCode.toUpperCase() === ref || b.clientPhone.replace(/\D/g, "") === ref.replace(/\D/g, "")
   );
@@ -2390,6 +2289,106 @@ app.get("/api/bookings/track/:ref", (req, res) => {
     status: booking.status,
     specialNotes: booking.specialNotes,
     createdAt: booking.createdAt
+  });
+});
+app.post("/api/bookings/track-guest", async (req, res) => {
+  const { referenceCode, clientPhone } = req.body;
+  if (!referenceCode || !clientPhone) {
+    return res.status(400).json({
+      success: false,
+      error: "\u064A\u0631\u062C\u0649 \u0625\u062F\u062E\u0627\u0644 \u0631\u0642\u0645 \u0627\u0644\u0637\u0644\u0628 (\u0627\u0644\u0631\u0645\u0632 \u0627\u0644\u0645\u0631\u062C\u0639\u064A) \u0648\u0631\u0642\u0645 \u0627\u0644\u062C\u0648\u0627\u0644 \u0645\u0639\u0627\u064B \u0644\u0644\u062A\u062D\u0642\u0642 \u0645\u0646 \u0647\u0648\u064A\u0629 \u0627\u0644\u0637\u0644\u0628"
+    });
+  }
+  const cleanRef = String(referenceCode).trim().toUpperCase();
+  const rawPhone = String(clientPhone).trim();
+  const phoneDigits = rawPhone.replace(/\D/g, "");
+  if (phoneDigits.length < 8) {
+    return res.status(400).json({
+      success: false,
+      error: "\u0631\u0642\u0645 \u0627\u0644\u062C\u0648\u0627\u0644 \u0627\u0644\u0645\u062F\u062E\u0644 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D\u060C \u064A\u0631\u062C\u0649 \u0643\u062A\u0627\u0628\u0629 \u0631\u0642\u0645 \u0647\u0627\u062A\u0641 \u0635\u0627\u0644\u062D \u0644\u0627 \u064A\u0642\u0644 \u0639\u0646 \u0668 \u0623\u0631\u0642\u0627\u0645"
+    });
+  }
+  if (hasSupabaseServerConfig()) {
+    const sbRes = await supabaseTrackGuestBooking(cleanRef, rawPhone);
+    if (sbRes.success && sbRes.booking) {
+      const b = sbRes.booking;
+      const bPhone = (b.customer_phone || "").replace(/\D/g, "");
+      const maskedPhone2 = bPhone.length >= 8 ? `${bPhone.slice(0, 3)}****${bPhone.slice(-3)}` : "******";
+      return res.json({
+        success: true,
+        booking: {
+          id: b.id,
+          referenceCode: b.booking_number,
+          clientName: b.customer_name,
+          clientPhoneMasked: maskedPhone2,
+          city: b.city || "\u0645\u0643\u0629 \u0627\u0644\u0645\u0643\u0631\u0645\u0629",
+          district: b.district,
+          venueName: b.venue_name,
+          eventDate: b.event_date,
+          startTime: b.event_time,
+          durationHours: b.duration_hours,
+          categoryKey: b.category_key,
+          serviceName: b.service_name,
+          packageName: b.package_name,
+          subtotalSar: b.subtotal_amount,
+          approvedFeesSar: b.approved_fees || 0,
+          estimatedTotalSar: b.total_amount,
+          status: b.status,
+          specialNotes: b.notes,
+          orderItems: b.order_items || [],
+          createdAt: b.created_at
+        }
+      });
+    }
+    if (sbRes.error && sbRes.error.includes("\u063A\u064A\u0631 \u0645\u062A\u0637\u0627\u0628\u0642\u0629")) {
+      return res.status(403).json({
+        success: false,
+        error: "\u0631\u0642\u0645 \u0627\u0644\u062C\u0648\u0627\u0644 \u0627\u0644\u0645\u062F\u062E\u0644 \u063A\u064A\u0631 \u0645\u062A\u0637\u0627\u0628\u0642 \u0645\u0639 \u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0645\u0633\u062C\u0644 \u0644\u0647\u0630\u0627 \u0627\u0644\u0637\u0644\u0628"
+      });
+    }
+  }
+  const matched = database.bookings.find(
+    (b) => b.referenceCode.toUpperCase() === cleanRef || b.id.toUpperCase() === cleanRef
+  );
+  if (!matched) {
+    return res.status(404).json({
+      success: false,
+      error: "\u0644\u0645 \u064A\u062A\u0645 \u0627\u0644\u0639\u062B\u0648\u0631 \u0639\u0644\u0649 \u0623\u064A \u062D\u062C\u0632 \u0645\u0637\u0627\u0628\u0642 \u0644\u0631\u0642\u0645 \u0627\u0644\u0637\u0644\u0628 \u0627\u0644\u0645\u062F\u062E\u0644"
+    });
+  }
+  const localDigits = (matched.clientPhone || "").replace(/\D/g, "");
+  const matches = localDigits === phoneDigits || localDigits.length >= 8 && phoneDigits.length >= 8 && (localDigits.endsWith(phoneDigits.slice(-8)) || phoneDigits.endsWith(localDigits.slice(-8)));
+  if (!matches) {
+    return res.status(403).json({
+      success: false,
+      error: "\u0631\u0642\u0645 \u0627\u0644\u062C\u0648\u0627\u0644 \u0627\u0644\u0645\u062F\u062E\u0644 \u063A\u064A\u0631 \u0645\u062A\u0637\u0627\u0628\u0642 \u0645\u0639 \u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0645\u0633\u062C\u0644 \u0644\u0647\u0630\u0627 \u0627\u0644\u0637\u0644\u0628"
+    });
+  }
+  const maskedPhone = localDigits.length >= 8 ? `${localDigits.slice(0, 3)}****${localDigits.slice(-3)}` : "******";
+  return res.json({
+    success: true,
+    booking: {
+      id: matched.id,
+      referenceCode: matched.referenceCode,
+      clientName: matched.clientName,
+      clientPhoneMasked: maskedPhone,
+      city: matched.city,
+      district: matched.district,
+      venueName: matched.venueName,
+      eventDate: matched.eventDate,
+      startTime: matched.startTime,
+      durationHours: matched.durationHours,
+      categoryKey: matched.categoryKey,
+      serviceName: matched.serviceName,
+      packageName: matched.packageName,
+      subtotalSar: matched.subtotalSar,
+      approvedFeesSar: matched.approvedFeesSar,
+      estimatedTotalSar: matched.estimatedTotalSar,
+      status: matched.status,
+      specialNotes: matched.specialNotes,
+      orderItems: matched.orderItems || [],
+      createdAt: matched.createdAt
+    }
   });
 });
 app.post("/api/coupons/validate", (req, res) => {

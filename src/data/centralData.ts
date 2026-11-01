@@ -738,70 +738,7 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
     }
   ],
   services: INITIAL_SERVICES,
-  bookings: [
-    {
-      id: 'bk-101',
-      referenceCode: 'LMR-2610-101',
-      createdAt: '2026-10-12T16:00:00.000Z',
-      status: 'confirmed',
-      serviceId: 'srv-mobile-photo',
-      serviceName: 'تصوير المناسبات بالجوال',
-      categoryKey: 'mobile_photography',
-      packageId: 'pkg-photo-4h',
-      packageName: 'باقة ٤ ساعات تغطية',
-      city: 'مكة المكرمة',
-      district: 'العوالي',
-      venueName: 'قاعة اللؤلؤة',
-      eventDate: '2026-10-24',
-      startTime: '19:00',
-      endTime: '23:00',
-      durationHours: 4,
-      coverageDetails: 'التركيز على تفاصيل الكوشة والضيافة والزفة مع مقطعي ريلز',
-      selectedAddonIds: ['add-photo-same-night'],
-      subtotalSar: 600,
-      approvedFeesSar: 0,
-      estimatedTotalSar: 600,
-      payableAmountSar: 600,
-      isCustomQuoteRequired: false,
-      clientName: 'نورة المطيري',
-      clientPhone: '0551234567',
-      preferredContactMethod: 'whatsapp',
-      agreedTermsAndPrivacy: true,
-      agreedPhotoPrivacy: true,
-      specialNotes: 'يرجى الحضور قبل الموعد بـ ٤٥ دقيقة.'
-    },
-    {
-      id: 'bk-102',
-      referenceCode: 'LMR-2610-102',
-      createdAt: '2026-10-13T18:30:00.000Z',
-      status: 'pending_review',
-      serviceId: 'srv-kids-corner',
-      serviceName: 'ركن الأطفال والأنشطة الإبداعية',
-      categoryKey: 'kids_corner',
-      packageId: 'pkg-kids-colors',
-      packageName: 'باقة الفرحة المجمعة (رسم + طين + رسومات الوجه)',
-      city: 'جدة',
-      district: 'الشاطئ',
-      venueName: 'فندق هيلتون',
-      eventDate: '2026-10-28',
-      startTime: '20:00',
-      endTime: '00:00',
-      durationHours: 4,
-      childrenCount: 18,
-      childrenAges: 'من ٣ إلى ٨ سنوات',
-      selectedActivities: ['الرسم والتلوين على الأوراق', 'اللعب بالطين', 'رسومات الوجه'],
-      selectedAddonIds: [],
-      subtotalSar: 750,
-      approvedFeesSar: 0,
-      estimatedTotalSar: 750,
-      isCustomQuoteRequired: true,
-      clientName: 'ريم السليمان',
-      clientPhone: '0509876543',
-      preferredContactMethod: 'whatsapp',
-      agreedTermsAndPrivacy: true,
-      specialNotes: 'تنسيق ألوان الركن مع ورد الصالة العاجي والوردي الهادئ.'
-    }
-  ],
+  bookings: [],
   portfolio: [
     {
       id: 'port-1',
@@ -1004,10 +941,10 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
       adminEmail: 'ops@lumir.sa',
       adminName: 'مشرفة العمليات والمواعيد',
       adminRole: 'operations_manager',
-      action: 'تأكيد موعد حجز',
-      targetType: 'booking',
-      targetId: 'bk-101',
-      details: 'تأكيد موعد الحجز LMR-2610-101 لمناسبة العوالي في مكة المكرمة.'
+      action: 'تحديث التغطية الجغرافية',
+      targetType: 'settings',
+      targetId: 'coverage',
+      details: 'تأكيد تفعيل نطاق التغطية الميدانية في أحياء مكة المكرمة وجدة.'
     }
   ],
   cityCoverage: [
@@ -1090,7 +1027,7 @@ export const INITIAL_LUMIR_DATA: LumirCentralData = {
   reviews: INITIAL_CUSTOMER_REVIEWS
 };
 
-const STORAGE_KEY = 'lumir_central_db_v5';
+const STORAGE_KEY = 'lumir_central_db_v6';
 
 export function loadCentralData(): LumirCentralData {
   try {
@@ -1104,9 +1041,14 @@ export function loadCentralData(): LumirCentralData {
       saveCentralData(INITIAL_LUMIR_DATA);
       return INITIAL_LUMIR_DATA;
     }
+    // Filter out any legacy synthetic bookings with bk-101 / bk-102
+    const cleanBookings = (parsed.bookings || []).filter(
+      (b: any) => b.id !== 'bk-101' && b.id !== 'bk-102'
+    );
     return {
       ...INITIAL_LUMIR_DATA,
       ...parsed,
+      bookings: cleanBookings,
       announcements: parsed.announcements || INITIAL_LUMIR_DATA.announcements,
       sliderSettings: parsed.sliderSettings || INITIAL_LUMIR_DATA.sliderSettings,
       banners:

@@ -6267,7 +6267,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="مثال: سارة العتيبي"
+                  placeholder="مثال: منسقة العمليات"
                   value={newUser.name}
                   onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
                   className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl"

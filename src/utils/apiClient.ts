@@ -176,6 +176,29 @@ export async function validateCouponOnServer(
   }
 }
 
+export async function trackGuestBookingApi(
+  referenceCode: string,
+  clientPhone: string
+): Promise<{ success: boolean; booking?: any; error?: string }> {
+  try {
+    const res = await fetch('/api/bookings/track-guest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ referenceCode, clientPhone })
+    });
+    const parsed = await safeParseJsonResponse<any>(res);
+    if (parsed.ok && parsed.data?.success) {
+      return { success: true, booking: parsed.data.booking };
+    }
+    return {
+      success: false,
+      error: parsed.error || 'لم يتم العثور على أي حجز مطابق للرقم المرجعي ورقم الجوال'
+    };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'خطأ في الاتصال بالخادم' };
+  }
+}
+
 // ---------------- ADMIN API CALLS (AUTHENTICATED & ROLE CHECKED) ----------------
 
 function getAuthHeaders(token: string) {

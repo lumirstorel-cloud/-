@@ -31,6 +31,7 @@ import {
   supabaseGetReviews,
   supabaseInsertReview,
   supabaseVerifyBookingRef,
+  supabaseTrackGuestBooking,
   supabaseCustomerRegister,
   supabaseCustomerLogin,
   supabaseVerifyCustomerToken,
@@ -117,6 +118,9 @@ function loadDatabase(): void {
         database = {
           ...INITIAL_LUMIR_DATA,
           ...parsed,
+          bookings: (parsed.bookings || []).filter(
+            (b: any) => b.id !== 'bk-101' && b.id !== 'bk-102'
+          ),
           settings: {
             ...INITIAL_LUMIR_DATA.settings,
             ...(parsed.settings || {})
@@ -820,8 +824,57 @@ app.post('/api/bookings', async (req: Request, res: Response) => {
 });
 
 // Public Track Order (by exact Reference Code or Phone)
-app.get('/api/bookings/track/:ref', (req: Request, res: Response) => {
+app.get('/api/bookings/track/:ref', async (req: Request, res: Response) => {
   const ref = req.params.ref.trim().toUpperCase();
+  const phoneParam = req.query.phone ? String(req.query.phone).trim() : '';
+
+  // 1. If Supabase configured, try fetching from Supabase
+  if (hasSupabaseServerConfig()) {
+    try {
+      const supabase = getSupabaseAdmin();
+      if (supabase) {
+        let query = supabase
+          .from('bookings')
+          .select('*')
+          .or(`booking_number.ilike.${ref},id.eq.${ref}`);
+        
+        const { data, error } = await query.limit(1);
+        if (!error && data && data.length > 0) {
+          const row = data[0];
+          const rawPhone = row.customer_phone || '';
+          const digits = rawPhone.replace(/\D/g, '');
+          const maskedPhone =
+            digits.length >= 8 ? `${digits.slice(0, 3)}****${digits.slice(-3)}` : '******';
+
+          return res.json({
+            id: row.id,
+            referenceCode: row.booking_number,
+            clientName: row.customer_name,
+            clientPhoneMasked: maskedPhone,
+            city: row.city || 'مكة المكرمة',
+            district: row.district,
+            venueName: row.venue_name,
+            eventDate: row.event_date,
+            startTime: row.event_time,
+            durationHours: row.duration_hours,
+            categoryKey: row.category_key,
+            serviceName: row.service_name,
+            packageName: row.package_name,
+            subtotalSar: row.subtotal_amount,
+            approvedFeesSar: row.approved_fees || 0,
+            estimatedTotalSar: row.total_amount,
+            status: row.status,
+            specialNotes: row.notes,
+            createdAt: row.created_at
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Supabase tracking lookup notice:', err);
+    }
+  }
+
+  // 2. Check local database
   const booking = database.bookings.find(
     (b) =>
       b.referenceCode.toUpperCase() === ref ||
@@ -859,6 +912,129 @@ app.get('/api/bookings/track/:ref', (req: Request, res: Response) => {
     status: booking.status,
     specialNotes: booking.specialNotes,
     createdAt: booking.createdAt
+  });
+});
+
+// Secure Guest Order Tracking (Requires BOTH Reference Code AND Phone Verification)
+app.post('/api/bookings/track-guest', async (req: Request, res: Response) => {
+  const { referenceCode, clientPhone } = req.body;
+
+  if (!referenceCode || !clientPhone) {
+    return res.status(400).json({
+      success: false,
+      error: 'يرجى إدخال رقم الطلب (الرمز المرجعي) ورقم الجوال معاً للتحقق من هوية الطلب'
+    });
+  }
+
+  const cleanRef = String(referenceCode).trim().toUpperCase();
+  const rawPhone = String(clientPhone).trim();
+  const phoneDigits = rawPhone.replace(/\D/g, '');
+
+  if (phoneDigits.length < 8) {
+    return res.status(400).json({
+      success: false,
+      error: 'رقم الجوال المدخل غير صحيح، يرجى كتابة رقم هاتف صالح لا يقل عن ٨ أرقام'
+    });
+  }
+
+  // 1. Try Supabase verified guest lookup
+  if (hasSupabaseServerConfig()) {
+    const sbRes = await supabaseTrackGuestBooking(cleanRef, rawPhone);
+    if (sbRes.success && sbRes.booking) {
+      const b = sbRes.booking;
+      const bPhone = (b.customer_phone || '').replace(/\D/g, '');
+      const maskedPhone =
+        bPhone.length >= 8 ? `${bPhone.slice(0, 3)}****${bPhone.slice(-3)}` : '******';
+
+      return res.json({
+        success: true,
+        booking: {
+          id: b.id,
+          referenceCode: b.booking_number,
+          clientName: b.customer_name,
+          clientPhoneMasked: maskedPhone,
+          city: b.city || 'مكة المكرمة',
+          district: b.district,
+          venueName: b.venue_name,
+          eventDate: b.event_date,
+          startTime: b.event_time,
+          durationHours: b.duration_hours,
+          categoryKey: b.category_key,
+          serviceName: b.service_name,
+          packageName: b.package_name,
+          subtotalSar: b.subtotal_amount,
+          approvedFeesSar: b.approved_fees || 0,
+          estimatedTotalSar: b.total_amount,
+          status: b.status,
+          specialNotes: b.notes,
+          orderItems: b.order_items || [],
+          createdAt: b.created_at
+        }
+      });
+    }
+
+    if (sbRes.error && sbRes.error.includes('غير متطابقة')) {
+      return res.status(403).json({
+        success: false,
+        error: 'رقم الجوال المدخل غير متطابق مع الرقم المسجل لهذا الطلب'
+      });
+    }
+  }
+
+  // 2. Check local database with strict BOTH check (only fallback in development)
+  const matched = database.bookings.find(
+    (b) =>
+      (b.referenceCode.toUpperCase() === cleanRef || b.id.toUpperCase() === cleanRef)
+  );
+
+  if (!matched) {
+    return res.status(404).json({
+      success: false,
+      error: 'لم يتم العثور على أي حجز مطابق لرقم الطلب المدخل'
+    });
+  }
+
+  const localDigits = (matched.clientPhone || '').replace(/\D/g, '');
+  const matches =
+    localDigits === phoneDigits ||
+    (localDigits.length >= 8 &&
+      phoneDigits.length >= 8 &&
+      (localDigits.endsWith(phoneDigits.slice(-8)) || phoneDigits.endsWith(localDigits.slice(-8))));
+
+  if (!matches) {
+    return res.status(403).json({
+      success: false,
+      error: 'رقم الجوال المدخل غير متطابق مع الرقم المسجل لهذا الطلب'
+    });
+  }
+
+  const maskedPhone =
+    localDigits.length >= 8 ? `${localDigits.slice(0, 3)}****${localDigits.slice(-3)}` : '******';
+
+  return res.json({
+    success: true,
+    booking: {
+      id: matched.id,
+      referenceCode: matched.referenceCode,
+      clientName: matched.clientName,
+      clientPhoneMasked: maskedPhone,
+      city: matched.city,
+      district: matched.district,
+      venueName: matched.venueName,
+      eventDate: matched.eventDate,
+      startTime: matched.startTime,
+      durationHours: matched.durationHours,
+      categoryKey: matched.categoryKey,
+      serviceName: matched.serviceName,
+      packageName: matched.packageName,
+      subtotalSar: matched.subtotalSar,
+      approvedFeesSar: matched.approvedFeesSar,
+      estimatedTotalSar: matched.estimatedTotalSar,
+      status: matched.status,
+      specialNotes: matched.specialNotes,
+      orderItems: matched.orderItems || [],
+      createdAt: matched.createdAt
+    }
   });
 });
 
