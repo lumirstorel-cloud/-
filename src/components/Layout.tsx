@@ -129,9 +129,11 @@ export const Layout: React.FC<LayoutProps> = ({
           {/* Center Zone: Main Navigation Links */}
           <nav
             aria-label="التنقل الرئيسي"
-            className="hidden xl:flex items-center gap-6 text-sm font-medium text-[#645249]"
+            className="hidden lg:flex items-center gap-5 xl:gap-6 text-sm font-medium text-[#645249]"
           >
-            <a href={pathForView('home')} onClick={navClick('home')}
+            <a
+              href={pathForView('home')}
+              onClick={navClick('home')}
               className={`hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 ${
                 currentView === 'home'
                   ? 'text-[#2C1E18] font-bold border-b-2 border-[#C8A96E]'
@@ -140,68 +142,61 @@ export const Layout: React.FC<LayoutProps> = ({
             >
               الرئيسية
             </a>
-            <a href={pathForView('catalog')} onClick={navClick('catalog')}
+            <a
+              href={pathForView('catalog')}
+              onClick={navClick('catalog')}
               className={`hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 ${
-                ['catalog', 'service-detail'].includes(currentView)
+                ['catalog', 'service-detail', 'mobile-photography', 'kids-corner', 'childcare', 'wedding-support'].includes(currentView)
                   ? 'text-[#2C1E18] font-bold border-b-2 border-[#C8A96E]'
                   : ''
               }`}
             >
-              كتالوج الخدمات
+              الخدمات
             </a>
-            <a href={pathForView('gallery')} onClick={navClick('gallery')}
+            <a
+              href={pathForView('gallery')}
+              onClick={navClick('gallery')}
               className={`hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 ${
                 currentView === 'gallery'
                   ? 'text-[#2C1E18] font-bold border-b-2 border-[#C8A96E]'
                   : ''
               }`}
             >
-              معرض الأعمال
+              المعرض
             </a>
-            <a href={pathForView('mobile-photography')} onClick={navClick('mobile-photography')}
+            <a
+              href={pathForView('catalog')}
+              onClick={navClick('catalog')}
               className={`hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 ${
-                currentView === 'mobile-photography'
+                currentView === 'catalog'
                   ? 'text-[#2C1E18] font-bold border-b-2 border-[#C8A96E]'
                   : ''
               }`}
             >
-              تصوير الجوال
+              الكتالوج
             </a>
-            <a href={pathForView('kids-corner')} onClick={navClick('kids-corner')}
+            <button
+              type="button"
+              onClick={() => setFavoritesDrawerOpen(true)}
+              className="hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 text-[#645249] flex items-center gap-1.5"
+            >
+              <span>المفضلة</span>
+              {favorites.length > 0 && (
+                <span className="w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center font-mono">
+                  {formatArabicNumber(favorites.length)}
+                </span>
+              )}
+            </button>
+            <a
+              href={pathForView('booking-status')}
+              onClick={navClick('booking-status')}
               className={`hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 ${
-                currentView === 'kids-corner'
+                ['booking-status', 'customer-account'].includes(currentView)
                   ? 'text-[#2C1E18] font-bold border-b-2 border-[#C8A96E]'
                   : ''
               }`}
             >
-              ركن الأطفال
-            </a>
-            <a href={pathForView('childcare')} onClick={navClick('childcare')}
-              className={`hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 ${
-                currentView === 'childcare'
-                  ? 'text-[#2C1E18] font-bold border-b-2 border-[#C8A96E]'
-                  : ''
-              }`}
-            >
-              مرافقة الأطفال
-            </a>
-            <a href={pathForView('wedding-support')} onClick={navClick('wedding-support')}
-              className={`hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 ${
-                currentView === 'wedding-support'
-                  ? 'text-[#2C1E18] font-bold border-b-2 border-[#C8A96E]'
-                  : ''
-              }`}
-            >
-              مساندة الأفراح
-            </a>
-            <a href={pathForView('booking-status')} onClick={navClick('booking-status')}
-              className={`hover:text-[#2C1E18] transition-colors whitespace-nowrap cursor-pointer pb-1 ${
-                currentView === 'booking-status'
-                  ? 'text-[#2C1E18] font-bold border-b-2 border-[#C8A96E]'
-                  : ''
-              }`}
-            >
-              تتبع الحجز
+              طلباتي / تتبع الحجز
             </a>
           </nav>
 
@@ -287,7 +282,7 @@ export const Layout: React.FC<LayoutProps> = ({
               type="button"
               onClick={() => setMobileMenuOpen((p) => !p)}
               aria-label="القائمة الرئيسية"
-              className="xl:hidden p-2 text-[#2C1E18] hover:bg-[#F3ECE1] rounded-xl transition-colors cursor-pointer"
+              className="lg:hidden p-2 text-[#2C1E18] hover:bg-[#F3ECE1] rounded-xl transition-colors cursor-pointer"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -296,123 +291,88 @@ export const Layout: React.FC<LayoutProps> = ({
 
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="xl:hidden border-t border-[#E6DCD2] bg-[#FAF6F0] px-5 py-5 space-y-4 animate-fadeIn">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E6DCD2]">
-              <span className="text-xs font-bold text-[#8C6D36]">أقسام وتصفح لومير:</span>
-              <a href={pathForView('booking')} onClick={navClick('booking')}
-                className="px-3.5 py-1.5 text-xs font-bold bg-[#2C1E18] text-[#FAF6F0] rounded-lg"
-              >
-                طلب حجز جديد
-              </a>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <a href={pathForView('home')} onClick={navClick('home')}
-                className={`text-right py-2 px-3 rounded-lg font-medium transition-colors ${
-                  currentView === 'home' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
+          <div className="lg:hidden border-t border-[#E6DCD2] bg-[#FAF6F0] px-5 py-5 space-y-4 animate-fadeIn">
+            <div className="space-y-1">
+              <a
+                href={pathForView('home')}
+                onClick={navClick('home')}
+                className={`block py-2.5 px-3 rounded-xl font-medium transition-colors ${
+                  currentView === 'home'
+                    ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]'
+                    : 'text-[#645249] hover:bg-[#F3ECE1]'
                 }`}
               >
                 الرئيسية
               </a>
-              <a href={pathForView('catalog')} onClick={navClick('catalog')}
-                className={`text-right py-2 px-3 rounded-lg font-medium transition-colors ${
-                  currentView === 'catalog' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
-                }`}
-              >
-                كتالوج الخدمات
-              </a>
-              <a href={pathForView('gallery')} onClick={navClick('gallery')}
-                className={`text-right py-2 px-3 rounded-lg font-medium transition-colors ${
-                  currentView === 'gallery' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
-                }`}
-              >
-                🖼️ معرض الأعمال
-              </a>
-              <a href={pathForView('mobile-photography')} onClick={navClick('mobile-photography')}
-                className={`text-right py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
-                  currentView === 'mobile-photography' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
-                }`}
-              >
-                📸 تصوير بالجوال (٤٨ ساعة)
-              </a>
-              <a href={pathForView('kids-corner')} onClick={navClick('kids-corner')}
-                className={`text-right py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
-                  currentView === 'kids-corner' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
-                }`}
-              >
-                🎨 ركن الأطفال والأنشطة
-              </a>
-              <a href={pathForView('childcare')} onClick={navClick('childcare')}
-                className={`text-right py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
-                  currentView === 'childcare' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
-                }`}
-              >
-                🧸 مشرفات رعاية الأطفال
-              </a>
-              <a href={pathForView('wedding-support')} onClick={navClick('wedding-support')}
-                className={`text-right py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
-                  currentView === 'wedding-support' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
-                }`}
-              >
-                💍 مساندة وتنظيم الأفراح
-              </a>
-              <a href={pathForView('booking-status')} onClick={navClick('booking-status')}
-                className={`text-right py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
-                  currentView === 'booking-status' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
-                }`}
-              >
-                🔍 تتبع حالة الطلب
-              </a>
-              {onOpenRatingModal && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenRatingModal();
-                  }}
-                  className="w-full text-right py-2 px-3 rounded-lg text-xs font-bold text-[#8C6D36] bg-[#F3ECE1] hover:bg-[#EAE2D5] flex items-center justify-between transition-colors cursor-pointer"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <Star className="w-3.5 h-3.5 fill-[#8C6D36]" />
-                    <span>تقييم الخدمة للعميلات</span>
-                  </span>
-                  <span className="text-[10px] bg-white px-2 py-0.5 rounded-full border border-[#D8CBB8]">جديد</span>
-                </button>
-              )}
-              <a href={pathForView('faq')} onClick={navClick('faq')}
-                className={`text-right py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
-                  currentView === 'faq' ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]' : 'hover:bg-[#F3ECE1]'
-                }`}
-              >
-                ❓ الأسئلة الشائعة
-              </a>
-              <a href={pathForView('about')} onClick={navClick('about')}
-                className="text-right py-2 px-3 rounded-lg text-xs font-medium hover:bg-[#F3ECE1]"
-              >
-                🏛️ من نحن
-              </a>
-              <a href={pathForView('contact')} onClick={navClick('contact')}
-                className="text-right py-2 px-3 rounded-lg text-xs font-medium hover:bg-[#F3ECE1]"
-              >
-                📞 تواصلي معنا
-              </a>
-            </div>
-
-            <div className="pt-3 border-t border-[#E6DCD2] flex items-center justify-between text-xs text-[#645249]">
-              <span>المدن المخدومة: مكة المكرمة وجدة فقط</span>
               <a
-                href={whatsappHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#1F5E3B] font-bold flex items-center gap-1 hover:underline"
+                href={pathForView('catalog')}
+                onClick={navClick('catalog')}
+                className={`block py-2.5 px-3 rounded-xl font-medium transition-colors ${
+                  ['catalog', 'service-detail', 'mobile-photography', 'kids-corner', 'childcare', 'wedding-support'].includes(currentView)
+                    ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]'
+                    : 'text-[#645249] hover:bg-[#F3ECE1]'
+                }`}
               >
-                <MessageCircle className="w-3.5 h-3.5" />
-                <span>واتساب</span>
+                الخدمات
+              </a>
+              <a
+                href={pathForView('gallery')}
+                onClick={navClick('gallery')}
+                className={`block py-2.5 px-3 rounded-xl font-medium transition-colors ${
+                  currentView === 'gallery'
+                    ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]'
+                    : 'text-[#645249] hover:bg-[#F3ECE1]'
+                }`}
+              >
+                المعرض
+              </a>
+              <a
+                href={pathForView('catalog')}
+                onClick={navClick('catalog')}
+                className={`block py-2.5 px-3 rounded-xl font-medium transition-colors ${
+                  currentView === 'catalog'
+                    ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]'
+                    : 'text-[#645249] hover:bg-[#F3ECE1]'
+                }`}
+              >
+                الكتالوج
+              </a>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setFavoritesDrawerOpen(true);
+                }}
+                className="w-full text-right py-2.5 px-3 rounded-xl font-medium text-[#645249] hover:bg-[#F3ECE1] transition-colors flex items-center justify-between"
+              >
+                <span>المفضلة</span>
+                {favorites.length > 0 && (
+                  <span className="w-5 h-5 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center font-mono">
+                    {formatArabicNumber(favorites.length)}
+                  </span>
+                )}
+              </button>
+              <a
+                href={pathForView('booking-status')}
+                onClick={navClick('booking-status')}
+                className={`block py-2.5 px-3 rounded-xl font-medium transition-colors ${
+                  ['booking-status', 'customer-account'].includes(currentView)
+                    ? 'bg-[#EAE2D5] font-bold text-[#2C1E18]'
+                    : 'text-[#645249] hover:bg-[#F3ECE1]'
+                }`}
+              >
+                طلباتي / تتبع الحجز
               </a>
             </div>
 
-            <div className="pt-2">
-              <SocialLinksBar settings={settings} />
+            <div className="pt-2 border-t border-[#E6DCD2]">
+              <a
+                href={pathForView('booking')}
+                onClick={navClick('booking')}
+                className="w-full py-3 text-center text-sm font-bold bg-[#2C1E18] text-[#FAF6F0] rounded-xl hover:bg-[#422E25] transition-colors block shadow-sm"
+              >
+                احجزي مناسبتكِ
+              </a>
             </div>
           </div>
         )}
@@ -534,124 +494,137 @@ export const Layout: React.FC<LayoutProps> = ({
       />
 
       {/* Footer */}
-      <footer className="bg-[#231712] text-[#FAF6F0] border-t border-[#3B2921] pt-14 pb-12 px-6">
+      <footer className="bg-[#231712] text-[#FAF6F0] border-t border-[#3B2921] pt-12 pb-12 px-6">
         <div className="max-w-[1240px] mx-auto space-y-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Col 1: Brand */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* القسم الأول: هوية لومير */}
             <div className="space-y-3">
               <span className="font-display text-2xl font-bold tracking-tight text-[#FAF6F0] block">
                 LUMIR | لومير
               </span>
-              <p className="text-xs text-[#C8A96E]">«{settings.slogan}»</p>
+              <p className="text-xs text-[#C8A96E] font-medium">«نضيء لياليك وفرحة صغارك»</p>
               <p className="text-xs text-[#C7B8A8] leading-relaxed">
-                علامة تجارية سعودية متخصصة في توثيق المناسبات بالجوال، أركان الأطفال الإبداعية،
-                ومساندة الأفراح برقي وخصوصية تامة في مكة المكرمة وجدة.
+                خدمات المناسبات، تصوير اللحظات، وأركان الأطفال في مكة المكرمة وجدة.
               </p>
-              <div className="pt-2 text-xs text-[#9E8C7C]">
-                <span>نطاق الخدمة: مكة المكرمة وجدة فقط</span>
-              </div>
             </div>
 
-            {/* Col 2: Services */}
+            {/* القسم الثاني: خدماتنا */}
             <div className="space-y-3">
-              <h3 className="font-display text-lg text-[#FAF6F0]">خدماتنا المعتمدة</h3>
+              <h3 className="font-display text-base font-bold text-[#FAF6F0]">خدماتنا</h3>
               <ul className="space-y-2 text-xs text-[#C7B8A8]">
                 <li>
-                  <a href={pathForView('mobile-photography')} onClick={navClick('mobile-photography')}
-                    className="hover:text-[#FAF6F0] cursor-pointer"
+                  <a
+                    href={pathForView('mobile-photography')}
+                    onClick={navClick('mobile-photography')}
+                    className="hover:text-[#FAF6F0] transition-colors cursor-pointer block"
                   >
-                    تصوير المناسبات بالجوال (٤٨ ساعة)
+                    تصوير المناسبات بالجوال
                   </a>
                 </li>
                 <li>
-                  <a href={pathForView('kids-corner')} onClick={navClick('kids-corner')}
-                    className="hover:text-[#FAF6F0] cursor-pointer"
+                  <a
+                    href={pathForView('kids-corner')}
+                    onClick={navClick('kids-corner')}
+                    className="hover:text-[#FAF6F0] transition-colors cursor-pointer block"
                   >
-                    ركن الأطفال والأنشطة الترفيهية
+                    ركن الأطفال
                   </a>
                 </li>
                 <li>
-                  <a href={pathForView('childcare')} onClick={navClick('childcare')}
-                    className="hover:text-[#FAF6F0] cursor-pointer"
+                  <a
+                    href={pathForView('childcare')}
+                    onClick={navClick('childcare')}
+                    className="hover:text-[#FAF6F0] transition-colors cursor-pointer block"
                   >
-                    رعاية ومرافقة الأطفال أثناء المناسبات
+                    رعاية ومرافقة الأطفال
                   </a>
                 </li>
                 <li>
-                  <a href={pathForView('wedding-support')} onClick={navClick('wedding-support')}
-                    className="hover:text-[#FAF6F0] cursor-pointer"
+                  <a
+                    href={pathForView('wedding-support')}
+                    onClick={navClick('wedding-support')}
+                    className="hover:text-[#FAF6F0] transition-colors cursor-pointer block"
                   >
-                    خدمات مساندة وتنظيم الأفراح
-                  </a>
-                </li>
-                <li>
-                  <a href={pathForView('catalog')} onClick={navClick('catalog')}
-                    className="hover:text-[#FAF6F0] cursor-pointer"
-                  >
-                    استعراض الكتالوج والأسعار بالكامل
+                    خدمات مساندة الأفراح
                   </a>
                 </li>
               </ul>
             </div>
 
-            {/* Col 3: Links */}
+            {/* القسم الثالث: روابط مهمة */}
             <div className="space-y-3">
-              <h3 className="font-display text-lg text-[#FAF6F0]">الروابط والسياسات</h3>
+              <h3 className="font-display text-base font-bold text-[#FAF6F0]">روابط مهمة</h3>
               <ul className="space-y-2 text-xs text-[#C7B8A8]">
                 <li>
-                  <a href={pathForView('booking-status')} onClick={navClick('booking-status')}
-                    className="hover:text-[#FAF6F0] cursor-pointer"
+                  <a
+                    href={pathForView('about')}
+                    onClick={navClick('about')}
+                    className="hover:text-[#FAF6F0] transition-colors cursor-pointer block"
                   >
-                    الاستعلام عن حالة الطلب
-                  </a>
-                </li>
-                {onOpenRatingModal && (
-                  <li>
-                    <button
-                      type="button"
-                      onClick={() => onOpenRatingModal()}
-                      className="hover:text-[#FAF6F0] cursor-pointer text-right flex items-center gap-1.5 text-[#C8A96E]"
-                    >
-                      <Star className="w-3.5 h-3.5 fill-[#C8A96E]" />
-                      <span>تقييم الخدمة للعميلات</span>
-                    </button>
-                  </li>
-                )}
-                <li>
-                  <a href={pathForView('about')} onClick={navClick('about')}
-                    className="hover:text-[#FAF6F0] cursor-pointer"
-                  >
-                    من نحن ورؤيتنا
+                    من نحن
                   </a>
                 </li>
                 <li>
-                  <a href={pathForView('faq')} onClick={navClick('faq')}
-                    className="hover:text-[#FAF6F0] cursor-pointer"
+                  <a
+                    href={pathForView('catalog')}
+                    onClick={navClick('catalog')}
+                    className="hover:text-[#FAF6F0] transition-colors cursor-pointer block"
+                  >
+                    الكتالوج
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={pathForView('gallery')}
+                    onClick={navClick('gallery')}
+                    className="hover:text-[#FAF6F0] transition-colors cursor-pointer block"
+                  >
+                    المعرض
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={pathForView('faq')}
+                    onClick={navClick('faq')}
+                    className="hover:text-[#FAF6F0] transition-colors cursor-pointer block"
                   >
                     الأسئلة الشائعة
                   </a>
                 </li>
                 <li>
-                  <a href={pathForView('privacy')} onClick={navClick('privacy')}
-                    className="hover:text-[#FAF6F0] cursor-pointer"
+                  <a
+                    href={pathForView('booking-status')}
+                    onClick={navClick('booking-status')}
+                    className="hover:text-[#FAF6F0] transition-colors cursor-pointer block"
                   >
-                    سياسة الخصوصية وحماية الأطفال
+                    تتبع الطلب
                   </a>
                 </li>
                 <li>
-                  <a href={pathForView('terms')} onClick={navClick('terms')}
-                    className="hover:text-[#FAF6F0] cursor-pointer"
+                  <a
+                    href={pathForView('privacy')}
+                    onClick={navClick('privacy')}
+                    className="hover:text-[#FAF6F0] transition-colors cursor-pointer block"
                   >
-                    الشروط والأحكام وسياسة الإلغاء
+                    سياسة الخصوصية
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={pathForView('terms')}
+                    onClick={navClick('terms')}
+                    className="hover:text-[#FAF6F0] transition-colors cursor-pointer block"
+                  >
+                    الشروط والأحكام
                   </a>
                 </li>
               </ul>
             </div>
 
-            {/* Col 4: Contact */}
+            {/* القسم الرابع: التواصل */}
             <div className="space-y-3">
-              <h3 className="font-display text-lg text-[#FAF6F0]">التواصل والحجوزات</h3>
-              <div className="space-y-1.5 text-xs text-[#C7B8A8]">
+              <h3 className="font-display text-base font-bold text-[#FAF6F0]">التواصل</h3>
+              <div className="space-y-2 text-xs text-[#C7B8A8]">
                 <p>
                   واتساب:{' '}
                   <a
@@ -661,13 +634,14 @@ export const Layout: React.FC<LayoutProps> = ({
                     className="text-[#C8A96E] font-mono hover:underline"
                     dir="ltr"
                   >
-                    {settings.whatsappLocal}
+                    0579105700
                   </a>
                 </p>
-                <p>البريد: {settings.email}</p>
-                <p>الدوام: {settings.workingHours}</p>
+                <p>البريد: lumir.store.l@gmail.com</p>
+                <p>ساعات العمل: يوميًا من 10 صباحًا حتى 11 مساءً.</p>
               </div>
-              <div className="pt-2 flex flex-wrap items-center gap-2">
+
+              <div className="pt-2">
                 <a
                   href={whatsappHref}
                   target="_blank"
@@ -675,61 +649,47 @@ export const Layout: React.FC<LayoutProps> = ({
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium bg-[#C8A96E] text-[#231712] rounded-lg hover:bg-[#D5B982] transition-colors whitespace-nowrap shadow-xs"
                 >
                   <MessageCircle className="w-3.5 h-3.5" />
-                  <span>محادثة واتساب فورية</span>
+                  <span>تواصل عبر واتساب</span>
                 </a>
               </div>
 
-              {/* حسابات التواصل الاجتماعي المدارة من لوحة التحكم */}
-              <div className="pt-3 border-t border-[#3B2921]">
-                <span className="text-[11px] text-[#9E8C7C] block mb-2 font-medium">
-                  تابعينا على منصات التواصل:
-                </span>
+              {/* منصات التواصل الاجتماعي */}
+              <div className="pt-2">
                 <SocialLinksBar settings={settings} />
               </div>
             </div>
           </div>
 
-          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#9E8C7C] border-t border-[#3B2921]">
-            <p>
-              © {new Date().getFullYear()} LUMIR | لومير. جميع الحقوق محفوظة — مكة المكرمة وجدة،
-              المملكة العربية السعودية.
-            </p>
-            <div className="flex items-center gap-4">
-              <a href={pathForView('privacy')} onClick={navClick('privacy')}
-                className="hover:text-[#FAF6F0] cursor-pointer"
-              >
-                الخصوصية
-              </a>
-              <span aria-hidden="true">·</span>
-              <a href={pathForView('terms')} onClick={navClick('terms')}
-                className="hover:text-[#FAF6F0] cursor-pointer"
-              >
-                الشروط
-              </a>
+          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#9E8C7C] border-t border-[#3B2921]">
+            <p>© 2026 LUMIR | لومير. جميع الحقوق محفوظة.</p>
+            <div className="flex items-center gap-4 text-[11px]">
+              <span>نطاق الخدمة: مكة المكرمة وجدة</span>
             </div>
           </div>
         </div>
       </footer>
 
-      {/* Floating WhatsApp Action Button (Positioned above mobile bottom bar) */}
+      {/* Floating WhatsApp Action Button */}
       <a
         href={whatsappHref}
         target="_blank"
         rel="noopener noreferrer"
         aria-label="تواصل مع لومير عبر واتساب"
-        className="fixed bottom-20 xl:bottom-6 left-4 xl:left-6 z-40 inline-flex items-center gap-2 bg-[#1F5E3B] hover:bg-[#18492E] text-[#FAF6F0] px-4 py-3 rounded-full shadow-xl transition-all duration-200 hover:-translate-y-0.5 cursor-pointer border border-[#FAF6F0]/20"
+        className="fixed bottom-20 lg:bottom-6 left-4 lg:left-6 z-30 inline-flex items-center gap-2 bg-[#1F5E3B] hover:bg-[#18492E] text-[#FAF6F0] px-4 py-3 rounded-full shadow-xl transition-all duration-200 hover:-translate-y-0.5 cursor-pointer border border-[#FAF6F0]/20"
       >
         <MessageCircle className="w-5 h-5 shrink-0" />
         <span className="text-xs font-bold hidden sm:inline">تواصلي عبر واتساب</span>
       </a>
 
-      {/* 3. Luxury Mobile Bottom Navigation Bar (xl:hidden) */}
+      {/* 3. Luxury Mobile Bottom Navigation Bar (lg:hidden) */}
       <nav
         aria-label="شريط التنقل السفلي للجوال"
-        className="xl:hidden fixed bottom-0 inset-x-0 z-40 bg-[#FAF6F0]/95 backdrop-blur-md border-t border-[#E6DCD2] px-3 py-2 shadow-2xl flex items-center justify-around text-[10px] font-bold"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#FAF6F0]/95 backdrop-blur-md border-t border-[#E6DCD2] px-3 py-2 shadow-2xl flex items-center justify-around text-[10px] font-bold"
       >
-        {/* 1. Home */}
-        <a href={pathForView('home')} onClick={navClick('home')}
+        {/* 1. الرئيسية */}
+        <a
+          href={pathForView('home')}
+          onClick={navClick('home')}
           className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-colors cursor-pointer ${
             currentView === 'home'
               ? 'text-[#2C1E18] font-black'
@@ -740,24 +700,30 @@ export const Layout: React.FC<LayoutProps> = ({
           <span>الرئيسية</span>
         </a>
 
-        {/* 2. Catalog */}
-        <a href={pathForView('catalog')} onClick={navClick('catalog')}
+        {/* 2. الكتالوج */}
+        <a
+          href={pathForView('catalog')}
+          onClick={navClick('catalog')}
           className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-colors cursor-pointer ${
-            ['catalog', 'service-detail'].includes(currentView)
+            ['catalog', 'products', 'service-detail'].includes(currentView)
               ? 'text-[#2C1E18] font-black'
               : 'text-[#645249] hover:text-[#2C1E18]'
           }`}
         >
           <ShoppingBag
             className={`w-5 h-5 ${
-              ['catalog', 'service-detail'].includes(currentView) ? 'text-[#C8A96E]' : ''
+              ['catalog', 'products', 'service-detail'].includes(currentView)
+                ? 'text-[#C8A96E]'
+                : ''
             }`}
           />
           <span>الكتالوج</span>
         </a>
 
-        {/* 3. Gallery */}
-        <a href={pathForView('gallery')} onClick={navClick('gallery')}
+        {/* 3. المعرض */}
+        <a
+          href={pathForView('gallery')}
+          onClick={navClick('gallery')}
           className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-colors cursor-pointer ${
             currentView === 'gallery'
               ? 'text-[#2C1E18] font-black'
@@ -768,7 +734,7 @@ export const Layout: React.FC<LayoutProps> = ({
           <span>المعرض</span>
         </a>
 
-        {/* 4. Wishlist / Favorites */}
+        {/* 4. المفضلة */}
         <button
           type="button"
           onClick={() => setFavoritesDrawerOpen(true)}
@@ -785,18 +751,24 @@ export const Layout: React.FC<LayoutProps> = ({
           <span>المفضلة</span>
         </button>
 
-        {/* 5. Track Order */}
-        <a href={pathForView('booking-status')} onClick={navClick('booking-status')}
+        {/* 5. طلباتي */}
+        <a
+          href={pathForView('booking-status')}
+          onClick={navClick('booking-status')}
           className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-colors cursor-pointer ${
-            currentView === 'booking-status'
+            ['booking-status', 'customer-account'].includes(currentView)
               ? 'text-[#2C1E18] font-black'
               : 'text-[#645249] hover:text-[#2C1E18]'
           }`}
         >
           <CalendarCheck
-            className={`w-5 h-5 ${currentView === 'booking-status' ? 'text-[#C8A96E]' : ''}`}
+            className={`w-5 h-5 ${
+              ['booking-status', 'customer-account'].includes(currentView)
+                ? 'text-[#C8A96E]'
+                : ''
+            }`}
           />
-          <span>تتبع الحجز</span>
+          <span>طلباتي</span>
         </a>
       </nav>
     </div>

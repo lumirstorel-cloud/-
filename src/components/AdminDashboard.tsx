@@ -43,6 +43,13 @@ import {
   TelegramIcon
 } from './SocialIcons';
 import {
+  WhatsAppTemplateType,
+  WHATSAPP_TEMPLATE_OPTIONS,
+  sanitizeSaudiPhone,
+  generateWhatsAppMessage,
+  buildWhatsAppChatUrl
+} from '../utils/whatsappTemplates';
+import {
   adminAddBannerApi,
   adminAddCouponApi,
   adminAddFAQApi,
@@ -454,6 +461,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [cityFilter, setCityFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<BookingSubmission | null>(null);
+
+  // WhatsApp Messaging Modal states
+  const [whatsappModalOrder, setWhatsappModalOrder] = useState<BookingSubmission | null>(null);
+  const [whatsappTemplateType, setWhatsappTemplateType] =
+    useState<WhatsAppTemplateType>('welcome_receipt');
+  const [whatsappMessageText, setWhatsappMessageText] = useState<string>('');
+
+  const handleOpenWhatsAppModal = (
+    order: BookingSubmission,
+    template: WhatsAppTemplateType = 'welcome_receipt'
+  ) => {
+    setWhatsappModalOrder(order);
+    setWhatsappTemplateType(template);
+    setWhatsappMessageText(generateWhatsAppMessage(template, order));
+  };
+
+  const handleSelectWhatsAppTemplate = (template: WhatsAppTemplateType) => {
+    setWhatsappTemplateType(template);
+    if (whatsappModalOrder) {
+      setWhatsappMessageText(generateWhatsAppMessage(template, whatsappModalOrder));
+    }
+  };
 
   const filteredOrders = useMemo(() => {
     return bookings.filter((b) => {
@@ -2109,15 +2138,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   <Eye className="w-3.5 h-3.5 text-[#2C1E18]" />
                                 </button>
 
-                                <a
-                                  href={buildBookingWhatsAppSummary(order, settings.whatsappLocal)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="p-1.5 rounded-lg bg-[#25D366] text-white hover:bg-[#1EBE5D] transition-colors"
-                                  title="مراسلة العميل عبر واتساب"
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenWhatsAppModal(order)}
+                                  className="p-1.5 rounded-lg bg-[#25D366] text-white hover:bg-[#1EBE5D] transition-colors cursor-pointer"
+                                  title="إرسال رسالة واتساب للعميل"
                                 >
                                   <MessageCircle className="w-3.5 h-3.5" />
-                                </a>
+                                </button>
 
                                 {hasRole(['super_admin']) && (
                                   <button
@@ -2296,16 +2324,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
 
                     {/* Bottom Action Buttons */}
-                    <div className="flex items-center justify-between pt-3 border-t border-[#E6DCD2]">
-                      <a
-                        href={buildBookingWhatsAppSummary(selectedOrder, settings.whatsappLocal)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-5 py-2.5 rounded-xl bg-[#25D366] text-white text-xs font-bold flex items-center gap-2 hover:bg-[#1EBE5D] transition-colors"
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#E6DCD2]">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenWhatsAppModal(selectedOrder)}
+                        className="px-5 py-2.5 rounded-xl bg-[#25D366] text-white text-xs font-bold flex items-center gap-2 hover:bg-[#1EBE5D] transition-colors shadow-xs cursor-pointer"
                       >
                         <MessageCircle className="w-4 h-4" />
-                        <span>مراسلة العميل عبر واتساب</span>
-                      </a>
+                        <span>إرسال رسالة واتساب للعميل</span>
+                      </button>
 
                       <button
                         type="button"
@@ -2318,6 +2345,191 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* ================= WHATSAPP MESSAGING MODAL ================= */}
+              {whatsappModalOrder && (() => {
+                const phoneValidation = sanitizeSaudiPhone(whatsappModalOrder.clientPhone);
+                const chatUrl = phoneValidation.valid
+                  ? buildWhatsAppChatUrl(phoneValidation.sanitizedPhone, whatsappMessageText)
+                  : '';
+
+                return (
+                  <div className="fixed inset-0 z-50 bg-[#2C1E18]/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-[#FAF6F0] rounded-2xl border border-[#D8CBB8] shadow-2xl max-w-2xl w-full p-6 space-y-5 my-8 text-right">
+                      {/* Modal Header */}
+                      <div className="flex items-start justify-between border-b border-[#E6DCD2] pb-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="w-8 h-8 rounded-lg bg-[#25D366] text-white flex items-center justify-center">
+                              <MessageCircle className="w-4 h-4" />
+                            </span>
+                            <h3 className="font-display text-xl font-bold text-[#2C1E18]">
+                              إرسال رسالة واتساب للعميل
+                            </h3>
+                          </div>
+                          <p className="text-xs text-[#645249]">
+                            اختاري قالباً جاهزاً أو عدّلي النص بحرية قبل فتح المحادثة المباشرة مع العميل.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setWhatsappModalOrder(null)}
+                          className="p-2 rounded-lg hover:bg-[#F3ECE1] text-[#2C1E18] cursor-pointer"
+                          title="إغلاق"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {/* Client & Phone Verification Banner */}
+                      <div className="p-4 rounded-xl bg-[#F3ECE1] border border-[#D8CBB8] space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-[#2C1E18]">العميل:</span>
+                            <strong className="text-[#8C6D36]">{whatsappModalOrder.clientName}</strong>
+                            <span className="text-[#645249]">({whatsappModalOrder.referenceCode})</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-[#2C1E18]">الخدمة:</span>
+                            <span>{whatsappModalOrder.serviceName}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#D8CBB8]/60 text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-[#2C1E18]">رقم الجوال المسجل:</span>
+                            <span className="font-mono text-[#645249]" dir="ltr">
+                              {whatsappModalOrder.clientPhone || 'غير مدخل'}
+                            </span>
+                          </div>
+
+                          {phoneValidation.valid ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span dir="ltr">{phoneValidation.formattedDisplay}</span>
+                              <span>(صيغة دولية معتمدة)</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                              <AlertCircle className="w-3.5 h-3.5" />
+                              <span>رقم غير صالح للتواصل</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {!phoneValidation.valid && (
+                          <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-800 space-y-1">
+                            <div className="font-bold flex items-center gap-1.5">
+                              <AlertCircle className="w-4 h-4 shrink-0" />
+                              <span>تنبيه: {phoneValidation.error}</span>
+                            </div>
+                            <p className="text-[11px] text-rose-700">
+                              يُرجى تدقيق رقم جوال العميل؛ لن تتمكني من فتح المحادثة عبر الرابط برقم هاتف غير صالح.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Template Selector */}
+                      <div className="space-y-2">
+                        <label className="block text-xs font-bold text-[#2C1E18]">
+                          اختاري قالب الرسالة المطلوب:
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {WHATSAPP_TEMPLATE_OPTIONS.map((tpl) => {
+                            const isSelected = whatsappTemplateType === tpl.type;
+                            return (
+                              <button
+                                key={tpl.type}
+                                type="button"
+                                onClick={() => handleSelectWhatsAppTemplate(tpl.type)}
+                                className={`p-3 rounded-xl border text-right transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                                  isSelected
+                                    ? 'bg-[#2C1E18] text-[#FAF6F0] border-[#2C1E18] shadow-sm'
+                                    : 'bg-[#FAF6F0] text-[#2C1E18] border-[#D8CBB8] hover:bg-[#F3ECE1]'
+                                }`}
+                              >
+                                <div className="font-bold text-xs">{tpl.title}</div>
+                                <div
+                                  className={`text-[10px] leading-tight line-clamp-2 ${
+                                    isSelected ? 'text-[#FAF6F0]/80' : 'text-[#645249]'
+                                  }`}
+                                >
+                                  {tpl.description}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Editable Textarea */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-xs font-bold text-[#2C1E18]">
+                            نص الرسالة المجهز (قابل للتعديل والإضافة بحرية):
+                          </label>
+                          <span className="text-[11px] text-[#645249] font-mono-num">
+                            {whatsappMessageText.length} حرف
+                          </span>
+                        </div>
+                        <textarea
+                          rows={7}
+                          value={whatsappMessageText}
+                          onChange={(e) => setWhatsappMessageText(e.target.value)}
+                          className="w-full p-3.5 rounded-xl border border-[#D8CBB8] bg-white text-xs text-[#2C1E18] font-sans leading-relaxed focus:border-[#C8A96E] focus:outline-hidden resize-y shadow-2xs"
+                          placeholder="اكتبي أو عدلي نص الرسالة هنا..."
+                          dir="rtl"
+                        />
+                        <p className="text-[11px] text-[#645249]">
+                          💡 ملاحظة: الضغط على الزر أدناه يفتح المحادثة في تطبيق أو موقع واتساب مع نصكِ المعدّ لتراجعيه وترسليه بنفسكِ؛ لا تتغير حالة الطلب تلقائياً ولا يتم استخدام واجهات مدفوعة.
+                        </p>
+                      </div>
+
+                      {/* Modal Action Buttons */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#E6DCD2]">
+                        <div className="text-[11px] text-[#8C6D36]">
+                          {phoneValidation.valid
+                            ? 'جاهز لفتح تطبيق أو ويب واتساب'
+                            : 'تم تعطيل الرابط لحين تصحيح الرقم'}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setWhatsappModalOrder(null)}
+                            className="px-4 py-2.5 rounded-xl border border-[#D8CBB8] text-xs font-bold hover:bg-[#F3ECE1] cursor-pointer"
+                          >
+                            إلغاء
+                          </button>
+
+                          {phoneValidation.valid ? (
+                            <a
+                              href={chatUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-5 py-2.5 rounded-xl bg-[#25D366] text-white text-xs font-bold flex items-center gap-2 hover:bg-[#1EBE5D] transition-colors shadow-sm"
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                              <span>فتح المحادثة في واتساب</span>
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled
+                              className="px-5 py-2.5 rounded-xl bg-gray-300 text-gray-500 text-xs font-bold flex items-center gap-2 cursor-not-allowed opacity-70"
+                              title="رقم الجوال غير صالح"
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                              <span>فتح المحادثة في واتساب</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

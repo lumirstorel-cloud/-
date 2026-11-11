@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { FavoriteItem, PageView, ServiceItem, SiteSettings } from '../types';
-import { formatArabicNumber, formatSar, getPricingModelLabel } from '../utils/formatters';
+import {
+  formatArabicNumber,
+  formatSar,
+  getCategoryLabel,
+  getPricingModelLabel
+} from '../utils/formatters';
 import { pathForView } from '../utils/routes';
 import { getSeoMeta } from '../data/seo';
 import { ResilientImage } from './ResilientImage';
@@ -9,11 +14,14 @@ import { useCart } from '../context/CartContext';
 import {
   ArrowLeft,
   Check,
+  ChevronDown,
+  ChevronUp,
   Clock,
   Heart,
   MapPin,
   MessageCircle,
   ShoppingBag,
+  Sparkles,
   Plus,
   Minus
 } from 'lucide-react';
@@ -49,6 +57,7 @@ export const ServiceDetailView: React.FC<ServiceDetailProps> = ({
   const [selectedHours, setSelectedHours] = useState<number>(() => {
     return service?.defaultHours || service?.minHours || 4;
   });
+  const [showMoreServices, setShowMoreServices] = useState<boolean>(false);
 
   const go =
     (view: PageView, targetSlug?: string) =>
@@ -120,7 +129,7 @@ export const ServiceDetailView: React.FC<ServiceDetailProps> = ({
     }
   };
 
-  const related = services.filter((s) => s.isAvailable && s.id !== service.id).slice(0, 4);
+  const otherAvailableServices = services.filter((s) => s.isAvailable && s.id !== service.id);
   const imageAlt = service.imageAlt || `${service.name} — خدمات لومير في مكة وجدة`;
 
   return (
@@ -497,36 +506,101 @@ export const ServiceDetailView: React.FC<ServiceDetailProps> = ({
         </div>
       </section>
 
-      {/* Related services */}
-      {related.length > 0 && (
-        <section className="space-y-5">
-          <div className="space-y-1 border-b border-[#E6DCD2] pb-4">
-            <div className="text-xs text-[#8C6D36]">خدمات أخرى</div>
-            <h2 className="font-display text-2xl font-bold text-[#2C1E18]">
-              قد يناسب مناسبتكِ أيضًا
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {related.map((srv) => (
-              <a
-                key={srv.id}
-                href={pathForView('service-detail', srv.slug)}
-                onClick={go('service-detail', srv.slug)}
-                className="p-5 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] hover:border-[#C8A96E] transition-colors space-y-2"
-              >
-                <span className="text-[11px] text-[#8C6D36] font-bold block">
-                  {getPricingModelLabel(srv.pricingModel)}
+      {/* Additional / Other services: DO NOT show automatically, toggleable via «المزيد من الخدمات» */}
+      {otherAvailableServices.length > 0 && (
+        <section className="pt-6 border-t border-[#E6DCD2] space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2]">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-[#8C6D36]">خدمات لومير الإضافية</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#C8A96E]/20 text-[#8C6D36] font-mono-num font-bold">
+                  {formatArabicNumber(otherAvailableServices.length)} خدمات أخرى متاحة
                 </span>
-                <strong className="font-display text-base text-[#2C1E18] block leading-snug">
-                  {srv.name}
-                </strong>
-                <span className="text-[11px] text-[#645249] block line-clamp-2">{srv.tagline}</span>
-                <span className="font-mono-num text-xs font-bold text-[#2C1E18] block">
-                  تبدأ من {formatSar(srv.basePrice)}
-                </span>
-              </a>
-            ))}
+              </div>
+              <h2 className="font-display text-xl sm:text-2xl font-bold text-[#2C1E18]">
+                هل تودين الاطلاع على خدمات ومساندة إضافية لمناسبتكِ؟
+              </h2>
+              <p className="text-xs text-[#645249]">
+                استعرضي بقية خدمات لومير المعتمدة في مكة المكرمة وجدة حسب رغبتكِ واحتياج الفعالية.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowMoreServices(!showMoreServices)}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-[#C8A96E] bg-white hover:bg-[#F3ECE1] text-[#2C1E18] text-xs font-bold transition-all cursor-pointer shadow-xs shrink-0 self-start sm:self-center"
+              aria-expanded={showMoreServices}
+            >
+              {showMoreServices ? (
+                <>
+                  <ChevronUp className="w-4 h-4 text-[#8C6D36]" />
+                  <span>إخفاء الخدمات الإضافية</span>
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4 text-[#8C6D36]" />
+                  <span>المزيد من الخدمات</span>
+                  <Sparkles className="w-3.5 h-3.5 text-[#C8A96E]" />
+                </>
+              )}
+            </button>
           </div>
+
+          {showMoreServices && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+              {otherAvailableServices.map((srv) => (
+                <div
+                  key={srv.id}
+                  className="p-5 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] hover:border-[#C8A96E] transition-all flex flex-col justify-between space-y-4 shadow-2xs hover:shadow-xs"
+                >
+                  <div className="space-y-3">
+                    <div className="relative overflow-hidden rounded-xl h-44">
+                      <ResilientImage
+                        src={srv.imageUrl}
+                        alt={srv.imageAlt || srv.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-[#2C1E18]/85 text-[#FAF6F0] backdrop-blur-xs">
+                        {getCategoryLabel(srv.category)}
+                      </span>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between text-xs text-[#8C6D36] font-bold">
+                        <span>{getPricingModelLabel(srv.pricingModel)}</span>
+                        <span className="font-mono-num text-[#2C1E18]">
+                          تبدأ من {formatSar(srv.basePrice)}
+                        </span>
+                      </div>
+                      <h3 className="font-display text-lg font-bold text-[#2C1E18] mt-1.5">
+                        {srv.name}
+                      </h3>
+                      <p className="text-xs text-[#645249] line-clamp-2 mt-1 leading-relaxed">
+                        {srv.tagline || srv.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-[#EFE7DC] flex items-center gap-2">
+                    <a
+                      href={pathForView('service-detail', srv.slug)}
+                      onClick={go('service-detail', srv.slug)}
+                      className="flex-1 py-2 text-center text-xs font-bold border border-[#D8CBB8] text-[#2C1E18] rounded-xl hover:bg-[#F3ECE1] transition-colors"
+                    >
+                      تفاصيل الخدمة
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => onSelectServiceToBook(srv.id)}
+                      className="px-4 py-2 text-xs font-bold bg-[#2C1E18] text-[#FAF6F0] rounded-xl hover:bg-[#422E25] transition-colors cursor-pointer"
+                    >
+                      طلب حجز
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       )}
     </div>

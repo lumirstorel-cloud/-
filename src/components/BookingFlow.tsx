@@ -27,6 +27,7 @@ import {
 } from '../utils/apiClient';
 import { useCustomerAuth } from '../context/CustomerAuthContext';
 import { useCart } from '../context/CartContext';
+import { ResilientImage } from './ResilientImage';
 import {
   AlertCircle,
   Calendar,
@@ -96,6 +97,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
   const [serviceId, setServiceId] = useState<string>(initialService?.id || '');
   const [packageId, setPackageId] = useState<string>(preselectedPackageId || '');
   const [isPackagesExpanded, setIsPackagesExpanded] = useState<boolean>(false);
+  const [isServicesExpanded, setIsServicesExpanded] = useState<boolean>(false);
 
   // Step 2: City
   const [city, setCity] = useState<'مكة المكرمة' | 'جدة'>('مكة المكرمة');
@@ -411,7 +413,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
     }
 
     if (stepNumber === 5) {
-      if (!clientName.trim() || clientName.trim().length < 3) {
+      if (!clientName.trim() || clientName.trim().length < 2) {
         setStepError('يرجى كتابة الاسم الكريم لصاحبة / صاحب الحجز.');
         return false;
       }
@@ -420,8 +422,12 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
         setStepError('يرجى إدخال رقم جوال سعودي صحيح (مثال: 05XXXXXXXX).');
         return false;
       }
+      return true;
+    }
+
+    if (stepNumber === 6) {
       if (!agreedTermsAndPrivacy) {
-        setStepError('يرجى الموافقة على الشروط والأحكام وسياسة الخصوصية للمتابعة.');
+        setStepError('يرجى الموافقة على الشروط والأحكام وسياسة الخصوصية لإرسال طلب الحجز.');
         return false;
       }
       if (selectedService.category === 'childcare' && !agreedNonMedicalDisclaimer) {
@@ -570,49 +576,76 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
     { num: 2, title: 'المدينة' },
     { num: 3, title: 'الموعد والتوقيت' },
     { num: 4, title: 'الموقع والتفاصيل' },
-    { num: 5, title: 'بيانات العميل' },
+    { num: 5, title: 'بيانات العميلة' },
     { num: 6, title: 'ملخص الطلب' },
-    { num: 7, title: 'تأكيد الحجز' }
+    { num: 7, title: 'تأكيد الطلب' }
   ];
 
+  const currentStepTitle = stepTitles.find((s) => s.num === currentStep)?.title || '';
+  const progressPercent = Math.round((currentStep / 7) * 100);
+
   return (
-    <div className="max-w-[1240px] mx-auto px-6 py-10 space-y-10">
+    <div className="max-w-[1240px] mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-8" dir="rtl">
       {/* Page Title & Slogan */}
-      <div className="space-y-3 max-w-3xl">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F3ECE1] text-[#8C6D36] text-xs font-medium border border-[#E6DCD2]">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>منظومة طلبات المناسبات الإلكترونية · مكة المكرمة وجدة</span>
+      <div className="text-center sm:text-right space-y-2.5 max-w-3xl mx-auto sm:mx-0">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FAF6F0] text-[#8C6D36] text-xs font-medium border border-[#D8CBB8]/80 shadow-2xs">
+          <Sparkles className="w-3.5 h-3.5 text-[#C8A96E]" />
+          <span className="font-serif italic font-semibold">LUMIR | لومير</span>
+          <span className="text-[#C8A96E]">•</span>
+          <span>«نضيء لياليك وفرحة صغارك»</span>
         </div>
-        <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[#2C1E18]">
-          طلب حجز موعد لمناسبتكِ
+        <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[#2C1E18] tracking-tight">
+          احجزي مناسبتكِ
         </h1>
         <p className="text-sm sm:text-base text-[#5C4940] leading-relaxed">
-          تدفق حجز متكامل من ٧ مراحل لتحديد كافة تفاصيل مناسبتكِ باحترافية، مع احتساب فوري
-          للأسعار التقديرية، وفحص تعارض المواعيد عبر الخادم.
+          اختاري خدمتكِ وتفاصيل مناسبتكِ، وسيتولى فريق لومير متابعة طلبكِ بكل عناية.
         </p>
+        <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-[#8C6D36] font-medium pt-0.5">
+          <MapPin className="w-3.5 h-3.5 text-[#C8A96E]" />
+          <span>نخدم مكة المكرمة وجدة بكل فخر واحترافية</span>
+        </div>
       </div>
 
       {/* Stepper Progress Bar */}
-      <div className="p-4 sm:p-6 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] overflow-x-auto">
-        <div className="flex items-center justify-between min-w-[700px] gap-2">
+      {/* Mobile: Compact Progress Bar */}
+      <div className="md:hidden p-4 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-2.5 shadow-2xs">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-bold text-[#2C1E18]">
+            الخطوة {formatArabicNumber(currentStep)} من ٧: <span className="text-[#8C6D36]">{currentStepTitle}</span>
+          </span>
+          <span className="font-mono-num font-bold text-[#8C6D36]">
+            %{formatArabicNumber(progressPercent)}
+          </span>
+        </div>
+        <div className="w-full h-2 rounded-full bg-[#E6DCD2] overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-l from-[#C8A96E] to-[#2C1E18] transition-all duration-300 rounded-full"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Desktop: Full Horizontal 7-Stage Stepper */}
+      <div className="hidden md:block p-5 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] shadow-2xs">
+        <div className="flex items-center justify-between gap-2">
           {stepTitles.map((step, idx) => {
             const isCompleted = currentStep > step.num;
             const isCurrent = currentStep === step.num;
             return (
               <React.Fragment key={step.num}>
                 <div
-                  className={`flex items-center gap-2.5 transition-colors ${
+                  className={`flex items-center gap-2.5 transition-colors shrink-0 ${
                     isCurrent
                       ? 'text-[#2C1E18] font-bold'
                       : isCompleted
-                      ? 'text-[#1F5E3B]'
+                      ? 'text-[#1F5E3B] font-medium'
                       : 'text-[#9E8B81]'
                   }`}
                 >
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold font-mono-num transition-all ${
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold font-mono-num transition-all shrink-0 ${
                       isCurrent
-                        ? 'bg-[#2C1E18] text-[#FAF6F0] ring-4 ring-[#E6DCD2]'
+                        ? 'bg-[#2C1E18] text-[#FAF6F0] ring-4 ring-[#E6DCD2] shadow-xs'
                         : isCompleted
                         ? 'bg-[#1F5E3B] text-[#FAF6F0]'
                         : 'bg-[#F3ECE1] text-[#7A685F] border border-[#D8CBB8]'
@@ -625,7 +658,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
 
                 {idx < stepTitles.length - 1 && (
                   <div
-                    className={`flex-1 h-0.5 mx-2 rounded transition-colors ${
+                    className={`flex-1 h-0.5 mx-1.5 rounded transition-colors ${
                       currentStep > step.num ? 'bg-[#1F5E3B]' : 'bg-[#E6DCD2]'
                     }`}
                   />
@@ -663,374 +696,243 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
         <div className="lg:col-span-8 space-y-6">
           {/* ================= STAGE 1: Service & Package ================= */}
           {currentStep === 1 && (
-            <div className="p-7 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-6">
+            <div className="p-6 sm:p-7 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-6 shadow-2xs">
               <div className="border-b border-[#E6DCD2] pb-4">
-                <span className="text-xs font-bold text-[#8C6D36]">المرحلة الأولى</span>
-                <h2 className="font-display text-2xl font-bold text-[#2C1E18]">
-                  اختيار الخدمة والباقة
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F3ECE1] text-[#8C6D36] text-[11px] font-bold mb-1.5">
+                  <Sparkles className="w-3 h-3 text-[#C8A96E]" />
+                  <span>المرحلة الأولى · الخطوة ١ من ٧</span>
+                </div>
+                <h2 className="font-display text-2xl sm:text-3xl font-bold text-[#2C1E18]">
+                  ما الخدمة التي ترغبين بها؟
                 </h2>
-                <p className="text-xs text-[#645249] mt-1">
-                  حددي الخدمة المطلوبة من خدمات لومير والباقة المناسبة لعدد الساعات وطبيعة الفعالية.
+                <p className="text-xs sm:text-sm text-[#645249] mt-1 leading-relaxed">
+                  اختاري إحدى خدمات لومير الفاخرة المخصصة لمناسبات مكة المكرمة وجدة، ثم حددي الباقة المناسبة لطبيعة مناسبتكِ.
                 </p>
               </div>
 
-              {/* Customer Choice: Guest Checkout or Google Login */}
-              {user ? (
-                <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-right shadow-2xs">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0 shadow-xs">
-                      <UserCheck className="w-5 h-5 text-emerald-100" />
+              {/* Service Selection: Selected Service Hero Card */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-[#2C1E18]">
+                    الخدمة المحددة حالياً *
+                  </label>
+                  {selectedService && visibleServices.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsServicesExpanded((prev) => !prev)}
+                      className="text-xs font-bold text-[#8C6D36] hover:text-[#2C1E18] inline-flex items-center gap-1.5 cursor-pointer py-1 px-2 rounded-lg hover:bg-[#F3ECE1] transition-colors"
+                    >
+                      <span>{isServicesExpanded ? 'إخفاء الخدمات الإضافية' : 'المزيد من الخدمات'}</span>
+                      {isServicesExpanded ? (
+                        <ChevronUp className="w-3.5 h-3.5 text-[#8C6D36]" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5 text-[#8C6D36]" />
+                      )}
+                    </button>
+                  )}
+                </div>
+
+                {/* Hero Card for Current Selected Service */}
+                {selectedService && (
+                  <div className="rounded-2xl border-2 border-[#8C6D36]/40 bg-white p-4 sm:p-5 shadow-xs transition-all flex flex-col md:flex-row gap-5 items-start">
+                    {/* Service Image */}
+                    <div className="w-full md:w-44 h-36 md:h-36 rounded-xl overflow-hidden shrink-0 relative bg-[#2C1E18]">
+                      <ResilientImage
+                        src={selectedService.imageUrl}
+                        alt={selectedService.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] bg-[#C8A96E] text-[#2C1E18] font-bold shadow-xs">
+                        الخدمة المختارة
+                      </span>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-xs font-bold text-emerald-950">
-                          حساب لومير المعتمد: {user.name || user.email}
-                        </h4>
-                        <span className="text-[10px] bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full font-bold">
-                          مرتبط بالطلب
+
+                    {/* Service Details */}
+                    <div className="flex-1 flex flex-col justify-between h-full space-y-3 w-full">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="font-display text-xl font-bold text-[#2C1E18]">
+                            {selectedService.name}
+                          </h3>
+                          <div className="flex items-center gap-1 text-[#1F5E3B] text-xs font-bold bg-[#EDF7F0] px-2.5 py-1 rounded-full">
+                            <CheckCircle2 className="w-4 h-4 text-[#1F5E3B]" />
+                            <span>مفعّلة للحجز</span>
+                          </div>
+                        </div>
+                        <p className="text-xs sm:text-sm text-[#5C4940] leading-relaxed">
+                          {selectedService.description || selectedService.tagline}
+                        </p>
+                      </div>
+
+                      <div className="pt-3 border-t border-[#F3ECE1] flex items-center justify-between text-xs">
+                        <span className="text-[#8C6D36] font-medium">الحد الأدنى للتسعير:</span>
+                        <span className="font-mono-num font-bold text-base text-[#2C1E18]">
+                          تبدأ من {formatSar(selectedService.basePrice)}
                         </span>
                       </div>
-                      <p className="text-[11px] text-emerald-800 mt-0.5">
-                        سيتم ربط تفاصيل حجزكِ بحسابكِ تلقائياً لحفظ السجل ومتابعة التحديثات عبر صفحة «طلباتي».
-                      </p>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="p-5 rounded-2xl bg-[#F3ECE1]/70 border border-[#D8CBB8] space-y-4 shadow-xs text-right">
-                  <div className="flex items-center justify-between border-b border-[#E6DCD2] pb-3">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-[#8C6D36]" />
-                      <h4 className="text-xs font-bold text-[#2C1E18]">
-                        خيارات تسجيل الطلب (تسجيل الدخول اختياري)
-                      </h4>
+                )}
+
+                {/* Expanded Grid to Switch Service */}
+                {isServicesExpanded && (
+                  <div className="p-4 sm:p-5 rounded-2xl bg-[#F3ECE1]/70 border border-[#D8CBB8] space-y-3 animate-fadeIn">
+                    <div className="flex items-center justify-between border-b border-[#E6DCD2] pb-2">
+                      <span className="text-xs font-bold text-[#2C1E18]">
+                        جميع خدمات لومير المتاحة ({formatArabicNumber(visibleServices.length)} خدمات):
+                      </span>
+                      <span className="text-[11px] text-[#8C6D36]">اضغطي على الخدمة لتحديدها</span>
                     </div>
-                    <span className="text-[10px] font-bold text-[#8C6D36] bg-[#FAF6F0] border border-[#D8CBB8] px-2.5 py-0.5 rounded-full">
-                      غير إلزامي
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {visibleServices.map((srv) => {
+                        const isSelected = srv.id === serviceId;
+                        return (
+                          <button
+                            key={srv.id}
+                            type="button"
+                            onClick={() => {
+                              setServiceId(srv.id);
+                              setPackageId('');
+                              setIsPackagesExpanded(false);
+                              setIsServicesExpanded(false);
+                            }}
+                            className={`p-3.5 rounded-xl border text-right transition-all cursor-pointer flex items-center gap-3 ${
+                              isSelected
+                                ? 'bg-[#2C1E18] text-[#FAF6F0] border-[#2C1E18] shadow-xs ring-2 ring-[#C8A96E]'
+                                : 'bg-white text-[#2C1E18] border-[#E6DCD2] hover:border-[#8C6D36] hover:bg-[#FAF6F0]'
+                            }`}
+                          >
+                            <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-[#2C1E18]">
+                              <ResilientImage
+                                src={srv.imageUrl}
+                                alt={srv.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="font-bold text-xs truncate">{srv.name}</span>
+                                {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-[#C8A96E] shrink-0" />}
+                              </div>
+                              <p
+                                className={`text-[11px] line-clamp-1 mt-0.5 ${
+                                  isSelected ? 'text-[#FAF6F0]/80' : 'text-[#7A685F]'
+                                }`}
+                              >
+                                {srv.tagline}
+                              </p>
+                              <div className="text-[11px] font-mono-num font-bold mt-1 text-[#C8A96E]">
+                                تبدأ من {formatSar(srv.basePrice)}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Packages Selection (Belonging to selectedService ONLY) */}
+              {selectedService.packages.length > 0 && (
+                <div className="space-y-4 pt-3 border-t border-[#E6DCD2]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-bold text-[#2C1E18]">
+                        باقات {selectedService.name}
+                      </h3>
+                      <p className="text-[11px] text-[#7A685F] mt-0.5">
+                        اختاري الباقة المناسبة لساعات التغطية وحجم الفعالية:
+                      </p>
+                    </div>
+                    <span className="text-[11px] font-medium text-[#8C6D36] bg-[#F3ECE1] px-2.5 py-1 rounded-full">
+                      تسليم خلال {selectedService.deliveryTimeframeHours || 48} ساعة
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    {/* Option 1: Guest Checkout */}
-                    <div className="p-4 rounded-xl bg-white border-2 border-[#8C6D36] flex flex-col justify-between gap-3 shadow-xs">
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-[#8C6D36] bg-[#FAF6F0] px-2 py-0.5 rounded-md border border-[#E6DCD2]">
-                            متاح ومباشر
-                          </span>
-                          <CheckCircle2 className="w-4 h-4 text-[#8C6D36]" />
-                        </div>
-                        <h5 className="text-xs font-bold text-[#2C1E18]">
-                          الدخول والمتابعة كضيف
-                        </h5>
-                        <p className="text-[11px] text-[#645249] leading-relaxed">
-                          أكملي طلبكِ مباشرة دون كلمة مرور؛ سنحتاج فقط اسمكِ الكريم ورقم الجوال للتواصل وحفظ الحجز في منظومة لومير.
-                        </p>
-                      </div>
-                      <div className="text-[10px] text-[#8C6D36] font-bold flex items-center gap-1 pt-1 border-t border-[#F3ECE1]">
-                        <Check className="w-3.5 h-3.5" />
-                        <span>مفعّل للمتابعة فوراً</span>
-                      </div>
-                    </div>
-
-                    {/* Option 2: Google Sign In via Supabase */}
-                    <div className="p-4 rounded-xl bg-white border border-[#D8CBB8] hover:border-[#8C6D36] flex flex-col justify-between gap-3 transition-colors shadow-xs">
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-md">
-                            ربط سريع
-                          </span>
-                          <svg className="w-4 h-4" viewBox="0 0 24 24">
-                            <path
-                              fill="#4285F4"
-                              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                            />
-                            <path
-                              fill="#34A853"
-                              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                            />
-                            <path
-                              fill="#FBBC05"
-                              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                            />
-                            <path
-                              fill="#EA4335"
-                              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                            />
-                          </svg>
-                        </div>
-                        <h5 className="text-xs font-bold text-[#2C1E18]">
-                          تسجيل الدخول بواسطة Google
-                        </h5>
-                        <p className="text-[11px] text-[#645249] leading-relaxed">
-                          حفظ الطلب في حسابكِ الشخصي تلقائياً وتتبعه من صفحة «طلباتي» دون فقدان أي بيانات مدخلة.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => signInWithGoogle('/booking')}
-                        className="w-full py-2 px-3 text-xs font-bold bg-[#FAF6F0] hover:bg-[#F3ECE1] text-[#2C1E18] border border-[#D8CBB8] rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
-                      >
-                        <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
-                          <path
-                            fill="#4285F4"
-                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                          />
-                          <path
-                            fill="#34A853"
-                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                          />
-                          <path
-                            fill="#FBBC05"
-                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                          />
-                          <path
-                            fill="#EA4335"
-                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                          />
-                        </svg>
-                        <span>متابعة بواسطة Google</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 flex items-center justify-between text-[11px] text-[#645249] border-t border-[#E6DCD2]">
-                    <span>تفضلين تسجيل الدخول بالبريد الإلكتروني؟</span>
-                    <button
-                      type="button"
-                      onClick={() => openAuthModal('booking')}
-                      className="font-bold text-[#8C6D36] hover:text-[#2C1E18] underline cursor-pointer"
-                    >
-                      تسجيل الدخول / حساب جديد
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Service Select */}
-              <div className="space-y-3">
-                <label className="block text-xs font-bold text-[#2C1E18]">
-                  الخدمة الأساسية المطلوبة *
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {visibleServices.map((srv) => {
-                    const isSelected = srv.id === serviceId;
-                    return (
-                      <button
-                        key={srv.id}
-                        type="button"
-                        onClick={() => {
-                          setServiceId(srv.id);
-                          setPackageId('');
-                          setIsPackagesExpanded(false);
-                        }}
-                        className={`p-4 rounded-xl border text-right transition-all cursor-pointer flex flex-col justify-between gap-3 ${
-                          isSelected
-                            ? 'bg-[#2C1E18] text-[#FAF6F0] border-[#2C1E18] shadow-sm'
-                            : 'bg-[#F3ECE1]/70 text-[#2C1E18] border-[#E6DCD2] hover:bg-[#F3ECE1]'
-                        }`}
-                      >
-                        <div>
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-bold text-sm">{srv.name}</span>
-                            {isSelected && <CheckCircle2 className="w-4 h-4 text-[#C8A96E]" />}
-                          </div>
-                          <p
-                            className={`text-xs mt-1.5 line-clamp-2 leading-relaxed ${
-                              isSelected ? 'text-[#FAF6F0]/80' : 'text-[#645249]'
-                            }`}
-                          >
-                            {srv.tagline}
-                          </p>
-                        </div>
-                        <div className="pt-2 border-t border-current/10 flex items-center justify-between text-xs">
-                          <span className={isSelected ? 'text-[#C8A96E]' : 'text-[#8C6D36]'}>
-                            تبدأ من:
-                          </span>
-                          <span className="font-mono-num font-bold text-sm">
-                            {formatSar(srv.basePrice)}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Packages Selection */}
-              {selectedService.packages.length > 0 && (
-                <div className="space-y-3 pt-3">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-bold text-[#2C1E18]">
-                      باقات {selectedService.name} (اضغطي للاختيار):
-                    </label>
-                    <span className="text-[11px] text-[#8C6D36]">
-                      مدة التسليم المبدئية: {selectedService.deliveryTimeframeHours || 48} ساعة
-                    </span>
-                  </div>
-
-                  {/* If user selected a package and has not expanded the rest */}
-                  {selectedPackage && !isPackagesExpanded ? (
-                    <div className="space-y-3">
-                      <div className="p-4 sm:p-5 rounded-xl border bg-[#2C1E18] text-[#FAF6F0] border-[#2C1E18] shadow-md flex flex-col justify-between gap-3 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-[#C8A96E]/10 rounded-full blur-2xl pointer-events-none" />
-                        <div>
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-base">{selectedPackage.name}</span>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#C8A96E] text-[#2C1E18] font-bold">
-                                الباقة المختارة
-                              </span>
-                              {selectedPackage.popular && (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#FAF6F0]/20 text-[#FAF6F0] font-medium">
+                    {selectedService.packages.map((pkg) => {
+                      const isSelected = pkg.id === packageId;
+                      return (
+                        <div
+                          key={pkg.id}
+                          className={`p-4 sm:p-5 rounded-2xl border text-right transition-all flex flex-col justify-between gap-4 ${
+                            isSelected
+                              ? 'bg-[#2C1E18] text-[#FAF6F0] border-[#2C1E18] shadow-md ring-2 ring-[#C8A96E]'
+                              : 'bg-white text-[#2C1E18] border-[#D8CBB8] hover:border-[#8C6D36]'
+                          }`}
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5">
+                                <h4 className="font-display font-bold text-base">{pkg.name}</h4>
+                                {isSelected && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#C8A96E] text-[#2C1E18] font-bold">
+                                    المختارة
+                                  </span>
+                                )}
+                              </div>
+                              {pkg.popular && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#C8A96E] text-[#2C1E18] font-bold">
                                   الأكثر طلباً
                                 </span>
                               )}
                             </div>
-                            <CheckCircle2 className="w-5 h-5 text-[#C8A96E]" />
-                          </div>
-                          <div className="text-xs mt-1 text-[#C8A96E]">
-                            {selectedPackage.durationHours ? `${formatArabicNumber(selectedPackage.durationHours)} ساعات تغطية · ` : ''}
-                            تسليم خلال {selectedPackage.deliveryTimeframe || '٤٨ ساعة'}
-                          </div>
 
-                          <ul className="mt-3 space-y-1.5">
-                            {selectedPackage.features.map((feat, fIdx) => (
-                              <li
-                                key={fIdx}
-                                className="text-xs flex items-center gap-1.5 text-[#FAF6F0]/85"
-                              >
-                                <span className="text-[#C8A96E]">•</span>
-                                <span>{feat}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        <div className="pt-3 border-t border-[#FAF6F0]/15 flex items-center justify-between">
-                          <span className="text-xs text-[#FAF6F0]/80">السعر المعتمد:</span>
-                          <span className="font-mono-num font-bold text-base text-[#C8A96E]">
-                            {formatSar(selectedPackage.price)}
-                          </span>
-                        </div>
-
-                        {!user && (
-                          <div className="pt-2">
-                            <button
-                              type="button"
-                              onClick={() => openAuthModal('booking')}
-                              className="w-full py-2.5 px-3 rounded-lg bg-[#C8A96E] text-[#2C1E18] text-xs font-bold flex items-center justify-center gap-2 hover:bg-[#b89656] transition-colors cursor-pointer"
+                            <div
+                              className={`text-xs font-medium ${
+                                isSelected ? 'text-[#C8A96E]' : 'text-[#8C6D36]'
+                              }`}
                             >
-                              <Lock className="w-3.5 h-3.5 text-[#2C1E18]" />
-                              <span>تسجيل الدخول لتأكيد باقة {selectedPackage.name} والمتابعة</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                              {pkg.durationHours ? `${formatArabicNumber(pkg.durationHours)} ساعات تغطية · ` : ''}
+                              تسليم خلال {pkg.deliveryTimeframe || '٤٨ ساعة'}
+                            </div>
 
-                      {selectedService.packages.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => setIsPackagesExpanded(true)}
-                          className="w-full py-3 px-4 rounded-xl border border-dashed border-[#C8A96E] bg-[#FAF6F0] hover:bg-[#F3ECE1] text-[#2C1E18] text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm hover:shadow"
-                        >
-                          <ChevronDown className="w-4 h-4 text-[#8C6D36]" />
-                          <span>عرض المزيد من الباقات ({formatArabicNumber(selectedService.packages.length - 1)} باقات أخرى متاحة)</span>
-                          <Sparkles className="w-3.5 h-3.5 text-[#C8A96E]" />
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {selectedService.packages.map((pkg) => {
-                          const isSelected = pkg.id === packageId;
-                          return (
+                            <ul className="mt-2 space-y-1.5 pt-2 border-t border-current/10">
+                              {pkg.features.map((feat, fIdx) => (
+                                <li
+                                  key={fIdx}
+                                  className={`text-xs flex items-center gap-1.5 ${
+                                    isSelected ? 'text-[#FAF6F0]/85' : 'text-[#5C4940]'
+                                  }`}
+                                >
+                                  <span className="text-[#C8A96E] font-bold">•</span>
+                                  <span>{feat}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          <div className="pt-3 border-t border-current/15 flex items-center justify-between gap-2">
+                            <div>
+                              <span className="text-[11px] block opacity-75">السعر:</span>
+                              <span className="font-mono-num font-bold text-base text-[#C8A96E]">
+                                {formatSar(pkg.price)}
+                              </span>
+                            </div>
+
                             <button
-                              key={pkg.id}
                               type="button"
                               onClick={() => {
                                 setPackageId(pkg.id);
-                                setIsPackagesExpanded(false);
                                 if (pkg.durationHours) {
                                   setDurationHours(pkg.durationHours);
                                 }
-                                if (!user) {
-                                  openAuthModal('booking');
-                                }
                               }}
-                              className={`p-4 rounded-xl border text-right transition-all cursor-pointer flex flex-col justify-between gap-3 ${
+                              className={`py-2 px-4 rounded-xl text-xs font-bold cursor-pointer transition-all ${
                                 isSelected
-                                  ? 'bg-[#2C1E18] text-[#FAF6F0] border-[#2C1E18] shadow-md ring-2 ring-[#C8A96E]'
-                                  : 'bg-[#FAF6F0] text-[#2C1E18] border-[#D8CBB8] hover:bg-[#F3ECE1]'
+                                  ? 'bg-[#C8A96E] text-[#2C1E18] hover:bg-[#d8b97e]'
+                                  : 'bg-[#FAF6F0] text-[#2C1E18] border border-[#D8CBB8] hover:bg-[#F3ECE1]'
                               }`}
                             >
-                              <div>
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="font-bold text-sm">{pkg.name}</span>
-                                    {isSelected && (
-                                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#C8A96E] text-[#2C1E18] font-bold">
-                                        المختارة
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    {pkg.popular && (
-                                      <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#C8A96E] text-[#2C1E18] font-bold">
-                                        الأكثر طلباً
-                                      </span>
-                                    )}
-                                    {isSelected && <CheckCircle2 className="w-4 h-4 text-[#C8A96E]" />}
-                                  </div>
-                                </div>
-                                <div
-                                  className={`text-xs mt-1 ${
-                                    isSelected ? 'text-[#C8A96E]' : 'text-[#8C6D36]'
-                                  }`}
-                                >
-                                  {pkg.durationHours ? `${formatArabicNumber(pkg.durationHours)} ساعات تغطية · ` : ''}
-                                  تسليم خلال {pkg.deliveryTimeframe || '٤٨ ساعة'}
-                                </div>
-
-                                <ul className="mt-2.5 space-y-1">
-                                  {pkg.features.slice(0, 3).map((feat, fIdx) => (
-                                    <li
-                                      key={fIdx}
-                                      className={`text-[11px] flex items-center gap-1.5 ${
-                                        isSelected ? 'text-[#FAF6F0]/85' : 'text-[#645249]'
-                                      }`}
-                                    >
-                                      <span className="text-[#C8A96E]">•</span>
-                                      <span>{feat}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-
-                              <div className="pt-2 border-t border-current/15 flex items-center justify-between">
-                                <span className="text-xs">السعر:</span>
-                                <span className="font-mono-num font-bold text-sm text-[#C8A96E]">
-                                  {formatSar(pkg.price)}
-                                </span>
-                              </div>
+                              {isSelected ? '✓ الباقة المحددة' : 'اختيار هذه الباقة'}
                             </button>
-                          );
-                        })}
-                      </div>
-
-                      {selectedPackage && selectedService.packages.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => setIsPackagesExpanded(false)}
-                          className="w-full py-2.5 px-4 rounded-xl border border-[#E6DCD2] bg-[#FAF6F0]/90 hover:bg-[#F3ECE1] text-[#645249] text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
-                        >
-                          <ChevronUp className="w-4 h-4 text-[#8C6D36]" />
-                          <span>طي الباقات الإضافية (إبقاء {selectedPackage.name})</span>
-                        </button>
-                      )}
-                    </div>
-                  )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -1038,14 +940,17 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
 
           {/* ================= STAGE 2: City Selection ================= */}
           {currentStep === 2 && (
-            <div className="p-7 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-6">
+            <div className="p-6 sm:p-7 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-6 shadow-2xs">
               <div className="border-b border-[#E6DCD2] pb-4">
-                <span className="text-xs font-bold text-[#8C6D36]">المرحلة الثانية</span>
-                <h2 className="font-display text-2xl font-bold text-[#2C1E18]">
-                  اختيار المدينة المخدومة
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F3ECE1] text-[#8C6D36] text-[11px] font-bold mb-1.5">
+                  <MapPin className="w-3 h-3 text-[#C8A96E]" />
+                  <span>المرحلة الثانية · الخطوة ٢ من ٧</span>
+                </div>
+                <h2 className="font-display text-2xl sm:text-3xl font-bold text-[#2C1E18]">
+                  أين ستقام مناسبتكِ؟
                 </h2>
-                <p className="text-xs text-[#645249] mt-1">
-                  نخدم حصرياً مكة المكرمة وجدة لضمان أعلى معايير الجودة والالتزام بالمواعيد.
+                <p className="text-xs sm:text-sm text-[#645249] mt-1 leading-relaxed">
+                  نخدم حصرياً مكة المكرمة وجدة لضمان أعلى معايير الجودة والالتزام التام بالمواعيد.
                 </p>
               </div>
 
@@ -1059,8 +964,8 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                       onClick={() => setCity(c)}
                       className={`p-6 rounded-2xl border text-right transition-all cursor-pointer flex flex-col justify-between gap-4 ${
                         isSelected
-                          ? 'bg-[#2C1E18] text-[#FAF6F0] border-[#2C1E18] shadow-md'
-                          : 'bg-[#F3ECE1]/60 text-[#2C1E18] border-[#E6DCD2] hover:bg-[#F3ECE1]'
+                          ? 'bg-[#2C1E18] text-[#FAF6F0] border-[#2C1E18] shadow-md ring-2 ring-[#C8A96E]'
+                          : 'bg-white text-[#2C1E18] border-[#E6DCD2] hover:bg-[#F3ECE1] hover:border-[#8C6D36]'
                       }`}
                     >
                       <div className="space-y-2">
@@ -1081,8 +986,8 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                           }`}
                         >
                           {c === 'مكة المكرمة'
-                            ? 'تغطية شاملة لكافة أحياء وقاعات مكة (العوالي، الشوقية، العزيزية، بطحاء قريش، النوارية، والزايدي).'
-                            : 'تغطية متكاملة لجميع فنادق وقاعات جدة (الشاطئ، الروضة، الحمراء، أبحر الشمالية، الزهراء، والخالدية).'}
+                            ? 'تغطية شاملة لكافة أحياء وقاعات مكة المكرمة (العوالي، الشوقية، العزيزية، بطحاء قريش، النوارية، والزايدي).'
+                            : 'تغطية متكاملة لجميع فنادق وقاعات مدينة جدة (الشاطئ، الروضة، الحمراء، أبحر الشمالية، الزهراء، والخالدية).'}
                         </p>
                       </div>
 
@@ -1103,8 +1008,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
               <div className="p-4 rounded-xl bg-[#F3ECE1] border border-[#E6DCD2] text-xs text-[#5C4940] flex items-center gap-2.5">
                 <ShieldCheck className="w-5 h-5 text-[#8C6D36] shrink-0" />
                 <span>
-                  نظام جدولة لومير مخصص لمدينتي مكة المكرمة وجدة فقط، ولا يتم قبول أي طلبات خارج
-                  هاتين المدينتين لضمان سرعة الوصول وجودة التنسيق.
+                  نظام جدولة لومير مخصص لمدينتي مكة المكرمة وجدة فقط، ولا يتم قبول أي طلبات خارج هاتين المدينتين لضمان سرعة الوصول وجودة التنسيق.
                 </span>
               </div>
             </div>
@@ -1112,14 +1016,17 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
 
           {/* ================= STAGE 3: Date & Time ================= */}
           {currentStep === 3 && (
-            <div className="p-7 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-6">
+            <div className="p-6 sm:p-7 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-6 shadow-2xs">
               <div className="border-b border-[#E6DCD2] pb-4">
-                <span className="text-xs font-bold text-[#8C6D36]">المرحلة الثالثة</span>
-                <h2 className="font-display text-2xl font-bold text-[#2C1E18]">
-                  تحديد تاريخ المناسبة والوقت وعدد الساعات
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F3ECE1] text-[#8C6D36] text-[11px] font-bold mb-1.5">
+                  <Calendar className="w-3 h-3 text-[#C8A96E]" />
+                  <span>المرحلة الثالثة · الخطوة ٣ من ٧</span>
+                </div>
+                <h2 className="font-display text-2xl sm:text-3xl font-bold text-[#2C1E18]">
+                  متى مناسبتكِ؟
                 </h2>
-                <p className="text-xs text-[#645249] mt-1">
-                  اختاري تاريخ المناسبة وساعات البدء والنهاية للتحقق الفوري من التوفر عبر الخادم.
+                <p className="text-xs sm:text-sm text-[#645249] mt-1 leading-relaxed">
+                  اختاري تاريخ المناسبة ووقت البدء وعدد الساعات للتحقق الفوري من إمكانية الحجز وتجنب أي تعارض في المواعيد.
                 </p>
               </div>
 
@@ -1135,7 +1042,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                       required
                       value={eventDate}
                       onChange={(e) => setEventDate(e.target.value)}
-                      className="w-full px-3 py-2.5 text-sm font-mono-num bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl focus:outline-none focus:border-[#2C1E18]"
+                      className="w-full px-3 py-2.5 text-sm font-mono-num bg-white border border-[#D8CBB8] rounded-xl focus:outline-none focus:border-[#2C1E18]"
                     />
                   </div>
                 </div>
@@ -1150,7 +1057,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                     required
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full px-3 py-2.5 text-sm font-mono-num bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl focus:outline-none focus:border-[#2C1E18]"
+                    className="w-full px-3 py-2.5 text-sm font-mono-num bg-white border border-[#D8CBB8] rounded-xl focus:outline-none focus:border-[#2C1E18]"
                   />
                 </div>
 
@@ -1167,7 +1074,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                     >
                       -
                     </button>
-                    <div className="flex-1 py-2 text-center text-sm font-bold font-mono-num bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl">
+                    <div className="flex-1 py-2 text-center text-sm font-bold font-mono-num bg-white border border-[#D8CBB8] rounded-xl">
                       {formatArabicNumber(durationHours)} ساعات
                     </div>
                     <button
@@ -1223,14 +1130,17 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
 
           {/* ================= STAGE 4: Location, Service Specifics & Addons ================= */}
           {currentStep === 4 && (
-            <div className="p-7 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-6">
+            <div className="p-6 sm:p-7 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-6 shadow-2xs">
               <div className="border-b border-[#E6DCD2] pb-4">
-                <span className="text-xs font-bold text-[#8C6D36]">المرحلة الرابعة</span>
-                <h2 className="font-display text-2xl font-bold text-[#2C1E18]">
-                  موقع المناسبة والتفاصيل والإضافات
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F3ECE1] text-[#8C6D36] text-[11px] font-bold mb-1.5">
+                  <MapPin className="w-3 h-3 text-[#C8A96E]" />
+                  <span>المرحلة الرابعة · الخطوة ٤ من ٧</span>
+                </div>
+                <h2 className="font-display text-2xl sm:text-3xl font-bold text-[#2C1E18]">
+                  أخبرينا عن موقع مناسبتكِ
                 </h2>
-                <p className="text-xs text-[#645249] mt-1">
-                  حددي الحي، القاعة، المتطلبات الخاصة بنوع الخدمة، والخدمات الإضافية المرغوبة.
+                <p className="text-xs sm:text-sm text-[#645249] mt-1 leading-relaxed">
+                  حددي الحي، القاعة أو مكان الإقامة، وأي تفاصيل إضافية لتجهيز طاقم لومير بدقة.
                 </p>
               </div>
 
@@ -1483,20 +1393,156 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
             </div>
           )}
 
-          {/* ================= STAGE 5: Client Information & Consents ================= */}
+          {/* ================= STAGE 5: Client Information ================= */}
           {currentStep === 5 && (
-            <div className="p-7 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-6">
+            <div className="p-6 sm:p-7 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-6 shadow-2xs">
               <div className="border-b border-[#E6DCD2] pb-4">
-                <span className="text-xs font-bold text-[#8C6D36]">المرحلة الخامسة</span>
-                <h2 className="font-display text-2xl font-bold text-[#2C1E18]">
-                  إدخال بيانات العميل والموافقات
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F3ECE1] text-[#8C6D36] text-[11px] font-bold mb-1.5">
+                  <User className="w-3 h-3 text-[#C8A96E]" />
+                  <span>المرحلة الخامسة · الخطوة ٥ من ٧</span>
+                </div>
+                <h2 className="font-display text-2xl sm:text-3xl font-bold text-[#2C1E18]">
+                  كيف نتواصل معكِ؟
                 </h2>
-                <p className="text-xs text-[#645249] mt-1">
-                  سجلّي معلومات التواصل لتزويدكِ بتفاصيل الحجز فور مراجعته من الإدارة.
+                <p className="text-xs sm:text-sm text-[#645249] mt-1 leading-relaxed">
+                  سجّلي بياناتكِ للتواصل وتأكيد الحجز. يمكنكِ إتمام الطلب كضيفة مباشرة أو تسجيل الدخول لحفظه في حسابكِ.
                 </p>
               </div>
 
-              {/* Name & Phone */}
+              {/* Guest vs Google Sign-in Selection */}
+              {user ? (
+                <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-right shadow-2xs">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <UserCheck className="w-5 h-5 text-emerald-100" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-bold text-emerald-950">
+                          حساب لومير المعتمد: {user.name || user.email}
+                        </h4>
+                        <span className="text-[10px] bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full font-bold">
+                          مرتبط بالطلب
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-emerald-800 mt-0.5">
+                        سيتم ربط تفاصيل حجزكِ بحسابكِ تلقائياً لحفظ السجل ومتابعة التحديثات عبر صفحة «طلباتي».
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 sm:p-5 rounded-2xl bg-white border border-[#D8CBB8] space-y-4 shadow-xs text-right">
+                  <div className="flex items-center justify-between border-b border-[#F3ECE1] pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-[#8C6D36]" />
+                      <h4 className="text-xs font-bold text-[#2C1E18]">
+                        خيارات تسجيل الطلب (تسجيل الدخول اختياري)
+                      </h4>
+                    </div>
+                    <span className="text-[10px] font-bold text-[#8C6D36] bg-[#FAF6F0] border border-[#D8CBB8] px-2.5 py-0.5 rounded-full">
+                      غير إلزامي
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {/* Option 1: Guest Checkout */}
+                    <div className="p-4 rounded-xl bg-[#FAF6F0] border-2 border-[#8C6D36] flex flex-col justify-between gap-3 shadow-2xs">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-[#8C6D36] bg-white px-2 py-0.5 rounded-md border border-[#E6DCD2]">
+                            متاح ومباشر
+                          </span>
+                          <CheckCircle2 className="w-4 h-4 text-[#8C6D36]" />
+                        </div>
+                        <h5 className="text-xs font-bold text-[#2C1E18]">
+                          الدخول والمتابعة كضيفة
+                        </h5>
+                        <p className="text-[11px] text-[#645249] leading-relaxed">
+                          أكملي طلبكِ مباشرة دون كلمة مرور؛ سنحتاج فقط اسمكِ الكريم ورقم الجوال للتواصل وحفظ الحجز في منظومة لومير.
+                        </p>
+                      </div>
+                      <div className="text-[10px] text-[#8C6D36] font-bold flex items-center gap-1 pt-1 border-t border-[#E6DCD2]">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>مفعّل للمتابعة فوراً</span>
+                      </div>
+                    </div>
+
+                    {/* Option 2: Google Sign In */}
+                    <div className="p-4 rounded-xl bg-[#FAF6F0] border border-[#D8CBB8] hover:border-[#8C6D36] flex flex-col justify-between gap-3 transition-colors shadow-2xs">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-gray-700 bg-white px-2 py-0.5 rounded-md border border-gray-200">
+                            ربط سريع
+                          </span>
+                          <svg className="w-4 h-4" viewBox="0 0 24 24">
+                            <path
+                              fill="#4285F4"
+                              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                            />
+                            <path
+                              fill="#34A853"
+                              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                            />
+                            <path
+                              fill="#FBBC05"
+                              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                            />
+                            <path
+                              fill="#EA4335"
+                              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                            />
+                          </svg>
+                        </div>
+                        <h5 className="text-xs font-bold text-[#2C1E18]">
+                          تسجيل الدخول بواسطة Google
+                        </h5>
+                        <p className="text-[11px] text-[#645249] leading-relaxed">
+                          حفظ الطلب في حسابكِ الشخصي تلقائياً وتتبعه من صفحة «طلباتي» دون فقدان أي بيانات مدخلة.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => signInWithGoogle('/booking')}
+                        className="w-full py-2 px-3 text-xs font-bold bg-white hover:bg-[#F3ECE1] text-[#2C1E18] border border-[#D8CBB8] rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
+                          <path
+                            fill="#4285F4"
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                          />
+                          <path
+                            fill="#34A853"
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                          />
+                          <path
+                            fill="#FBBC05"
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                          />
+                          <path
+                            fill="#EA4335"
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                          />
+                        </svg>
+                        <span>متابعة بواسطة Google</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between text-[11px] text-[#645249] border-t border-[#F3ECE1]">
+                    <span>تفضلين تسجيل الدخول بالبريد الإلكتروني؟</span>
+                    <button
+                      type="button"
+                      onClick={() => openAuthModal('booking')}
+                      className="font-bold text-[#8C6D36] hover:text-[#2C1E18] underline cursor-pointer"
+                    >
+                      تسجيل الدخول / حساب جديد
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Client Name & Phone */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-[#2C1E18]">
@@ -1508,7 +1554,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
                     placeholder="الاسم الثلاثي..."
-                    className="w-full px-4 py-2.5 text-sm bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl focus:outline-none focus:border-[#2C1E18]"
+                    className="w-full px-4 py-2.5 text-sm bg-white border border-[#D8CBB8] rounded-xl focus:outline-none focus:border-[#2C1E18]"
                   />
                 </div>
 
@@ -1523,7 +1569,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                     value={clientPhone}
                     onChange={(e) => setClientPhone(e.target.value)}
                     placeholder="05XXXXXXXX"
-                    className="w-full px-4 py-2.5 text-sm font-mono-num bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl focus:outline-none focus:border-[#2C1E18]"
+                    className="w-full px-4 py-2.5 text-sm font-mono-num bg-white border border-[#D8CBB8] rounded-xl focus:outline-none focus:border-[#2C1E18]"
                   />
                 </div>
               </div>
@@ -1548,8 +1594,8 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                         onClick={() => setPreferredContactMethod(method.id as PreferredContactMethod)}
                         className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all ${
                           isSelected
-                            ? 'bg-[#2C1E18] text-[#FAF6F0] border-[#2C1E18]'
-                            : 'bg-[#F3ECE1] text-[#2C1E18] border-[#E6DCD2] hover:bg-[#E6DCD2]'
+                            ? 'bg-[#2C1E18] text-[#FAF6F0] border-[#2C1E18] shadow-2xs'
+                            : 'bg-white text-[#2C1E18] border-[#E6DCD2] hover:bg-[#F3ECE1]'
                         }`}
                       >
                         <Icon className="w-4 h-4 text-[#C8A96E]" />
@@ -1569,107 +1615,67 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                   rows={2}
                   value={specialNotes}
                   onChange={(e) => setSpecialNotes(e.target.value)}
-                  placeholder="أي تفاصيل ترغبين بإعلام فريق لومير بها قبل مراجعة الطلب..."
-                  className="w-full p-3 text-xs bg-[#FAF6F0] border border-[#D8CBB8] rounded-xl focus:outline-none focus:border-[#2C1E18]"
+                  placeholder="أي تفاصيل أو متطلبات خاصة ترغبين بإعلام فريق لومير بها قبل مراجعة الطلب..."
+                  className="w-full p-3 text-xs bg-white border border-[#D8CBB8] rounded-xl focus:outline-none focus:border-[#2C1E18]"
                 />
-              </div>
-
-              {/* Consents & Agreements */}
-              <div className="space-y-3 pt-2 border-t border-[#E6DCD2]">
-                <label className="block text-xs font-bold text-[#2C1E18]">
-                  الموافقات والإقرارات المطلوبة *
-                </label>
-
-                {/* Terms and Privacy */}
-                <label className="p-3.5 rounded-xl bg-[#F3ECE1]/80 border border-[#E6DCD2] flex items-start gap-3 cursor-pointer text-xs leading-relaxed text-[#2C1E18]">
-                  <input
-                    type="checkbox"
-                    checked={agreedTermsAndPrivacy}
-                    onChange={(e) => setAgreedTermsAndPrivacy(e.target.checked)}
-                    className="mt-0.5 accent-[#8C6D36]"
-                  />
-                  <span>
-                    أوافق على <strong>الشروط والأحكام</strong> وسياسة الخصوصية لعلامة <strong>لومير</strong>، وأعلم أن هذا الطلب مبدئي ويخضع لمراجعة وتأكيد الإدارة قبل اعتماده.
-                  </span>
-                </label>
-
-                {/* Childcare Medical Disclaimer */}
-                {selectedService.category === 'childcare' && (
-                  <label className="p-3.5 rounded-xl bg-[#FFF9E6] border border-[#FFE0A3] flex items-start gap-3 cursor-pointer text-xs leading-relaxed text-[#7A4B00]">
-                    <input
-                      type="checkbox"
-                      checked={agreedNonMedicalDisclaimer}
-                      onChange={(e) => setAgreedNonMedicalDisclaimer(e.target.checked)}
-                      className="mt-0.5 accent-[#8C6D36]"
-                    />
-                    <span>
-                      <strong>إقرار وموافقة ولي الأمر:</strong> أقر بأن خدمة المشرفات هي إشراف ترفيهي مساند ومرافقة للأطفال أثناء ساعات المناسبة فقط، وليست حضانة مرخصة أو رعاية طبية خاصة.
-                    </span>
-                  </label>
-                )}
-
-                {/* Photography Privacy Pledge */}
-                {selectedService.category === 'mobile_photography' && (
-                  <label className="p-3.5 rounded-xl bg-[#EDF7F0] border border-[#B6DFC2] flex items-start gap-3 cursor-pointer text-xs leading-relaxed text-[#1F5E3B]">
-                    <input
-                      type="checkbox"
-                      checked={agreedPhotoPrivacy}
-                      onChange={(e) => setAgreedPhotoPrivacy(e.target.checked)}
-                      className="mt-0.5 accent-[#1F5E3B]"
-                    />
-                    <span>
-                      <strong>ميثاق خصوصية التصوير:</strong> أوافق على شروط التصوير بالجوال مع تعهد لومير التام بعدم نشر أو مشاركة أي صورة أو مقطع دون إذن خطي صريح.
-                    </span>
-                  </label>
-                )}
               </div>
             </div>
           )}
 
           {/* ================= STAGE 6: Order Summary & Review ================= */}
           {currentStep === 6 && (
-            <div className="p-7 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-6">
-              <div className="border-b border-[#E6DCD2] pb-4 flex items-center justify-between">
+            <div className="p-6 sm:p-7 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-6 shadow-2xs">
+              <div className="border-b border-[#E6DCD2] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <span className="text-xs font-bold text-[#8C6D36]">المرحلة السادسة</span>
-                  <h2 className="font-display text-2xl font-bold text-[#2C1E18]">
-                    مراجعة ملخص الطلب قبل الإرسال
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F3ECE1] text-[#8C6D36] text-[11px] font-bold mb-1.5">
+                    <FileText className="w-3 h-3 text-[#C8A96E]" />
+                    <span>المرحلة السادسة · الخطوة ٦ من ٧</span>
+                  </div>
+                  <h2 className="font-display text-2xl sm:text-3xl font-bold text-[#2C1E18]">
+                    ملخص الطلب
                   </h2>
+                  <p className="text-xs sm:text-sm text-[#645249] mt-0.5">
+                    راجعي تفاصيل حجزكِ وبيانات المناسبة قبل الإرسال النهائي لفريق لومير.
+                  </p>
                 </div>
-                <span className="px-3 py-1 rounded-full bg-[#FFF7E6] text-[#B76E00] border border-[#FFE0A3] text-xs font-bold">
-                  حالة الطلب: مسودة جاهزة للمراجعة
+                <span className="self-start sm:self-center px-3 py-1 rounded-full bg-[#FFF7E6] text-[#B76E00] border border-[#FFE0A3] text-xs font-bold">
+                  مسودة جاهزة للإرسال
                 </span>
               </div>
 
               {/* Receipt Style Card */}
-              <div className="p-6 rounded-2xl bg-[#FAF6F0] border-2 border-dashed border-[#D8CBB8] space-y-6">
-                <div className="flex items-center justify-between border-b border-[#E6DCD2] pb-4">
+              <div className="p-5 sm:p-6 rounded-2xl bg-white border border-[#D8CBB8] space-y-6 shadow-xs">
+                {/* Service Header in Receipt */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#F3ECE1] pb-4">
                   <div className="space-y-1">
-                    <span className="text-xs text-[#8C6D36]">الخدمة والباقة</span>
+                    <span className="text-xs text-[#8C6D36] font-medium">الخدمة المختارة</span>
                     <h3 className="font-display text-xl font-bold text-[#2C1E18]">
                       {selectedService.name}
                     </h3>
                     {selectedPackage && (
                       <div className="text-xs text-[#645249]">
-                        {selectedPackage.name} ({formatArabicNumber(selectedPackage.durationHours || durationHours)} ساعات)
+                        باقة: <strong className="text-[#2C1E18]">{selectedPackage.name}</strong> ({formatArabicNumber(selectedPackage.durationHours || durationHours)} ساعات تغطية)
                       </div>
                     )}
                   </div>
-                  <div className="text-left font-mono-num font-bold text-lg text-[#2C1E18]">
-                    {formatSar(priceBreakdown.basePrice)}
+                  <div className="text-right sm:text-left">
+                    <span className="text-[11px] text-[#7A685F] block">سعر الخدمة الأساسية:</span>
+                    <span className="font-mono-num font-bold text-lg text-[#2C1E18]">
+                      {formatSar(priceBreakdown.basePrice)}
+                    </span>
                   </div>
                 </div>
 
                 {/* Details Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div className="p-3.5 rounded-xl bg-[#F3ECE1] space-y-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                  <div className="p-3.5 rounded-xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-1">
                     <span className="text-[#8C6D36] block font-bold">المدينة والموقع:</span>
                     <div className="font-bold text-[#2C1E18]">{city} — حي {district}</div>
-                    {venueName && <div className="text-[#645249]">القاعة: {venueName}</div>}
+                    {venueName && <div className="text-[#645249]">القاعة / الموقع: {venueName}</div>}
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-[#F3ECE1] space-y-1">
-                    <span className="text-[#8C6D36] block font-bold">التاريخ والتوقيت:</span>
+                  <div className="p-3.5 rounded-xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-1">
+                    <span className="text-[#8C6D36] block font-bold">الموعد والتوقيت:</span>
                     <div className="font-bold text-[#2C1E18]">
                       {formatArabicDate(eventDate)}
                     </div>
@@ -1678,13 +1684,13 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-[#F3ECE1] space-y-1">
-                    <span className="text-[#8C6D36] block font-bold">بيانات العميل:</span>
+                  <div className="p-3.5 rounded-xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-1">
+                    <span className="text-[#8C6D36] block font-bold">بيانات العميلة:</span>
                     <div className="font-bold text-[#2C1E18]">{clientName}</div>
                     <div className="text-[#645249] font-mono-num" dir="ltr">{clientPhone}</div>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-[#F3ECE1] space-y-1">
+                  <div className="p-3.5 rounded-xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-1">
                     <span className="text-[#8C6D36] block font-bold">وسيلة التواصل المفضلة:</span>
                     <div className="font-bold text-[#2C1E18]">
                       {preferredContactMethod === 'whatsapp'
@@ -1698,14 +1704,14 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
 
                 {/* Selected Addons */}
                 {selectedAddonIds.length > 0 && (
-                  <div className="space-y-2 border-t border-[#E6DCD2] pt-4 text-xs">
+                  <div className="space-y-2 border-t border-[#F3ECE1] pt-4 text-xs">
                     <span className="font-bold text-[#2C1E18]">الخدمات الإضافية المختارة:</span>
                     <div className="space-y-1.5">
                       {selectedAddonIds.map((id) => {
                         const addon = selectedService.addons.find((a) => a.id === id);
                         if (!addon) return null;
                         return (
-                          <div key={id} className="flex items-center justify-between text-[#5C4940]">
+                          <div key={id} className="flex items-center justify-between text-[#5C4940] bg-[#FAF6F0] p-2.5 rounded-lg border border-[#E6DCD2]">
                             <span>+ {addon.name}</span>
                             <span className="font-mono-num font-bold text-[#2C1E18]">
                               {formatSar(addon.price)}
@@ -1717,51 +1723,103 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                   </div>
                 )}
 
-                {/* Financial Summary Table */}
-                <div className="border-t border-[#E6DCD2] pt-4 space-y-2.5 text-xs">
-                  <div className="flex items-center justify-between text-[#645249]">
-                    <span>سعر الخدمة الأساسية / الباقة:</span>
-                    <span className="font-mono-num">{formatSar(priceBreakdown.basePrice)}</span>
+                {/* Financial Breakdown & Estimated Total */}
+                <div className="border-t border-[#E6DCD2] pt-4 space-y-3">
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between text-[#645249]">
+                      <span>سعر الخدمة الأساسية / الباقة:</span>
+                      <span className="font-mono-num">{formatSar(priceBreakdown.basePrice)}</span>
+                    </div>
+
+                    {priceBreakdown.addonsTotal > 0 && (
+                      <div className="flex items-center justify-between text-[#645249]">
+                        <span>مجموع الخدمات الإضافية:</span>
+                        <span className="font-mono-num">+{formatSar(priceBreakdown.addonsTotal)}</span>
+                      </div>
+                    )}
+
+                    {priceBreakdown.approvedFees > 0 && (
+                      <div className="flex items-center justify-between text-[#645249]">
+                        <span>الرسوم المعتمدة والمحددة:</span>
+                        <span className="font-mono-num">+{formatSar(priceBreakdown.approvedFees)}</span>
+                      </div>
+                    )}
                   </div>
 
-                  {priceBreakdown.addonsTotal > 0 && (
-                    <div className="flex items-center justify-between text-[#645249]">
-                      <span>مجموع الخدمات الإضافية:</span>
-                      <span className="font-mono-num">+{formatSar(priceBreakdown.addonsTotal)}</span>
+                  {/* Prominent Estimated Total Banner */}
+                  <div className="p-4 rounded-xl bg-[#2C1E18] text-[#FAF6F0] flex items-center justify-between shadow-sm">
+                    <div>
+                      <span className="text-xs text-[#C8A96E] block font-medium">السعر التقديري الإجمالي</span>
+                      <span className="text-[11px] text-[#FAF6F0]/70">تقديري أولي لحين مراجعة الموعد</span>
                     </div>
-                  )}
-
-                  {priceBreakdown.approvedFees > 0 && (
-                    <div className="flex items-center justify-between text-[#645249]">
-                      <span>الرسوم المعتمدة والمحددة في الإعدادات:</span>
-                      <span className="font-mono-num">+{formatSar(priceBreakdown.approvedFees)}</span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between text-sm sm:text-base font-bold text-[#2C1E18] pt-2 border-t border-[#D8CBB8]">
-                    <span>السعر التقديري الإجمالي:</span>
-                    <span className="font-mono-num text-[#8C6D36]">
+                    <span className="font-mono-num font-bold text-2xl text-[#C8A96E]">
                       {formatSar(priceBreakdown.estimatedTotal)}
                     </span>
                   </div>
 
-                  {priceBreakdown.isCustomQuoteRequired && (
-                    <div className="p-3 rounded-lg bg-[#F3ECE1] text-[11px] text-[#645249]">
-                      * هذه الخدمة تتطلب تسعيراً نهائياً دقيقاً بحسب عدد الأطفال وتجهيزات القاعة بعد مراجعة الإدارة.
-                    </div>
+                  <p className="text-[11px] text-[#7A685F] leading-relaxed">
+                    * يُرجى العلم أن هذا السعر تقديري أولي مبني على الخيارات المحددة، ويخضع للمراجعة النهائية من قبل الإدارة بناءً على متطلبات المناسبة والجدول المعتمد.
+                  </p>
+                </div>
+
+                {/* Consents & Agreements Checkbox */}
+                <div className="space-y-3 pt-3 border-t border-[#E6DCD2]">
+                  <label className="block text-xs font-bold text-[#2C1E18]">
+                    الموافقات المطلوبة لإتمام إرسال الطلب *
+                  </label>
+
+                  <label className="p-3.5 rounded-xl bg-[#FAF6F0] border border-[#E6DCD2] flex items-start gap-3 cursor-pointer text-xs leading-relaxed text-[#2C1E18] hover:bg-[#F3ECE1] transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={agreedTermsAndPrivacy}
+                      onChange={(e) => setAgreedTermsAndPrivacy(e.target.checked)}
+                      className="mt-0.5 accent-[#8C6D36] w-4 h-4 rounded"
+                    />
+                    <span>
+                      أوافق على <strong>الشروط والأحكام</strong> وسياسة الخصوصية لعلامة <strong>لومير</strong>، وأعلم أن هذا الطلب مبدئي ويخضع لمراجعة وتأكيد الإدارة قبل اعتماده رسمياً.
+                    </span>
+                  </label>
+
+                  {/* Childcare Disclaimer */}
+                  {selectedService.category === 'childcare' && (
+                    <label className="p-3.5 rounded-xl bg-[#FFF9E6] border border-[#FFE0A3] flex items-start gap-3 cursor-pointer text-xs leading-relaxed text-[#7A4B00]">
+                      <input
+                        type="checkbox"
+                        checked={agreedNonMedicalDisclaimer}
+                        onChange={(e) => setAgreedNonMedicalDisclaimer(e.target.checked)}
+                        className="mt-0.5 accent-[#8C6D36] w-4 h-4 rounded"
+                      />
+                      <span>
+                        <strong>إقرار وموافقة ولي الأمر:</strong> أقر بأن خدمة المشرفات هي إشراف ترفيهي مساند ومرافقة للأطفال أثناء ساعات المناسبة فقط، وليست حضانة مرخصة أو رعاية طبية خاصة.
+                      </span>
+                    </label>
+                  )}
+
+                  {/* Photography Disclaimer */}
+                  {selectedService.category === 'mobile_photography' && (
+                    <label className="p-3.5 rounded-xl bg-[#EDF7F0] border border-[#B6DFC2] flex items-start gap-3 cursor-pointer text-xs leading-relaxed text-[#1F5E3B]">
+                      <input
+                        type="checkbox"
+                        checked={agreedPhotoPrivacy}
+                        onChange={(e) => setAgreedPhotoPrivacy(e.target.checked)}
+                        className="mt-0.5 accent-[#1F5E3B] w-4 h-4 rounded"
+                      />
+                      <span>
+                        <strong>ميثاق خصوصية التصوير:</strong> أوافق على شروط التصوير بالجوال مع تعهد لومير التام بعدم نشر أو مشاركة أي صورة أو مقطع دون إذن خطي صريح.
+                      </span>
+                    </label>
                   )}
                 </div>
 
-                {/* Notice before submit */}
+                {/* Pre-submit Notice */}
                 <div className="p-4 rounded-xl bg-[#FFF7E6] border border-[#FFE0A3] text-xs text-[#7A4B00] flex items-start gap-2.5">
                   <Info className="w-5 h-5 shrink-0 text-[#B76E00] mt-0.5" />
                   <div>
                     <strong className="block font-bold mb-0.5">
-                      تنبيه هام بشأن تأكيد الحجز:
+                      تنبيه مهم قبل إرسال الطلب:
                     </strong>
                     <span>
-                      {settings.bookingNotice ||
-                        'يعتبر هذا الطلب مبدئياً ولا يتم تأكيد الموعد نهائياً إلا بعد مراجعة فريق الإدارة والتحقق من التوفر وجدولة الموعد رسمياً.'}
+                      إرسال الطلب لا يعني تأكيد الموعد النهائي. سيقوم فريق لومير بمراجعة طلبكِ والتحقق من توفر الطاقم والتواصل معكِ لاعتماد الحجز رسميًا.
                     </span>
                   </div>
                 </div>
@@ -1769,19 +1827,19 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
             </div>
           )}
 
-          {/* ================= STAGE 7: Submission Result & Unique Reference ================= */}
+          {/* ================= STAGE 7: Confirmation & Reference ================= */}
           {currentStep === 7 && confirmedBooking && (
-            <div className="p-8 rounded-3xl bg-[#FAF6F0] border-2 border-[#1F5E3B]/30 space-y-8 text-center sm:text-right">
-              {/* Top Banner */}
+            <div className="p-6 sm:p-8 rounded-3xl bg-[#FAF6F0] border-2 border-[#1F5E3B]/30 space-y-7 text-center sm:text-right shadow-sm">
+              {/* Header Status */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-[#E6DCD2]">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-[#EDF7F0] border border-[#B6DFC2] flex items-center justify-center text-[#1F5E3B]">
+                  <div className="w-12 h-12 rounded-2xl bg-[#EDF7F0] border border-[#B6DFC2] flex items-center justify-center text-[#1F5E3B] shrink-0">
                     <CheckCircle2 className="w-7 h-7" />
                   </div>
                   <div>
                     <span className="text-xs font-bold text-[#1F5E3B]">المرحلة السابعة · اكتمل الإرسال بنجاح</span>
-                    <h2 className="font-display text-2xl font-bold text-[#2C1E18]">
-                      تم تسجيل طلب الحجز المبدئي
+                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-[#2C1E18]">
+                      تم استلام طلب الحجز
                     </h2>
                   </div>
                 </div>
@@ -1792,10 +1850,10 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                 </div>
               </div>
 
-              {/* Reference Code Highlight */}
-              <div className="p-6 rounded-2xl bg-[#2C1E18] text-[#FAF6F0] space-y-3 text-center">
+              {/* Reference Code Card */}
+              <div className="p-6 rounded-2xl bg-[#2C1E18] text-[#FAF6F0] space-y-3 text-center shadow-md">
                 <span className="text-xs text-[#C8A96E] font-medium tracking-wider">
-                  الرقم المرجعي الفريد لطلبكِ
+                  الرقم المرجعي لطلبكِ
                 </span>
                 <div className="font-mono text-3xl sm:text-4xl font-bold tracking-widest text-[#FAF6F0]">
                   {confirmedBooking.referenceCode}
@@ -1804,10 +1862,10 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                   <button
                     type="button"
                     onClick={() => handleCopyCode(confirmedBooking.referenceCode)}
-                    className="px-4 py-2 rounded-xl bg-[#FAF6F0]/15 hover:bg-[#FAF6F0]/25 text-xs font-medium flex items-center gap-2 cursor-pointer transition-colors"
+                    className="px-4 py-2 rounded-xl bg-[#FAF6F0]/15 hover:bg-[#FAF6F0]/25 text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors"
                   >
                     <Copy className="w-4 h-4 text-[#C8A96E]" />
-                    <span>{copiedCode ? 'تم النسخ بنجاح!' : 'نسخ الرقم المرجعي'}</span>
+                    <span>{copiedCode ? '✓ تم النسخ بنجاح!' : 'نسخ الرقم المرجعي'}</span>
                   </button>
                   <button
                     type="button"
@@ -1820,47 +1878,58 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                 </div>
               </div>
 
+              {/* Exact Thank You Message Box */}
+              <div className="p-5 sm:p-6 rounded-2xl bg-[#EDF7F0] border border-[#B6DFC2] text-right space-y-2">
+                <div className="flex items-center gap-2 text-sm font-bold text-[#1F5E3B]">
+                  <Sparkles className="w-4 h-4 text-[#1F5E3B]" />
+                  <span>شكرًا لثقتكِ بلومير 🤍</span>
+                </div>
+                <p className="text-xs sm:text-sm text-[#1F5E3B] leading-relaxed">
+                  تم استلام طلبكِ بنجاح، وسيتواصل معكِ فريقنا لمتابعة التفاصيل وتأكيد الموعد.
+                </p>
+              </div>
+
               {/* Booking Summary Box */}
-              <div className="p-5 rounded-2xl bg-[#F3ECE1] border border-[#E6DCD2] text-xs space-y-3">
+              <div className="p-5 rounded-2xl bg-white border border-[#E6DCD2] text-xs space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <span className="text-[#8C6D36] block font-bold">الخدمة المطلوبة:</span>
+                  <div className="p-3 rounded-xl bg-[#FAF6F0]">
+                    <span className="text-[#8C6D36] block font-bold mb-0.5">الخدمة المطلوبة:</span>
                     <span className="font-bold text-[#2C1E18]">{confirmedBooking.serviceName}</span>
                   </div>
-                  <div>
-                    <span className="text-[#8C6D36] block font-bold">الموقع:</span>
+                  <div className="p-3 rounded-xl bg-[#FAF6F0]">
+                    <span className="text-[#8C6D36] block font-bold mb-0.5">الموقع:</span>
                     <span className="font-bold text-[#2C1E18]">
                       {confirmedBooking.city} — حي {confirmedBooking.district}
                     </span>
                   </div>
-                  <div>
-                    <span className="text-[#8C6D36] block font-bold">الموعد والتوقيت:</span>
+                  <div className="p-3 rounded-xl bg-[#FAF6F0]">
+                    <span className="text-[#8C6D36] block font-bold mb-0.5">الموعد والتوقيت:</span>
                     <span className="font-bold text-[#2C1E18]">
                       {formatArabicDate(confirmedBooking.eventDate)} ({formatArabicTime(confirmedBooking.startTime)})
                     </span>
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-[#E6DCD2] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="pt-3 border-t border-[#F3ECE1] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <span className="text-[#645249]">السعر التقديري الإجمالي:</span>
-                  <span className="font-mono-num font-bold text-sm text-[#8C6D36]">
+                  <span className="font-mono-num font-bold text-base text-[#8C6D36]">
                     {formatSar(confirmedBooking.estimatedTotalSar || confirmedBooking.subtotalSar)}
                   </span>
                 </div>
               </div>
 
-              {/* What happens next explanation */}
-              <div className="p-4 rounded-xl bg-[#FAF6F0] border border-[#D8CBB8] text-xs text-[#5C4940] space-y-2">
-                <strong className="block text-[#2C1E18] font-bold">ما هي الخطوات التالية؟</strong>
-                <ol className="list-decimal list-inside space-y-1 text-right">
-                  <li>يقوم فريق إدارة لومير بمراجعة توفر المشرفات والمصورات في التاريخ والوقت المحددين.</li>
+              {/* Next Steps */}
+              <div className="p-4 rounded-xl bg-white border border-[#D8CBB8] text-xs text-[#5C4940] space-y-2 text-right">
+                <strong className="block text-[#2C1E18] font-bold">الخطوات التالية:</strong>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>يقوم فريق إدارة لومير بمراجعة توفر المشرفات والمصورات في الموعد المحدد.</li>
                   <li>يتم التواصل معكِ عبر <strong>{preferredContactMethod === 'whatsapp' ? 'واتساب' : 'الاتصال'}</strong> لإبلاغكِ بقبول الطلب وتأكيد السعر النهائي.</li>
-                  <li>تتحول حالة الطلب في النظام إلى «بانتظار تأكيد العميل» ثم «مؤكد» رسمياً بعد الاتفاق.</li>
+                  <li>تتحول حالة الطلب في النظام إلى «مؤكد» رسمياً بعد الاتفاق.</li>
                 </ol>
               </div>
 
-              {/* Rate Service Invitation */}
-              <div className="p-4 rounded-2xl bg-[#F3ECE1] border border-[#D8CBB8] flex flex-col sm:flex-row items-center justify-between gap-3 text-right">
+              {/* Rate Service Card */}
+              <div className="p-4 rounded-2xl bg-white border border-[#D8CBB8] flex flex-col sm:flex-row items-center justify-between gap-3 text-right">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-[#8C6D36]">
                     <Star className="w-4 h-4 fill-[#8C6D36]" />
@@ -1882,55 +1951,55 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                 )}
               </div>
 
-              {/* CTAs */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+              {/* Primary Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => navigate('booking-status')}
+                  className="w-full sm:w-auto px-7 py-3 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold text-xs hover:bg-[#422E25] cursor-pointer transition-colors shadow-xs"
+                >
+                  <span>تتبع طلبكِ برقمكِ المرجعي</span>
+                </button>
+
                 <a
                   href={buildBookingWhatsAppSummary(confirmedBooking, settings.whatsappLocal)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#25D366] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md hover:bg-[#1EBE5D] transition-colors"
+                  className="w-full sm:w-auto px-7 py-3 rounded-xl bg-[#25D366] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm hover:bg-[#1EBE5D] transition-colors"
                 >
                   <MessageCircle className="w-4 h-4" />
-                  <span>إرسال ملخص الطلب إلى واتساب لومير</span>
+                  <span>إرسال ملخص الطلب عبر واتساب</span>
                 </a>
-
-                <button
-                  type="button"
-                  onClick={() => navigate('booking-status')}
-                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#2C1E18] text-[#FAF6F0] font-bold text-xs hover:bg-[#422E25] cursor-pointer transition-colors"
-                >
-                  <span>متابعة حالة الطلب برقمكِ المرجعي</span>
-                </button>
               </div>
             </div>
           )}
 
           {/* Wizard Navigation Action Bar (Steps 1 to 6) */}
           {currentStep < 7 && (
-            <div className="p-5 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] flex flex-wrap items-center justify-between gap-4">
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] flex flex-wrap items-center justify-between gap-3 shadow-2xs">
               <div>
                 {currentStep > 1 && (
                   <button
                     type="button"
                     onClick={handlePrevStep}
-                    className="px-5 py-2.5 rounded-xl border border-[#D8CBB8] text-xs font-bold text-[#2C1E18] hover:bg-[#F3ECE1] cursor-pointer flex items-center gap-1.5 transition-colors"
+                    className="px-5 py-2.5 rounded-xl border border-[#D8CBB8] text-xs font-bold text-[#2C1E18] hover:bg-[#F3ECE1] cursor-pointer flex items-center gap-1.5 transition-colors bg-white shadow-2xs"
                   >
                     <ChevronRight className="w-4 h-4" />
-                    <span>المرحلة السابقة</span>
+                    <span>السابق</span>
                   </button>
                 )}
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
                 {/* Draft Option */}
                 {currentStep >= 3 && (
                   <button
                     type="button"
                     onClick={() => handleFinalSubmit(true)}
                     disabled={isSubmitting}
-                    className="px-4 py-2.5 rounded-xl border border-dashed border-[#8C6D36] text-[#8C6D36] text-xs font-medium hover:bg-[#F3ECE1] cursor-pointer transition-colors"
+                    className="px-4 py-2.5 rounded-xl border border-dashed border-[#8C6D36] text-[#8C6D36] text-xs font-medium hover:bg-[#F3ECE1] cursor-pointer transition-colors bg-white"
                   >
-                    حفظ الطلب كمسودة
+                    حفظ كمسودة
                   </button>
                 )}
 
@@ -1939,9 +2008,9 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                   <button
                     type="button"
                     onClick={handleNextStep}
-                    className="px-6 py-2.5 rounded-xl bg-[#2C1E18] text-[#FAF6F0] text-xs font-bold hover:bg-[#422E25] cursor-pointer flex items-center gap-1.5 transition-colors"
+                    className="px-7 py-2.5 rounded-xl bg-[#2C1E18] text-[#FAF6F0] text-xs font-bold hover:bg-[#422E25] cursor-pointer flex items-center gap-1.5 transition-colors shadow-xs"
                   >
-                    <span>المرحلة التالية</span>
+                    <span>التالي</span>
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                 ) : (
@@ -1959,7 +2028,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                     ) : (
                       <>
                         <Check className="w-4 h-4" />
-                        <span>إرسال طلب الحجز الرسمي (مرحلة ٧)</span>
+                        <span>إرسال طلب الحجز</span>
                       </>
                     )}
                   </button>
